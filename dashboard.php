@@ -1,0 +1,352 @@
+<?php
+require_once 'config.php';
+requireAdminLogin();
+
+$admin = getCurrentAdmin();
+
+// Get statistics
+$pdo = getDBConnection();
+
+// Total staff
+$stmt = $pdo->query("SELECT COUNT(*) as total FROM staff WHERE status = 'active'");
+$staffCount = $stmt->fetch()['total'];
+
+// Total evaluations
+$stmt = $pdo->query("SELECT COUNT(*) as total FROM evaluations");
+$evalCount = $stmt->fetch()['total'];
+
+// Pending evaluations
+$stmt = $pdo->query("SELECT COUNT(*) as total FROM evaluations WHERE status = 'draft'");
+$pendingCount = $stmt->fetch()['total'];
+
+// Completed evaluations
+$stmt = $pdo->query("SELECT COUNT(*) as total FROM evaluations WHERE status = 'submitted' OR status = 'approved'");
+$completedCount = $stmt->fetch()['total'];
+
+// Recent evaluations
+$stmt = $pdo->query("
+    SELECT e.*, CONCAT(s.first_name, ' ', s.surname) as full_name, s.staff_id, s.department
+    FROM evaluations e
+    JOIN staff s ON e.staff_id = s.id
+    ORDER BY e.created_at DESC
+    LIMIT 5
+");
+$recentEvals = $stmt->fetchAll();
+
+// Get settings
+$stmt = $pdo->query("SELECT * FROM settings");
+$settings = [];
+while ($row = $stmt->fetch()) {
+    $settings[$row['setting_key']] = $row['setting_value'];
+}
+
+// Get colors
+$primaryColor = $settings['primary_color'] ?? '#1e3a8a';
+$secondaryColor = $settings['secondary_color'] ?? '#3b82f6';
+$logo = $settings['institution_logo'] ?? '';
+$instName = $settings['institution_name'] ?? 'Institution';
+$instAddress = $settings['institution_address'] ?? '';
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - APER Admin</title>
+    <?php if (!empty($logo)): ?>
+    <link rel="icon" type="image/png" href="<?php echo htmlspecialchars($logo); ?>">
+    <?php endif; ?>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: <?php echo $primaryColor; ?>;
+            --secondary-blue: <?php echo $secondaryColor; ?>;
+        }
+        body {
+            background: #f3f4f6;
+        }
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%);
+            color: white;
+        }
+        .sidebar .sidebar-header {
+            padding: 15px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 10px;
+        }
+        .sidebar .sidebar-header h5 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 8px 0 5px 0;
+        }
+        .sidebar .sidebar-header small {
+            font-size: 0.7rem;
+            opacity: 0.9;
+        }
+        .sidebar a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            padding: 10px 12px;
+            display: block;
+            border-radius: 6px;
+            margin-bottom: 3px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+        .top-bar {
+            background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%);
+            color: white;
+            padding: 1.2rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .top-bar h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        .top-bar small {
+            color: rgba(255,255,255,0.9);
+        }
+        .top-bar a {
+            color: white;
+            text-decoration: none;
+        }
+        .top-bar a:hover {
+            text-decoration: underline;
+        }
+        .sidebar a i {
+            width: 25px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-3">
+                <div class="text-center sidebar-header">
+                    <?php if (!empty($logo)): ?>
+                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 45px; margin-bottom: 8px; border: 2px solid white; border-radius: 6px; padding: 2px;">
+                    <?php else: ?>
+                        <i class="fas fa-graduation-cap fa-2x mb-2"></i>
+                    <?php endif; ?>
+                    <h5 class="mb-0"><?php echo htmlspecialchars($instName); ?></h5>
+                    <?php if (!empty($instAddress)): ?>
+                        <small class="d-block text-truncate" style="max-width: 150px; margin: 0 auto;"><?php echo htmlspecialchars($instAddress); ?></small>
+                    <?php endif; ?>
+                </div>
+                <div class="py-3">
+                    <a href="dashboard.php" class="active"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
+                    <a href="staff.php"><i class="fas fa-users"></i> Staff</a>
+                    <a href="staff-upload.php"><i class="fas fa-upload"></i> Upload Staff</a>
+                    <a href="questions.php"><i class="fas fa-question-circle"></i> Questions</a>
+                    <a href="roles.php"><i class="fas fa-user-tag"></i> Staff Roles</a>
+                    <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>
+                    <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
+                    <a href="sessions.php"><i class="fas fa-calendar"></i> Sessions</a>
+                    <a href="logout.php" class="text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 p-0">
+                <!-- Top Bar -->
+                <div class="top-bar">
+                    <div class="container-fluid">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <?php if (!empty($logo)): ?>
+                                <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 55px; margin-right: 15px; border: 2px solid white; border-radius: 8px; padding: 3px; background: rgba(255,255,255,0.2);">
+                                <?php endif; ?>
+                                <div>
+                                    <h3 class="mb-0 fw-bold"><?php echo htmlspecialchars($instName); ?></h3>
+                                    <?php if (!empty($instAddress)): ?>
+                                    <small><i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($instAddress); ?></small>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-white-50">Welcome, <?php echo htmlspecialchars($admin['name']); ?></small>
+                                <br>
+                                <a href="logout.php" class="text-white small"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Content -->
+                <div class="p-4">
+
+                <!-- Stats -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center">
+                                <div class="icon bg-primary text-white"><i class="fas fa-users"></i></div>
+                                <div class="ms-3">
+                                    <div class="value"><?php echo $staffCount; ?></div>
+                                    <div class="text-muted">Active Staff</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center">
+                                <div class="icon bg-info text-white"><i class="fas fa-clipboard-list"></i></div>
+                                <div class="ms-3">
+                                    <div class="value"><?php echo $evalCount; ?></div>
+                                    <div class="text-muted">Total Evaluations</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center">
+                                <div class="icon bg-warning text-white"><i class="fas fa-clock"></i></div>
+                                <div class="ms-3">
+                                    <div class="value"><?php echo $pendingCount; ?></div>
+                                    <div class="text-muted">Pending</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center">
+                                <div class="icon bg-success text-white"><i class="fas fa-check-circle"></i></div>
+                                <div class="ms-3">
+                                    <div class="value"><?php echo $completedCount; ?></div>
+                                    <div class="text-muted">Completed</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-4">
+                        <a href="staff.php?action=add" class="text-decoration-none">
+                            <div class="stat-card text-center">
+                                <i class="fas fa-user-plus fa-2x text-primary mb-2"></i>
+                                <h5>Add New Staff</h5>
+                                <p class="text-muted mb-0">Register a new staff member</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="evaluate.php" class="text-decoration-none">
+                            <div class="stat-card text-center">
+                                <i class="fas fa-edit fa-2x text-success mb-2"></i>
+                                <h5>Start Evaluation</h5>
+                                <p class="text-muted mb-0">Evaluate a staff member</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="reports.php" class="text-decoration-none">
+                            <div class="stat-card text-center">
+                                <i class="fas fa-file-alt fa-2x text-info mb-2"></i>
+                                <h5>View Reports</h5>
+                                <p class="text-muted mb-0">View all evaluation reports</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Recent Evaluations -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Evaluations</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Staff ID</th>
+                                        <th>Name</th>
+                                        <th>Department</th>
+                                        <th>Score</th>
+                                        <th>Grade</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($recentEvals)): ?>
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted">No evaluations yet</td>
+                                        </tr>
+                                    <?php else: ?>
+                                        <?php foreach ($recentEvals as $eval): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($eval['staff_id']); ?></td>
+                                            <td><?php echo htmlspecialchars($eval['full_name']); ?></td>
+                                            <td><?php echo htmlspecialchars($eval['department']); ?></td>
+                                            <td><?php echo $eval['total_score']; ?>/115</td>
+                                            <td>
+                                                <span class="badge bg-<?php
+                                                    echo $eval['performance_grade'] == 'Outstanding' ? 'success' :
+                                                        ($eval['performance_grade'] == 'Excellent' ? 'primary' :
+                                                        ($eval['performance_grade'] == 'Very Good' ? 'info' :
+                                                        ($eval['performance_grade'] == 'Good' ? 'warning' : 'danger')));
+                                                ?>">
+                                                    <?php echo $eval['performance_grade']; ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-<?php
+                                                    echo $eval['status'] == 'approved' ? 'success' :
+                                                        ($eval['status'] == 'submitted' ? 'primary' : 'warning');
+                                                ?>">
+                                                    <?php echo ucfirst($eval['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo date('M d, Y', strtotime($eval['created_at'])); ?></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

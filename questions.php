@@ -1,0 +1,352 @@
+<?php
+require_once 'config.php';
+requireAdminLogin();
+
+$message = getMessage();
+$pdo = getDBConnection();
+
+// Get institution settings
+$stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
+$settings = [];
+while ($row = $stmt->fetch()) {
+    $settings[$row['setting_key']] = $row['setting_value'];
+}
+$instName = $settings['institution_name'] ?? 'Institution';
+$instAddress = $settings['institution_address'] ?? '';
+$logo = $settings['institution_logo'] ?? '';
+
+// Handle add/edit/delete question
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['add_question'])) {
+        $questionType = $_POST['question_type'];
+        $options = '';
+
+        // For multiple choice, get options
+        if ($questionType === 'multiple_choice' || $questionType === 'single_choice') {
+            $options = sanitize($_POST['options']);
+        }
+
+        $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_order, question_type, options) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([
+            sanitize($_POST['category']),
+            sanitize($_POST['question_text']),
+            intval($_POST['question_order']),
+            $questionType,
+            $options
+        ]);
+        showMessage('Question added successfully!', 'success');
+    }
+
+    if (isset($_POST['update_question'])) {
+        $questionType = $_POST['question_type'];
+        $options = '';
+
+        if ($questionType === 'multiple_choice' || $questionType === 'single_choice') {
+            $options = sanitize($_POST['options']);
+        }
+
+        $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, question_text = ?, question_order = ?, question_type = ?, options = ?, is_active = ? WHERE id = ?");
+        $stmt->execute([
+            sanitize($_POST['category']),
+            sanitize($_POST['question_text']),
+            intval($_POST['question_order']),
+            $questionType,
+            $options,
+            isset($_POST['is_active']) ? 1 : 0,
+            intval($_POST['question_id'])
+        ]);
+        showMessage('Question updated successfully!', 'success');
+    }
+
+    if (isset($_POST['delete_question'])) {
+        $stmt = $pdo->prepare("DELETE FROM evaluation_questions WHERE id = ?");
+        $stmt->execute([intval($_POST['question_id'])]);
+        showMessage('Question deleted successfully!', 'success');
+    }
+
+    redirect('questions.php');
+}
+
+// Get all questions grouped by category
+$stmt = $pdo->query("SELECT * FROM evaluation_questions ORDER BY category, question_order");
+$questions = $stmt->fetchAll();
+
+$questionsByCategory = [];
+foreach ($questions as $q) {
+    $questionsByCategory[$q['category']][] = $q;
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Questions - <?php echo htmlspecialchars($instName); ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary-blue: <?php echo $settings['primary_color'] ?? '#1e3a8a'; ?>; }
+        body { background: #f3f4f6; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#1e3a8a'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#3b82f6'; ?> 100%); color: white; }
+        .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-3">
+                <div class="text-center py-4 border-bottom border-secondary">
+                    <?php if (!empty($logo)): ?>
+                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 50px; margin-bottom: 10px;">
+                    <?php else: ?>
+                        <i class="fas fa-graduation-cap fa-2x mb-2"></i>
+                    <?php endif; ?>
+                    <h6 class="mb-0"><?php echo htmlspecialchars($instName); ?></h6>
+                    <?php if (!empty($instAddress)): ?>
+                        <small><?php echo htmlspecialchars($instAddress); ?></small>
+                    <?php endif; ?>
+                </div>
+                <div class="py-3">
+                    <a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
+                    <a href="staff.php"><i class="fas fa-users"></i> Staff</a>
+                    <a href="staff-upload.php"><i class="fas fa-upload"></i> Upload Staff</a>
+                    <a href="questions.php" class="active"><i class="fas fa-question-circle"></i> Questions</a>
+                    <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>
+                    <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
+                    <a href="sessions.php"><i class="fas fa-calendar"></i> Sessions</a>
+                    <a href="logout.php" class="text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 p-4">
+                <?php if ($message): ?>
+                    <div class="alert alert-<?php echo $message['type']; ?> alert-dismissible fade show">
+                        <?php echo $message['message']; ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                <?php endif; ?>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-question-circle me-2"></i>Evaluation Questions</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
+                        <i class="fas fa-plus me-2"></i>Add Question
+                    </button>
+                </div>
+
+                <p class="text-muted mb-4">
+                    Customize the questions that staff will answer in their self-evaluation form.
+                    You can add, edit, or delete questions for each category.
+                </p>
+
+                <!-- Questions by Category -->
+                <?php foreach ($questionsByCategory as $category => $categoryQuestions): ?>
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-folder me-2"></i><?php echo htmlspecialchars($category); ?> (<?php echo count($categoryQuestions); ?> questions)</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Question Type</th>
+                                    <th>Question</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($categoryQuestions as $q):
+                                    $typeLabels = [
+                                        'rating' => '⭐ Rating',
+                                        'single_choice' => '☐ Single',
+                                        'multiple_choice' => '☑ Multiple',
+                                        'true_false' => '✓ True/False',
+                                        'short_answer' => '✎ Short',
+                                        'long_answer' => '📝 Essay',
+                                        'yes_no' => 'Yes/No',
+                                        'scale' => '📏 Scale'
+                                    ];
+                                ?>
+                                <tr>
+                                    <td><?php echo $q['question_order']; ?></td>
+                                    <td><span class="badge bg-info"><?php echo $typeLabels[$q['question_type']] ?? $q['question_type']; ?></span></td>
+                                    <td><?php echo htmlspecialchars($q['question_text']); ?></td>
+                                    <td>
+                                        <span class="badge bg-<?php echo $q['is_active'] ? 'success' : 'secondary'; ?>">
+                                            <?php echo $q['is_active'] ? 'Active' : 'Inactive'; ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editQuestionModal<?php echo $q['id']; ?>">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="question_id" value="<?php echo $q['id']; ?>">
+                                            <button type="submit" name="delete_question" class="btn btn-sm btn-danger" onclick="return confirm('Delete this question?');">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+
+                                <!-- Edit Modal -->
+                                <div class="modal fade" id="editQuestionModal<?php echo $q['id']; ?>" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <form method="POST">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Edit Question</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <input type="hidden" name="question_id" value="<?php echo $q['id']; ?>">
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label">Category</label>
+                                                            <select class="form-select" name="category">
+                                                                <option value="Teaching" <?php echo $q['category'] == 'Teaching' ? 'selected' : ''; ?>>Teaching</option>
+                                                                <option value="Research" <?php echo $q['category'] == 'Research' ? 'selected' : ''; ?>>Research</option>
+                                                                <option value="Administrative" <?php echo $q['category'] == 'Administrative' ? 'selected' : ''; ?>>Administrative</option>
+                                                                <option value="Community" <?php echo $q['category'] == 'Community' ? 'selected' : ''; ?>>Community</option>
+                                                                <option value="Professional" <?php echo $q['category'] == 'Professional' ? 'selected' : ''; ?>>Professional</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label">Question Type</label>
+                                                            <select class="form-select" name="question_type" id="edit_type_<?php echo $q['id']; ?>" onchange="toggleOptionsField(this, 'edit_<?php echo $q['id']; ?>')">
+                                                                <option value="rating" <?php echo $q['question_type'] == 'rating' ? 'selected' : ''; ?>>⭐ Rating (1-5 Stars)</option>
+                                                                <option value="single_choice" <?php echo $q['question_type'] == 'single_choice' ? 'selected' : ''; ?>>☐ Single Choice</option>
+                                                                <option value="multiple_choice" <?php echo $q['question_type'] == 'multiple_choice' ? 'selected' : ''; ?>>☑ Multiple Choice</option>
+                                                                <option value="true_false" <?php echo $q['question_type'] == 'true_false' ? 'selected' : ''; ?>>✓ True / False</option>
+                                                                <option value="short_answer" <?php echo $q['question_type'] == 'short_answer' ? 'selected' : ''; ?>>✎ Short Answer</option>
+                                                                <option value="long_answer" <?php echo $q['question_type'] == 'long_answer' ? 'selected' : ''; ?>>📝 Long Response</option>
+                                                                <option value="yes_no" <?php echo $q['question_type'] == 'yes_no' ? 'selected' : ''; ?>>Yes / No</option>
+                                                                <option value="scale" <?php echo $q['question_type'] == 'scale' ? 'selected' : ''; ?>>📏 Scale (1-10)</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Question Text</label>
+                                                        <input type="text" class="form-control" name="question_text" value="<?php echo htmlspecialchars($q['question_text']); ?>" required>
+                                                    </div>
+                                                    <div class="mb-3" id="edit_<?php echo $q['id']; ?>_options_field" <?php echo ($q['question_type'] != 'single_choice' && $q['question_type'] != 'multiple_choice') ? 'style="display:none;"' : ''; ?>>
+                                                        <label class="form-label">Options (one per line)</label>
+                                                        <textarea class="form-control" name="options" rows="4"><?php echo htmlspecialchars($q['options'] ?? ''); ?></textarea>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label">Order</label>
+                                                            <input type="number" class="form-control" name="question_order" value="<?php echo $q['question_order']; ?>" required>
+                                                        </div>
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label">&nbsp;</label>
+                                                            <div class="form-check mt-2">
+                                                                <input class="form-check-input" type="checkbox" name="is_active" id="active<?php echo $q['id']; ?>" <?php echo $q['is_active'] ? 'checked' : ''; ?>>
+                                                                <label class="form-check-label" for="active<?php echo $q['id']; ?>">Active (include in form)</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" name="update_question" class="btn btn-primary">Save Changes</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Note:</strong> The total max score will automatically adjust based on the number of active questions.
+                    Currently: <strong><?php echo count(array_filter($questions, fn($q) => $q['is_active'])); ?></strong> active questions.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Question Modal -->
+    <div class="modal fade" id="addQuestionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Question</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" name="category" required>
+                                    <option value="">Select Category</option>
+                                    <option value="Teaching">Teaching Performance</option>
+                                    <option value="Research">Research Performance</option>
+                                    <option value="Administrative">Administrative Duties</option>
+                                    <option value="Community">Community Service</option>
+                                    <option value="Professional">Professional Development</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Question Type</label>
+                                <select class="form-select" name="question_type" id="add_question_type" onchange="toggleOptionsField(this, 'add')" required>
+                                    <option value="rating">⭐ Rating (1-5 Stars)</option>
+                                    <option value="single_choice">☐ Single Choice (Radio)</option>
+                                    <option value="multiple_choice">☐ Multiple Choice (Checkboxes)</option>
+                                    <option value="true_false">✓ True / False</option>
+                                    <option value="short_answer">✎ Short Answer</option>
+                                    <option value="long_answer">📝 Long Response (Essay)</option>
+                                    <option value="yes_no">Yes / No</option>
+                                    <option value="scale">📏 Scale (1-10)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Question Text</label>
+                            <input type="text" class="form-control" name="question_text" placeholder="e.g., How would you rate your teaching performance?" required>
+                        </div>
+                        <div class="mb-3" id="add_options_field" style="display:none;">
+                            <label class="form-label">Options (one per line)</label>
+                            <textarea class="form-control" name="options" rows="4" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
+                            <small class="text-muted">Enter each option on a new line</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Order (for sorting)</label>
+                            <input type="number" class="form-control" name="question_order" value="24" min="1">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="add_question" class="btn btn-primary">Add Question</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function toggleOptionsField(selectElem, prefix) {
+        var questionType = selectElem.value;
+        var optionsField = document.getElementById(prefix + '_options_field');
+        if (questionType === 'single_choice' || questionType === 'multiple_choice') {
+            optionsField.style.display = 'block';
+        } else {
+            optionsField.style.display = 'none';
+        }
+    }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

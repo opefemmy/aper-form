@@ -1,0 +1,40 @@
+{
+    "name": "institution/annual-performance-evaluation",
+    "description": "Annual Performance Evaluation Report System for Educational Institutions",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Your Institution",
+            "email": "admin@yourinstitution.edu.ng"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "phpoffice/phpspreadsheet": "^1.29",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "require-dev": {},
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "echo 'Dependencies installed successfully. Please configure your SMTP settings in mail.php or environment variables.'"
+        ],
+        "post-update-cmd": [
+            "echo 'Dependencies updated. If you changed PHP versions, please run composer install again.'"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "allow-plugins": {
+            "phpoffice/phpspreadsheet": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

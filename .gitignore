@@ -1,0 +1,29 @@
+# Vendor dependencies (install via composer)
+vendor/
+composer.lock
+
+# Uploads directory (generated Excel files)
+uploads/
+*.xlsx
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+
+# WordPress (if using as plugin)
+wp-content/
+wp-admin/
+wp-includes/

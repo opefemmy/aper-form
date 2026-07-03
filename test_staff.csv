@@ -1,0 +1,3 @@
+staff_id,surname,first_name,email,department,faculty,designation,grade_level,employment_status,years_of_service
+STF006,Smith,John,john.smith@school.edu,Computer Science,Science,Lecturer I,Level 5,Permanent,5
+STF007,Johnson,Mary,mary.johnson@school.edu,Mathematics,Science,Senior Lecturer,Level 7,Permanent,8
