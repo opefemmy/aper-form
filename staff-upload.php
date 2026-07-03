@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_single_staff'])) 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Staff - APER Admin</title>
+    <title>Upload Staff - <?php echo htmlspecialchars($institutionName); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_single_staff'])) 
             <div class="col-md-3 col-lg-2 sidebar p-3">
                 <div class="text-center py-4 border-bottom border-secondary">
                     <i class="fas fa-graduation-cap fa-2x mb-2"></i>
-                    <h5 class="mb-0">APER System</h5>
+                    <h5 class="mb-0"><?php echo htmlspecialchars($institutionName); ?></h5>
                 </div>
                 <div class="py-3">
                     <a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a>

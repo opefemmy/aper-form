@@ -21,13 +21,13 @@ try {
     while ($row = $stmt->fetch()) {
         $settings[$row['setting_key']] = $row['setting_value'];
     }
-    $instName = $settings['institution_name'] ?? 'APER System';
+    $instName = $settings['institution_name'] ?? 'Institution';
     $instAddress = $settings['institution_address'] ?? '';
     $logo = $settings['institution_logo'] ?? '';
     $primaryColor = $settings['primary_color'] ?? '#1e3a8a';
     $secondaryColor = $settings['secondary_color'] ?? '#3b82f6';
 } catch (Exception $e) {
-    $instName = 'APER System';
+    $instName = 'Institution';
     $instAddress = '';
     $logo = '';
     $primaryColor = '#1e3a8a';
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - APER System</title>
+    <title>Admin Login - <?php echo htmlspecialchars($instName); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
