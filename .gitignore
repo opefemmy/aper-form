@@ -1,6 +1,6 @@
-# Vendor dependencies (install via composer)
-vendor/
-composer.lock
+# Vendor dependencies - commented out for shared hosting without composer
+# vendor/
+# composer.lock
 
 # Uploads directory (generated Excel files)
 uploads/
