@@ -1,4 +1,5 @@
 <?php
 // Redirect to unified-login.php as the entry point
-header("Location: http://localhost/unified-login.php");
+// No login required to see this page
+header("Location: unified-login.php");
 exit;

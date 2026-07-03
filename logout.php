@@ -3,8 +3,10 @@ require_once 'config.php';
 
 startSession();
 
-// Destroy session
+// Destroy all session data
+$_SESSION = array();
 session_destroy();
 
-// Redirect to login
-redirect(SITE_URL . '/login.php');
+// Redirect to unified login
+header("Location: unified-login.php");
+exit;
