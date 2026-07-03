@@ -6,9 +6,9 @@
 
 // Database credentials - UPDATE THESE FOR YOUR SERVER
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'aper_db');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_NAME', 'escohsti_aperform');
+define('DB_USER', 'aperform_db');
+define('DB_PASS', 'Programmer@123$');
 
 // Site URL - Auto-detect based on current host
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
