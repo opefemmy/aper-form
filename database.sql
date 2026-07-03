@@ -1,10 +1,6 @@
 -- Annual Performance Evaluation System Database
 -- Run this SQL in your MySQL database
 
--- Create database
-CREATE DATABASE IF NOT EXISTS aper_db;
-USE aper_db;
-
 -- Admin users table
 CREATE TABLE IF NOT EXISTS admins (
     id INT AUTO_INCREMENT PRIMARY KEY,
