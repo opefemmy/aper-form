@@ -155,6 +155,21 @@ $instName = $settings['institution_name'] ?? 'Institution';
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
         .sidebar a i { width: 25px; }
+
+        /* Mobile Hamburger Menu */
+        .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 10px; z-index: 1001; }
+        .hamburger span { display: block; width: 25px; height: 3px; background: white; margin: 5px 0; border-radius: 2px; transition: 0.3s; }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -6px); }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+        .sidebar-overlay.active { display: block; }
+
+        @media (max-width: 768px) {
+            .hamburger { display: block; }
+            .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; width: 280px; z-index: 1000; transition: left 0.3s ease; overflow-y: auto; }
+            .sidebar.active { left: 0; }
+        }
     </style>
 </head>
 <body>
@@ -184,6 +199,13 @@ $instName = $settings['institution_name'] ?? 'Institution';
 
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 p-4">
+                <!-- Mobile Menu Button -->
+                <button class="hamburger position-fixed" style="top: 10px; left: 10px;" onclick="toggleSidebar()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+
                 <?php if ($message): ?>
                     <div class="alert alert-<?php echo $message['type']; ?> alert-dismissible fade show">
                         <?php echo $message['message']; ?>
@@ -417,6 +439,24 @@ $instName = $settings['institution_name'] ?? 'Institution';
         row.innerHTML = '<div class="col-md-6"><input type="text" class="form-control" name="grade_levels[]" value="" placeholder="e.g., Level ' + (container.children.length + 1) + '"></div>';
         container.appendChild(row);
     }
+    </script>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <script>
+    function toggleSidebar() {
+        document.querySelector('.sidebar').classList.toggle('active');
+        document.querySelector('.sidebar-overlay').classList.toggle('active');
+        document.querySelector('.hamburger').classList.toggle('active');
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelector('.sidebar').classList.remove('active');
+            document.querySelector('.sidebar-overlay').classList.remove('active');
+            document.querySelector('.hamburger').classList.remove('active');
+        }
+    });
     </script>
 </body>
 </html>

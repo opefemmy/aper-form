@@ -123,6 +123,83 @@ $instAddress = $settings['institution_address'] ?? '';
         .sidebar a i {
             width: 25px;
         }
+
+        /* Mobile Hamburger Menu */
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            z-index: 1001;
+        }
+        .hamburger span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            background: white;
+            margin: 5px 0;
+            border-radius: 2px;
+            transition: 0.3s;
+        }
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 6px);
+        }
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(5px, -6px);
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+            .hamburger {
+                display: block;
+            }
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                bottom: 0;
+                width: 280px;
+                z-index: 1000;
+                transition: left 0.3s ease;
+                overflow-y: auto;
+            }
+            .sidebar.active {
+                left: 0;
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+            }
+            .sidebar-overlay.active {
+                display: block;
+            }
+            .top-bar {
+                padding: 0.75rem 1rem !important;
+            }
+            .top-bar h3 {
+                font-size: 1.1rem !important;
+            }
+            .top-bar img {
+                max-height: 40px !important;
+            }
+            .stat-card {
+                padding: 1rem;
+            }
+            .stat-card .value {
+                font-size: 1.5rem;
+            }
+        }
+
         .stat-card {
             background: white;
             border-radius: 12px;
@@ -190,6 +267,12 @@ $instAddress = $settings['institution_address'] ?? '';
                     <div class="container-fluid">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center">
+                                <!-- Mobile Menu Button -->
+                                <button class="hamburger me-3" onclick="toggleSidebar()">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </button>
                                 <?php if (!empty($logo)): ?>
                                 <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 55px; margin-right: 15px; border: 2px solid white; border-radius: 8px; padding: 3px; background: rgba(255,255,255,0.2);">
                                 <?php endif; ?>
@@ -352,5 +435,42 @@ $instAddress = $settings['institution_address'] ?? '';
             </div>
         </div>
     </div>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <script>
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        const hamburger = document.querySelector('.hamburger');
+
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+        hamburger.classList.toggle('active');
+    }
+
+    // Close sidebar when pressing escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar.classList.contains('active')) {
+                toggleSidebar();
+            }
+        }
+    });
+
+    // Close sidebar when window is resized to desktop
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            const hamburger = document.querySelector('.hamburger');
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+    });
+    </script>
 </body>
 </html>
