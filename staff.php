@@ -124,11 +124,16 @@ $staffList = $stmt->fetchAll();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --primary-blue: #1e3a8a; }
-        body { background: #f3f4f6; }
-        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%); color: white; }
-        .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
-        .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
+        :root { --primary-blue: <?php echo $primaryColor; ?>; --secondary-blue: <?php echo $secondaryColor; ?>; }
+        body { background: #f3f4f6; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%); color: white; }
+        .sidebar .sidebar-header { padding: 15px 10px; border-bottom: 1px solid rgba(255,255,255,0.3); margin-bottom: 10px; }
+        .sidebar .sidebar-header h5 { font-size: 1.1rem !important; font-weight: 800 !important; }
+        .sidebar .sidebar-header small { font-size: 0.8rem !important; font-weight: 600 !important; }
+        .sidebar .sidebar-header img { border: 2px solid white !important; border-radius: 8px !important; max-height: 55px; }
+        .sidebar a { color: rgba(255,255,255,0.95); text-decoration: none; padding: 10px 12px; display: block; border-radius: 6px; margin-bottom: 3px; font-size: 0.95rem; font-weight: 600; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.25); color: white; font-weight: 700; }
+        .sidebar a i { width: 28px; font-weight: 700; }
 
         /* Mobile Menu */
         .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 10px; z-index: 1001; }
@@ -151,15 +156,15 @@ $staffList = $stmt->fetchAll();
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 sidebar p-3">
-                <div class="text-center sidebar-header" style="padding: 15px 10px; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 10px;">
+                <div class="text-center sidebar-header">
                     <?php if (!empty($logo)): ?>
-                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 45px; margin-bottom: 8px; border: 2px solid white; border-radius: 6px; padding: 2px;">
+                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 55px; margin-bottom: 10px;">
                     <?php else: ?>
-                        <i class="fas fa-graduation-cap fa-2x mb-2"></i>
+                        <i class="fas fa-graduation-cap fa-2x mb-2" style="font-size: 2rem;"></i>
                     <?php endif; ?>
-                    <h5 class="mb-0" style="font-size: 1rem; font-weight: 700;"><?php echo htmlspecialchars($instName); ?></h5>
+                    <h5 class="mb-0" style="font-weight: 800;"><?php echo htmlspecialchars($instName); ?></h5>
                     <?php if (!empty($instAddress)): ?>
-                        <small class="d-block text-truncate" style="max-width: 150px; margin: 0 auto; font-size: 0.7rem;"><?php echo htmlspecialchars($instAddress); ?></small>
+                        <small class="d-block" style="max-width: 180px; margin: 5px auto 0; font-weight: 600;"><?php echo htmlspecialchars($instAddress); ?></small>
                     <?php endif; ?>
                 </div>
                 <div class="py-2">

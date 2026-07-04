@@ -73,31 +73,44 @@ $instAddress = $settings['institution_address'] ?? '';
         }
         .sidebar .sidebar-header {
             padding: 15px 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.3);
             margin-bottom: 10px;
         }
         .sidebar .sidebar-header h5 {
-            font-size: 1rem;
-            font-weight: 700;
+            font-size: 1.1rem !important;
+            font-weight: 800 !important;
             margin: 8px 0 5px 0;
+            line-height: 1.3;
         }
         .sidebar .sidebar-header small {
-            font-size: 0.7rem;
-            opacity: 0.9;
+            font-size: 0.8rem !important;
+            font-weight: 600 !important;
+            opacity: 0.95;
+        }
+        .sidebar .sidebar-header img {
+            border: 2px solid white !important;
+            border-radius: 8px !important;
+            max-height: 55px;
         }
         .sidebar a {
-            color: rgba(255,255,255,0.8);
+            color: rgba(255,255,255,0.95);
             text-decoration: none;
             padding: 10px 12px;
             display: block;
             border-radius: 6px;
             margin-bottom: 3px;
             transition: all 0.3s;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            font-weight: 600;
         }
         .sidebar a:hover, .sidebar a.active {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.25);
             color: white;
+            font-weight: 700;
+        }
+        .sidebar a i {
+            width: 28px;
+            font-weight: 700;
         }
         .top-bar {
             background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%);
@@ -233,13 +246,13 @@ $instAddress = $settings['institution_address'] ?? '';
             <div class="col-md-3 col-lg-2 sidebar p-3">
                 <div class="text-center sidebar-header">
                     <?php if (!empty($logo)): ?>
-                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 45px; margin-bottom: 8px; border: 2px solid white; border-radius: 6px; padding: 2px;">
+                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 55px; margin-bottom: 10px;">
                     <?php else: ?>
-                        <i class="fas fa-graduation-cap fa-2x mb-2"></i>
+                        <i class="fas fa-graduation-cap fa-2x mb-2" style="font-size: 2rem;"></i>
                     <?php endif; ?>
-                    <h5 class="mb-0"><?php echo htmlspecialchars($instName); ?></h5>
+                    <h5 class="mb-0" style="font-weight: 800;"><?php echo htmlspecialchars($instName); ?></h5>
                     <?php if (!empty($instAddress)): ?>
-                        <small class="d-block text-truncate" style="max-width: 150px; margin: 0 auto;"><?php echo htmlspecialchars($instAddress); ?></small>
+                        <small class="d-block" style="max-width: 180px; margin: 5px auto 0; font-weight: 600;"><?php echo htmlspecialchars($instAddress); ?></small>
                     <?php endif; ?>
                 </div>
                 <div class="py-3">
