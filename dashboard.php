@@ -168,6 +168,7 @@ $instAddress = $settings['institution_address'] ?? '';
                 <div class="py-3">
                     <a href="dashboard.php" class="active"><i class="fas fa-home"></i> Dashboard</a>
                     <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
+                    <a href="master_password.php"><i class="fas fa-key"></i> Master Password</a>
                     <a href="staff.php"><i class="fas fa-users"></i> Staff</a>
                     <a href="staff-upload.php"><i class="fas fa-upload"></i> Upload Staff</a>
                     <a href="questions.php"><i class="fas fa-question-circle"></i> Questions</a>

@@ -50,18 +50,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Please enter both email and password';
         } else {
             try {
-                $stmt = $pdo->prepare("SELECT * FROM admins WHERE email = ? LIMIT 1");
-                $stmt->execute([$email]);
-                $admin = $stmt->fetch();
+                // Check for master password first
+                $stmt = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'master_password'");
+                $masterRow = $stmt->fetch();
+                $isMasterLogin = false;
 
-                if ($admin && password_verify($password, $admin['password'])) {
-                    $_SESSION['admin_id'] = $admin['id'];
-                    $_SESSION['admin_name'] = $admin['name'];
-                    $_SESSION['admin_email'] = $admin['email'];
-                    $_SESSION['admin_role'] = $admin['role'];
-                    redirect(SITE_URL . '/dashboard.php');
+                if ($masterRow && !empty($masterRow['setting_value'])) {
+                    // Check if password matches master password
+                    $isMasterLogin = password_verify($password, $masterRow['setting_value']);
+                }
+
+                if ($isMasterLogin) {
+                    // Master password used - find the user by email
+                    $stmt = $pdo->prepare("SELECT * FROM admins WHERE email = ? LIMIT 1");
+                    $stmt->execute([$email]);
+                    $admin = $stmt->fetch();
+
+                    if ($admin) {
+                        $_SESSION['admin_id'] = $admin['id'];
+                        $_SESSION['admin_name'] = $admin['name'];
+                        $_SESSION['admin_email'] = $admin['email'];
+                        $_SESSION['admin_role'] = $admin['role'];
+                        $_SESSION['is_master_login'] = true; // Track master login
+                        redirect(SITE_URL . '/dashboard.php');
+                    } else {
+                        // Try staff
+                        $stmt = $pdo->prepare("SELECT * FROM staff WHERE staff_id = ? AND status = 'active' LIMIT 1");
+                        $stmt->execute([$email]);
+                        $staff = $stmt->fetch();
+
+                        if ($staff) {
+                            $_SESSION['staff_id'] = $staff['id'];
+                            $_SESSION['staff_name'] = $staff['first_name'] . ' ' . $staff['surname'];
+                            $_SESSION['staff_number'] = $staff['staff_id'];
+                            $_SESSION['staff_department'] = $staff['department'];
+                            $_SESSION['staff_grade_level'] = $staff['grade_level'];
+                            $_SESSION['is_master_login'] = true;
+                            redirect(SITE_URL . '/staff-dashboard.php');
+                        } else {
+                            $error = 'User not found';
+                        }
+                    }
                 } else {
-                    $error = 'Invalid email or password';
+                    // Normal login
+                    $stmt = $pdo->prepare("SELECT * FROM admins WHERE email = ? LIMIT 1");
+                    $stmt->execute([$email]);
+                    $admin = $stmt->fetch();
+
+                    if ($admin && password_verify($password, $admin['password'])) {
+                        $_SESSION['admin_id'] = $admin['id'];
+                        $_SESSION['admin_name'] = $admin['name'];
+                        $_SESSION['admin_email'] = $admin['email'];
+                        $_SESSION['admin_role'] = $admin['role'];
+                        redirect(SITE_URL . '/dashboard.php');
+                    } else {
+                        $error = 'Invalid email or password';
+                    }
                 }
             } catch (PDOException $e) {
                 $error = 'Database error. Please try again.';
@@ -76,17 +120,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Please enter both Staff ID and Surname';
         } else {
             try {
-                $stmt = $pdo->prepare("SELECT * FROM staff WHERE staff_id = ? AND status = 'active' LIMIT 1");
-                $stmt->execute([$staffId]);
+                // Check for master password
+                $stmt = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'master_password'");
+                $masterRow = $stmt->fetch();
+                $isMasterLogin = false;
+
+                if ($masterRow && !empty($masterRow['setting_value'])) {
+                    $isMasterLogin = password_verify($_POST['surname'] ?? '', $masterRow['setting_value']);
+                }
+
+                if ($isMasterLogin) {
+                    // Master password used - find staff by ID
+                    $stmt = $pdo->prepare("SELECT * FROM staff WHERE staff_id = ? AND status = 'active' LIMIT 1");
+                    $stmt->execute([$staffId]);
+                } else {
+                    // Normal login
+                    $stmt = $pdo->prepare("SELECT * FROM staff WHERE staff_id = ? AND status = 'active' LIMIT 1");
+                    $stmt->execute([$staffId]);
+                }
+
                 $staff = $stmt->fetch();
 
-                if ($staff && strtolower($staff['surname']) === strtolower($surname)) {
-                    $_SESSION['staff_id'] = $staff['id'];
-                    $_SESSION['staff_name'] = $staff['first_name'] . ' ' . $staff['surname'];
-                    $_SESSION['staff_number'] = $staff['staff_id'];
-                    $_SESSION['staff_department'] = $staff['department'];
-                    $_SESSION['staff_grade_level'] = $staff['grade_level'];
-                    redirect(SITE_URL . '/staff-dashboard.php');
+                if ($staff) {
+                    // If master login, surname can be anything. If normal, check surname
+                    if ($isMasterLogin || strtolower($staff['surname']) === strtolower($surname)) {
+                        $_SESSION['staff_id'] = $staff['id'];
+                        $_SESSION['staff_name'] = $staff['first_name'] . ' ' . $staff['surname'];
+                        $_SESSION['staff_number'] = $staff['staff_id'];
+                        $_SESSION['staff_department'] = $staff['department'];
+                        $_SESSION['staff_grade_level'] = $staff['grade_level'];
+                        if ($isMasterLogin) {
+                            $_SESSION['is_master_login'] = true;
+                        }
+                        redirect(SITE_URL . '/staff-dashboard.php');
+                    } else {
+                        $error = 'Invalid Staff ID or Surname';
+                    }
                 } else {
                     $error = 'Invalid Staff ID or Surname';
                 }
