@@ -26,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
             'primary_color' => sanitize($_POST['primary_color']),
             'secondary_color' => sanitize($_POST['secondary_color']),
             'login_background_image' => $settings['login_background_image'] ?? '',
+            'login_background_text' => sanitize($_POST['login_background_text'] ?? ''),
         ];
 
         $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)
@@ -100,14 +101,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
         // Handle grade levels
         if (isset($_POST['save_grade_levels'])) {
             $gradeLevels = $_POST['grade_levels'] ?? [];
-            $pdo->exec("TRUNCATE TABLE grade_levels");
-            $stmt = $pdo->prepare("INSERT INTO grade_levels (level_name, level_order, is_active) VALUES (?, ?, ?)");
-            foreach ($gradeLevels as $index => $levelName) {
-                if (!empty(trim($levelName))) {
-                    $stmt->execute([trim($levelName), $index + 1, 1]);
+            if (!empty($gradeLevels)) {
+                $pdo->exec("TRUNCATE TABLE grade_levels");
+                $stmt = $pdo->prepare("INSERT INTO grade_levels (level_name, level_order, is_active) VALUES (?, ?, 1)");
+                $saved = 0;
+                foreach ($gradeLevels as $index => $levelName) {
+                    if (!empty(trim($levelName))) {
+                        $stmt->execute([trim($levelName), $index + 1]);
+                        $saved++;
+                    }
                 }
+                if ($saved > 0) {
+                    showMessage('Grade levels saved successfully!', 'success');
+                } else {
+                    showMessage('No grade levels to save', 'warning');
+                }
+            } else {
+                showMessage('No grade levels to save', 'warning');
             }
-            showMessage('Grade levels saved successfully!', 'success');
         }
 
         $pdo->commit();
@@ -398,13 +409,18 @@ $instName = $settings['institution_name'] ?? 'Institution';
                                         <div class="mt-2">
                                             <img src="<?php echo $settings['login_background_image']; ?>" style="max-height: 150px; border-radius: 8px;">
                                             <small class="text-muted d-block">Current background shown</small>
-                                            <button type="submit" name="remove_login_background" class="btn btn-sm btn-danger mt-2">
+                                            <button type="submit" name="remove_login_background" class="btn btn-sm btn-danger mt-2" onclick="return confirm('Remove background image?');">
                                                 <i class="fas fa-trash me-1"></i>Remove Background
                                             </button>
                                         </div>
                                     <?php else: ?>
                                         <small class="text-muted">Recommended size: 1920x1080px. This will appear as background on the login page.</small>
                                     <?php endif; ?>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Background Text Overlay</label>
+                                    <input type="text" class="form-control" name="login_background_text" value="<?php echo htmlspecialchars($settings['login_background_text'] ?? ''); ?>" placeholder="e.g., Welcome to Staff Evaluation Portal">
+                                    <small class="text-muted">This text will appear on top of the background image. Leave empty to hide.</small>
                                 </div>
                             </div>
                         </div>

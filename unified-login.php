@@ -28,6 +28,7 @@ try {
     $secondaryColor = $settings['secondary_color'] ?? '#3b82f6';
     $websiteUrl = $settings['website_url'] ?? 'https://ekscotech.edu.ng';
     $loginBackground = $settings['login_background_image'] ?? '';
+    $loginBackgroundText = $settings['login_background_text'] ?? '';
 } catch (Exception $e) {
     $instName = 'Institution';
     $instAddress = '';
@@ -202,6 +203,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: none;
             <?php endif; ?>
         }
+        .background-text-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 0;
+            width: 100%;
+            padding: 20px;
+        }
+        .background-text-overlay h1 {
+            color: white;
+            font-size: 3rem;
+            font-weight: 800;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.7);
+            margin: 0;
+            padding: 20px;
+        }
+        @media (max-width: 768px) {
+            .background-text-overlay h1 {
+                font-size: 1.8rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .background-text-overlay h1 {
+                font-size: 1.4rem;
+            }
+        }
         .login-card {
             background: white;
             border-radius: 15px;
@@ -361,6 +390,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+    <?php if (!empty($loginBackgroundText)): ?>
+    <div class="background-text-overlay">
+        <h1><?php echo htmlspecialchars($loginBackgroundText); ?></h1>
+    </div>
+    <?php endif; ?>
+
     <div class="login-card">
         <div class="login-header">
             <?php if (!empty($logo)): ?>
