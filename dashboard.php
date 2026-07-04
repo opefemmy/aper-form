@@ -68,7 +68,7 @@ $instAddress = $settings['institution_address'] ?? '';
         }
         .sidebar {
             min-height: 100vh;
-            background: linear-gradient(180deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%);
+            background: linear-gradient(180deg, #308a1e 0%, #269c16 100%);
             color: white;
         }
         .sidebar .sidebar-header {

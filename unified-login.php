@@ -215,11 +215,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .background-text-overlay h1 {
             color: white;
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: 800;
             text-shadow: 3px 3px 6px rgba(0,0,0,0.7);
             margin: 0;
             padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        .background-text-overlay h1 span {
+            display: inline-block;
         }
         @media (max-width: 768px) {
             .background-text-overlay h1 {
@@ -392,7 +399,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <?php if (!empty($loginBackgroundText)): ?>
     <div class="background-text-overlay">
-        <h1><?php echo htmlspecialchars($loginBackgroundText); ?></h1>
+        <h1>
+            <?php
+            $words = explode(' ', $loginBackgroundText);
+            foreach ($words as $word) {
+                echo '<span>' . htmlspecialchars($word) . '</span>';
+            }
+            ?>
+        </h1>
     </div>
     <?php endif; ?>
 
