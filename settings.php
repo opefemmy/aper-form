@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
             'smtp_password' => sanitize($_POST['smtp_password']),
             'primary_color' => sanitize($_POST['primary_color']),
             'secondary_color' => sanitize($_POST['secondary_color']),
+            'login_background_image' => $settings['login_background_image'] ?? '',
         ];
 
         $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)
@@ -59,6 +60,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
             }
         }
 
+        // Handle login background image upload
+        if (isset($_FILES['login_background_image']) && $_FILES['login_background_image']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/uploads/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $ext = strtolower(pathinfo($_FILES['login_background_image']['name'], PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+            if (!in_array($ext, $allowed)) {
+                showMessage('Invalid file type for background. Allowed: jpg, jpeg, png, gif, webp', 'danger');
+            } else {
+                $filename = 'login_background.' . $ext;
+                $targetPath = $uploadDir . $filename;
+
+                if (move_uploaded_file($_FILES['login_background_image']['tmp_name'], $targetPath)) {
+                    $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('login_background_image', ?)
+                        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+                    $stmt->execute([SITE_URL . '/uploads/' . $filename]);
+                    showMessage('Login background image uploaded successfully!', 'success');
+                }
+            }
+        }
+
+        // Handle remove login background
+        if (isset($_POST['remove_login_background']) && $settings['login_background_image']) {
+            $bgPath = str_replace(SITE_URL, __DIR__, $settings['login_background_image']);
+            if (file_exists($bgPath)) {
+                unlink($bgPath);
+            }
+            $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('login_background_image', '')
+                ON DUPLICATE KEY UPDATE setting_value = ''");
+            $stmt->execute();
+            showMessage('Login background removed!', 'success');
+        }
+
+        // Handle grade levels
+        if (isset($_POST['save_grade_levels'])) {
+            $gradeLevels = $_POST['grade_levels'] ?? [];
+            $pdo->exec("TRUNCATE TABLE grade_levels");
+            $stmt = $pdo->prepare("INSERT INTO grade_levels (level_name, level_order, is_active) VALUES (?, ?, ?)");
+            foreach ($gradeLevels as $index => $levelName) {
+                if (!empty(trim($levelName))) {
+                    $stmt->execute([trim($levelName), $index + 1, 1]);
+                }
+            }
+            showMessage('Grade levels saved successfully!', 'success');
+        }
+
         $pdo->commit();
         showMessage('Settings saved successfully!', 'success');
         redirect('settings.php');
@@ -75,6 +126,18 @@ $settings = [];
 while ($row = $stmt->fetch()) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
+
+// Get grade levels from database
+$stmt = $pdo->query("SELECT * FROM grade_levels WHERE is_active = 1 ORDER BY level_order");
+$gradeLevels = $stmt->fetchAll();
+if (empty($gradeLevels)) {
+    // Default grade levels if table is empty
+    $gradeLevels = [];
+    for ($i = 1; $i <= 10; $i++) {
+        $gradeLevels[] = ['level_name' => "Level $i", 'level_order' => $i, 'is_active' => 1];
+    }
+}
+
 $instName = $settings['institution_name'] ?? 'Institution';
 ?>
 <!DOCTYPE html>
@@ -107,8 +170,13 @@ $instName = $settings['institution_name'] ?? 'Institution';
                     <a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
                     <a href="settings.php" class="active"><i class="fas fa-cog"></i> Settings</a>
                     <a href="staff.php"><i class="fas fa-users"></i> Staff</a>
+                    <a href="staff-upload.php"><i class="fas fa-upload"></i> Upload Staff</a>
+                    <a href="questions.php"><i class="fas fa-question-circle"></i> Questions</a>
                     <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>
                     <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
+                    <?php if (hasPermission('download_all_data')): ?>
+                    <a href="download-data.php"><i class="fas fa-download"></i> Download Data</a>
+                    <?php endif; ?>
                     <a href="sessions.php"><i class="fas fa-calendar"></i> Sessions</a>
                     <a href="logout.php" class="text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
@@ -283,6 +351,57 @@ $instName = $settings['institution_name'] ?? 'Institution';
                         </div>
                     </div>
 
+                    <!-- Login Page Settings -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0"><i class="fas fa-image me-2"></i>Login Page Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Login Page Background Image</label>
+                                    <input type="file" class="form-control" name="login_background_image" accept="image/*">
+                                    <?php if (!empty($settings['login_background_image'])): ?>
+                                        <div class="mt-2">
+                                            <img src="<?php echo $settings['login_background_image']; ?>" style="max-height: 150px; border-radius: 8px;">
+                                            <small class="text-muted d-block">Current background shown</small>
+                                            <button type="submit" name="remove_login_background" class="btn btn-sm btn-danger mt-2">
+                                                <i class="fas fa-trash me-1"></i>Remove Background
+                                            </button>
+                                        </div>
+                                    <?php else: ?>
+                                        <small class="text-muted">Recommended size: 1920x1080px. This will appear as background on the login page.</small>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grade Levels Settings -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Grade Levels</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Define the grade levels that can be assigned to staff. Click "Save Grade Levels" after making changes.</p>
+                            <div id="gradeLevelsContainer">
+                                <?php foreach ($gradeLevels as $index => $level): ?>
+                                <div class="row mb-2 grade-level-row">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="grade_levels[]" value="<?php echo htmlspecialchars($level['level_name']); ?>" placeholder="e.g., Level 1">
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addGradeLevel()">
+                                <i class="fas fa-plus me-1"></i>Add Level
+                            </button>
+                            <button type="submit" name="save_grade_levels" class="btn btn-success mt-2">
+                                <i class="fas fa-save me-1"></i>Save Grade Levels
+                            </button>
+                        </div>
+                    </div>
+
                     <button type="submit" name="save_settings" class="btn btn-primary btn-lg">
                         <i class="fas fa-save me-2"></i>Save Settings
                     </button>
@@ -290,5 +409,14 @@ $instName = $settings['institution_name'] ?? 'Institution';
             </div>
         </div>
     </div>
+    <script>
+    function addGradeLevel() {
+        const container = document.getElementById('gradeLevelsContainer');
+        const row = document.createElement('div');
+        row.className = 'row mb-2 grade-level-row';
+        row.innerHTML = '<div class="col-md-6"><input type="text" class="form-control" name="grade_levels[]" value="" placeholder="e.g., Level ' + (container.children.length + 1) + '"></div>';
+        container.appendChild(row);
+    }
+    </script>
 </body>
 </html>

@@ -21,6 +21,16 @@ $message = getMessage();
 $action = $_GET['action'] ?? 'list';
 $staffId = $_GET['id'] ?? null;
 
+// Get grade levels from database
+$stmt = $pdo->query("SELECT * FROM grade_levels WHERE is_active = 1 ORDER BY level_order");
+$gradeLevels = $stmt->fetchAll();
+if (empty($gradeLevels)) {
+    $gradeLevels = [];
+    for ($i = 1; $i <= 10; $i++) {
+        $gradeLevels[] = ['level_name' => "Level $i", 'level_order' => $i];
+    }
+}
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -62,6 +72,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$staffId]);
             showMessage('Staff member deleted successfully!', 'success');
             redirect('staff.php');
+        }
+
+        // Handle password reset
+        if (isset($_POST['reset_password']) && $staffId) {
+            $newPassword = sanitize($_POST['new_password'] ?? '');
+            if (empty($newPassword) || strlen($newPassword) < 6) {
+                showMessage('Password must be at least 6 characters', 'danger');
+            } else {
+                $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+                $stmt = $pdo->prepare("UPDATE staff SET password = ? WHERE id = ?");
+                $stmt->execute([$hashedPassword, $staffId]);
+                showMessage('Password reset successfully!', 'success');
+            }
+        }
+
+        // Handle reset evaluation (allow staff to resubmit)
+        if (isset($_POST['reset_evaluation']) && $staffId) {
+            $stmt = $pdo->prepare("UPDATE evaluations SET status = 'draft', can_retake = 1 WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1");
+            $stmt->execute([$staffId]);
+            showMessage('Evaluation reset! Staff can now resubmit their form.', 'success');
         }
     } catch (Exception $e) {
         showMessage('Error: ' . $e->getMessage(), 'danger');
@@ -126,6 +156,9 @@ $staffList = $stmt->fetchAll();
                     <a href="roles.php"><i class="fas fa-user-tag"></i> Staff Roles</a>
                     <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>
                     <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
+                    <?php if (hasPermission('download_all_data')): ?>
+                    <a href="download-data.php"><i class="fas fa-download"></i> Download Data</a>
+                    <?php endif; ?>
                     <a href="sessions.php"><i class="fas fa-calendar"></i> Sessions</a>
                     <a href="logout.php" class="text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
@@ -191,9 +224,9 @@ $staffList = $stmt->fetchAll();
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label">Grade Level</label>
                                     <select class="form-select" name="grade_level">
-                                        <?php for ($i = 1; $i <= 10; $i++): ?>
-                                        <option value="Level <?php echo $i; ?>" <?php echo ($staffMember['grade_level'] ?? '') == "Level $i" ? 'selected' : ''; ?>>Level <?php echo $i; ?></option>
-                                        <?php endfor; ?>
+                                        <?php foreach ($gradeLevels as $level): ?>
+                                        <option value="<?php echo htmlspecialchars($level['level_name']); ?>" <?php echo ($staffMember['grade_level'] ?? '') == $level['level_name'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($level['level_name']); ?></option>
+                                        <?php endforeach; ?>
                                     </select>
                                 </div>
                                 <div class="col-md-3 mb-3">
@@ -267,9 +300,66 @@ $staffList = $stmt->fetchAll();
                                                 <a href="?action=edit&id=<?php echo $staff['id']; ?>" class="btn btn-sm btn-primary" title="Edit staff member details">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
+                                                <button class="btn btn-sm btn-warning" title="Reset Password" data-bs-toggle="modal" data-bs-target="#resetPasswordModal<?php echo $staff['id']; ?>">
+                                                    <i class="fas fa-key"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-info" title="Reset Evaluation (Allow Resubmit)" data-bs-toggle="modal" data-bs-target="#resetEvalModal<?php echo $staff['id']; ?>">
+                                                    <i class="fas fa-redo"></i>
+                                                </button>
                                                 <a href="?action=delete&id=<?php echo $staff['id']; ?>" class="btn btn-sm btn-danger" title="Delete this staff member permanently" onclick="return confirm('Delete this staff member?');">
                                                     <i class="fas fa-trash"></i>
                                                 </a>
+
+                                                <!-- Password Reset Modal -->
+                                                <div class="modal fade" id="resetPasswordModal<?php echo $staff['id']; ?>" tabindex="-1">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <form method="POST">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title">Reset Password for <?php echo htmlspecialchars($staff['first_name'] . ' ' . $staff['surname']); ?></h5>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    <input type="hidden" name="staff_id" value="<?php echo $staff['id']; ?>">
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">New Password</label>
+                                                                        <input type="password" class="form-control" name="new_password" required minlength="6" placeholder="Enter new password (min 6 characters)">
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Confirm Password</label>
+                                                                        <input type="password" class="form-control" name="confirm_password" required minlength="6" placeholder="Confirm new password">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                    <button type="submit" name="reset_password" class="btn btn-warning">Reset Password</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Reset Evaluation Modal -->
+                                                <div class="modal fade" id="resetEvalModal<?php echo $staff['id']; ?>" tabindex="-1">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <form method="POST">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title">Reset Evaluation for <?php echo htmlspecialchars($staff['first_name'] . ' ' . $staff['surname']); ?></h5>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    <p>This will allow the staff member to resubmit their evaluation form. Use this if they accidentally submitted prematurely.</p>
+                                                                    <input type="hidden" name="staff_id" value="<?php echo $staff['id']; ?>">
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                    <button type="submit" name="reset_evaluation" class="btn btn-info">Reset Evaluation</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>

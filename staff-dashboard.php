@@ -4,6 +4,12 @@ requireStaffLogin();
 
 $staff = getCurrentStaff();
 
+// Get staff category from database
+$stmt = $pdo->prepare("SELECT staff_category FROM staff WHERE id = ?");
+$stmt->execute([$staff['id']]);
+$staffRow = $stmt->fetch();
+$staffCategory = $staffRow['staff_category'] ?? 'academic';
+
 // Get settings
 $pdo = getDBConnection();
 $stmt = $pdo->query("SELECT * FROM settings");
@@ -189,7 +195,8 @@ function calculateGrade($percentage) {
                 <div class="col-md-3"><strong>Name:</strong> <?php echo htmlspecialchars($staff['name']); ?></div>
                 <div class="col-md-2"><strong>Department:</strong> <?php echo htmlspecialchars($staff['department'] ?? 'N/A'); ?></div>
                 <div class="col-md-2"><strong>Level:</strong> <?php echo htmlspecialchars($staff['grade_level'] ?? 'N/A'); ?></div>
-                <div class="col-md-3"><strong>Session:</strong> <?php echo htmlspecialchars($activeSession['session_name'] ?? 'N/A'); ?></div>
+                <div class="col-md-2"><strong>Category:</strong> <?php echo $staffCategory == 'academic' ? 'Academic' : 'Non-Teaching'; ?></div>
+                <div class="col-md-1"><strong>Session:</strong> <?php echo htmlspecialchars($activeSession['session_name'] ?? 'N/A'); ?></div>
             </div>
         </div>
 
@@ -225,6 +232,11 @@ function calculateGrade($percentage) {
         <div class="alert alert-info">
             <i class="fas fa-check-circle me-2"></i>
             Your evaluation has been submitted. Please contact your supervisor for any changes.
+        </div>
+        <div class="text-center mb-4">
+            <a href="print-summary.php?id=<?php echo $existingEval['id']; ?>" target="_blank" class="btn btn-success btn-lg">
+                <i class="fas fa-print me-2"></i>Print Summary
+            </a>
         </div>
         <?php else: ?>
 

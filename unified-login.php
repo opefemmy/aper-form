@@ -27,6 +27,7 @@ try {
     $primaryColor = $settings['primary_color'] ?? '#1e3a8a';
     $secondaryColor = $settings['secondary_color'] ?? '#3b82f6';
     $websiteUrl = $settings['website_url'] ?? 'https://ekscotech.edu.ng';
+    $loginBackground = $settings['login_background_image'] ?? '';
 } catch (Exception $e) {
     $instName = 'Institution';
     $instAddress = '';
@@ -109,26 +110,185 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root { --primary-blue: <?php echo $primaryColor; ?>; --secondary-blue: <?php echo $secondaryColor; ?>; }
-        body { background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-card { background: white; border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; max-width: 500px; width: 100%; }
-        .login-header { background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%); color: white; padding: 2.5rem 2rem; text-align: center; }
-        .login-header .logo-img { max-height: 80px; margin-bottom: 15px; border: 3px solid white; border-radius: 10px; padding: 5px; background: rgba(255,255,255,0.1); }
-        .login-header h1 { margin: 10px 0 2px 0; font-size: 1.8rem; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); text-align: center; line-height: 1.2; }
-        .login-header .address { font-size: 0.95rem; margin-top: 5px; font-weight: 500; text-align: center; opacity: 1; padding: 0 20px; }
-        .login-body { padding: 2rem; }
-        .form-control { border: 2px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem; }
-        .form-control:focus { border-color: var(--secondary-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
-        .btn-login { background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%); border: none; padding: 0.75rem; font-weight: 600; border-radius: 8px; width: 100%; }
+        * { box-sizing: border-box; }
+        body {
+            <?php if (!empty($loginBackground)): ?>
+            background: url('<?php echo htmlspecialchars($loginBackground); ?>') no-repeat center center fixed;
+            background-size: cover;
+            <?php else: ?>
+            background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%);
+            <?php endif; ?>
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 15px;
+            margin: 0;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            <?php if (empty($loginBackground)): ?>
+            display: none;
+            <?php endif; ?>
+        }
+        .login-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        .login-header {
+            background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%);
+            color: white;
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+        .login-header .logo-img {
+            max-height: 60px;
+            margin-bottom: 10px;
+            border: 3px solid white;
+            border-radius: 8px;
+            padding: 3px;
+            background: rgba(255,255,255,0.1);
+        }
+        .login-header h1 {
+            margin: 8px 0 2px 0;
+            font-size: 1.4rem;
+            font-weight: 800;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-align: center;
+            line-height: 1.2;
+        }
+        .login-header .address {
+            font-size: 0.85rem;
+            margin-top: 5px;
+            font-weight: 500;
+            text-align: center;
+            opacity: 1;
+            padding: 0 10px;
+        }
+        .login-body { padding: 1.5rem; }
+        .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 16px; /* Prevents zoom on iOS */
+        }
+        .form-control:focus {
+            border-color: var(--secondary-blue);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+        }
+        .form-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .btn-login {
+            background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%);
+            border: none;
+            padding: 0.85rem;
+            font-weight: 600;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 1rem;
+        }
         .btn-login:hover { opacity: 0.9; }
         .error-message { background: #fee2e2; color: #dc2626; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
-        .nav-tabs { border-bottom: 2px solid #e2e8f0; margin-bottom: 1.5rem; }
-        .nav-tabs .nav-link { border: none; color: #64748b; font-weight: 600; padding: 0.75rem 1.5rem; }
-        .nav-tabs .nav-link.active { color: <?php echo $primaryColor; ?>; border-bottom: 3px solid <?php echo $primaryColor; ?>; background: transparent; }
+        .nav-tabs {
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+            display: flex;
+        }
+        .nav-tabs .nav-item { flex: 1; text-align: center; }
+        .nav-tabs .nav-link {
+            border: none;
+            color: #64748b;
+            font-weight: 600;
+            padding: 0.75rem 0.5rem;
+            font-size: 0.9rem;
+            display: block;
+            width: 100%;
+        }
+        .nav-tabs .nav-link.active {
+            color: <?php echo $primaryColor; ?>;
+            border-bottom: 3px solid <?php echo $primaryColor; ?>;
+            background: transparent;
+        }
         .nav-tabs .nav-link:hover { border: none; }
         .back-link { text-align: center; margin-top: 1rem; }
         .back-link a { color: <?php echo $primaryColor; ?>; text-decoration: none; font-weight: 500; }
         .back-link a:hover { text-decoration: underline; }
-        .hint { background: #f0f9ff; border: 1px solid #bae6fd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
+        .hint {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+        }
+        .input-group-text {
+            font-size: 14px;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .login-card {
+                border-radius: 10px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            }
+            .login-header {
+                padding: 1.5rem 1rem;
+            }
+            .login-header .logo-img {
+                max-height: 45px;
+            }
+            .login-header h1 {
+                font-size: 1.2rem;
+            }
+            .login-header .address {
+                font-size: 0.75rem;
+            }
+            .login-body {
+                padding: 1.25rem;
+            }
+            .nav-tabs .nav-link {
+                padding: 0.6rem 0.3rem;
+                font-size: 0.85rem;
+            }
+            .hint {
+                padding: 0.6rem;
+                font-size: 0.8rem;
+            }
+            .form-control {
+                padding: 0.65rem 0.85rem;
+            }
+            .btn-login {
+                padding: 0.75rem;
+                font-size: 0.95rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .login-header {
+                padding: 1.2rem 0.8rem;
+            }
+            .login-header .logo-img {
+                max-height: 40px;
+            }
+            .login-header h1 {
+                font-size: 1.1rem;
+            }
+            .login-body {
+                padding: 1rem;
+            }
+        }
     </style>
 </head>
 <body>

@@ -26,13 +26,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $options = sanitize($_POST['options']);
         }
 
-        $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_order, question_type, options) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_order, question_type, options, target_staff_category) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             sanitize($_POST['category']),
             sanitize($_POST['question_text']),
             intval($_POST['question_order']),
             $questionType,
-            $options
+            $options,
+            sanitize($_POST['target_staff_category'] ?? 'both')
         ]);
         showMessage('Question added successfully!', 'success');
     }
@@ -45,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $options = sanitize($_POST['options']);
         }
 
-        $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, question_text = ?, question_order = ?, question_type = ?, options = ?, is_active = ? WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, question_text = ?, question_order = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ? WHERE id = ?");
         $stmt->execute([
             sanitize($_POST['category']),
             sanitize($_POST['question_text']),
@@ -53,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $questionType,
             $options,
             isset($_POST['is_active']) ? 1 : 0,
+            sanitize($_POST['target_staff_category'] ?? 'both'),
             intval($_POST['question_id'])
         ]);
         showMessage('Question updated successfully!', 'success');
@@ -116,6 +118,9 @@ foreach ($questions as $q) {
                     <a href="questions.php" class="active"><i class="fas fa-question-circle"></i> Questions</a>
                     <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>
                     <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
+                    <?php if (hasPermission('download_all_data')): ?>
+                    <a href="download-data.php"><i class="fas fa-download"></i> Download Data</a>
+                    <?php endif; ?>
                     <a href="sessions.php"><i class="fas fa-calendar"></i> Sessions</a>
                     <a href="logout.php" class="text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
@@ -206,7 +211,7 @@ foreach ($questions as $q) {
                                                 <div class="modal-body">
                                                     <input type="hidden" name="question_id" value="<?php echo $q['id']; ?>">
                                                     <div class="row">
-                                                        <div class="col-md-6 mb-3">
+                                                        <div class="col-md-4 mb-3">
                                                             <label class="form-label">Category</label>
                                                             <select class="form-select" name="category">
                                                                 <option value="Teaching" <?php echo $q['category'] == 'Teaching' ? 'selected' : ''; ?>>Teaching</option>
@@ -216,7 +221,7 @@ foreach ($questions as $q) {
                                                                 <option value="Professional" <?php echo $q['category'] == 'Professional' ? 'selected' : ''; ?>>Professional</option>
                                                             </select>
                                                         </div>
-                                                        <div class="col-md-6 mb-3">
+                                                        <div class="col-md-4 mb-3">
                                                             <label class="form-label">Question Type</label>
                                                             <select class="form-select" name="question_type" id="edit_type_<?php echo $q['id']; ?>" onchange="toggleOptionsField(this, 'edit_<?php echo $q['id']; ?>')">
                                                                 <option value="rating" <?php echo $q['question_type'] == 'rating' ? 'selected' : ''; ?>>⭐ Rating (1-5 Stars)</option>
@@ -227,6 +232,14 @@ foreach ($questions as $q) {
                                                                 <option value="long_answer" <?php echo $q['question_type'] == 'long_answer' ? 'selected' : ''; ?>>📝 Long Response</option>
                                                                 <option value="yes_no" <?php echo $q['question_type'] == 'yes_no' ? 'selected' : ''; ?>>Yes / No</option>
                                                                 <option value="scale" <?php echo $q['question_type'] == 'scale' ? 'selected' : ''; ?>>📏 Scale (1-10)</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-4 mb-3">
+                                                            <label class="form-label">Staff Category</label>
+                                                            <select class="form-select" name="target_staff_category">
+                                                                <option value="both" <?php echo ($q['target_staff_category'] ?? 'both') == 'both' ? 'selected' : ''; ?>>All Staff</option>
+                                                                <option value="academic" <?php echo ($q['target_staff_category'] ?? '') == 'academic' ? 'selected' : ''; ?>>Academic Staff Only</option>
+                                                                <option value="non-teaching" <?php echo ($q['target_staff_category'] ?? '') == 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching Staff Only</option>
                                                             </select>
                                                         </div>
                                                     </div>
@@ -287,7 +300,7 @@ foreach ($questions as $q) {
                     </div>
                     <div class="modal-body">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Category</label>
                                 <select class="form-select" name="category" required>
                                     <option value="">Select Category</option>
@@ -298,7 +311,7 @@ foreach ($questions as $q) {
                                     <option value="Professional">Professional Development</option>
                                 </select>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Question Type</label>
                                 <select class="form-select" name="question_type" id="add_question_type" onchange="toggleOptionsField(this, 'add')" required>
                                     <option value="rating">⭐ Rating (1-5 Stars)</option>
@@ -310,6 +323,15 @@ foreach ($questions as $q) {
                                     <option value="yes_no">Yes / No</option>
                                     <option value="scale">📏 Scale (1-10)</option>
                                 </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Staff Category</label>
+                                <select class="form-select" name="target_staff_category" required>
+                                    <option value="both">All Staff</option>
+                                    <option value="academic">Academic Staff Only</option>
+                                    <option value="non-teaching">Non-Teaching Staff Only</option>
+                                </select>
+                                <small class="text-muted">Which staff type sees this question</small>
                             </div>
                         </div>
                         <div class="mb-3">

@@ -174,6 +174,9 @@ $instAddress = $settings['institution_address'] ?? '';
                     <a href="roles.php"><i class="fas fa-user-tag"></i> Staff Roles</a>
                     <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>
                     <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
+                    <?php if (hasPermission('download_all_data')): ?>
+                    <a href="download-data.php"><i class="fas fa-download"></i> Download Data</a>
+                    <?php endif; ?>
                     <a href="sessions.php"><i class="fas fa-calendar"></i> Sessions</a>
                     <a href="logout.php" class="text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
