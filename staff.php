@@ -14,8 +14,8 @@ while ($row = $stmt->fetch()) {
 $instName = $settings['institution_name'] ?? 'Institution';
 $instAddress = $settings['institution_address'] ?? '';
 $logo = $settings['institution_logo'] ?? '';
-$primaryColor = $settings['primary_color'] ?? '#1e3a8a';
-$secondaryColor = $settings['secondary_color'] ?? '#3b82f6';
+$primaryColor = $settings['primary_color'] ?? '#308a1e';
+$secondaryColor = $settings['secondary_color'] ?? '#269c16';
 
 $message = getMessage();
 $action = $_GET['action'] ?? 'list';

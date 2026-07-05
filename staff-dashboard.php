@@ -72,12 +72,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
 
     try {
         // Check if evaluation exists
-        $checkStmt = $pdo->prepare("SELECT id FROM evaluations WHERE staff_id = ? AND academic_session_id = ? AND evaluation_year = ?");
+        $checkStmt = $pdo->prepare("SELECT id, status FROM evaluations WHERE staff_id = ? AND academic_session_id = ? AND evaluation_year = ?");
         $checkStmt->execute([$staffId, $academicSessionId, $evaluationYear]);
         $existingId = $checkStmt->fetch();
 
         if ($existingId) {
-            // Update existing
+            // Update existing - keep existing stage but update scores
+            $currentStatus = $existingId['status'] ?? 'draft';
+            $newStatus = 'submitted'; // Always submit when staff updates
             $sql = "UPDATE evaluations SET
                 teaching_1=?, teaching_2=?, teaching_3=?, teaching_4=?, teaching_5=?, teaching_6=?,
                 research_1=?, research_2=?, research_3=?, research_4=?, research_5=?,
@@ -85,11 +87,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 community_1=?, community_2=?, community_3=?,
                 professional_1=?, professional_2=?, professional_3=?, professional_4=?,
                 total_score=?, average_score=?, percentage=?, performance_grade=?, performance_status=?,
-                status='submitted', updated_at=NOW()
+                status=?, updated_at=NOW()
                 WHERE id=?";
             $updateStmt = $pdo->prepare($sql);
             $updateStmt->execute([
                 ...array_values($scores), $totalScore, $averageScore, $percentage, $gradeResult[0], $gradeResult[1],
+                $newStatus,
                 $existingId['id']
             ]);
             $submitMessage = 'Evaluation updated and submitted successfully!';
@@ -102,8 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 admin_1, admin_2, admin_3, admin_4, admin_5,
                 community_1, community_2, community_3,
                 professional_1, professional_2, professional_3, professional_4,
-                total_score, average_score, percentage, performance_grade, performance_status, status
-            ) VALUES (?, ?, ?, " . str_repeat('?,', 23) . "?, ?, ?, ?, ?, 'submitted')";
+                total_score, average_score, percentage, performance_grade, performance_status, status, evaluation_stage
+            ) VALUES (?, ?, ?, " . str_repeat('?,', 23) . "?, ?, ?, ?, ?, 'submitted', 'pending')";
             $insertStmt = $pdo->prepare($sql);
             $insertStmt->execute([
                 $staffId, $academicSessionId, $evaluationYear,
@@ -148,6 +151,15 @@ function calculateGrade($percentage) {
         .question-item { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #e2e8f0; }
         .rating-label { padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 20px; cursor: pointer; margin-right: 0.25rem; display: inline-block; }
         .rating-label:hover { background: #dbeafe; }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .top-bar .container { flex-direction: column; align-items: flex-start !important; }
+            .top-bar .text-end { margin-top: 10px; }
+            .score-card { padding: 1rem; margin-bottom: 10px; }
+            .score-card .value { font-size: 1.5rem; }
+            .staff-info-card .row > div { margin-bottom: 5px; }
+        }
     </style>
 </head>
 <body>
@@ -201,12 +213,12 @@ function calculateGrade($percentage) {
         </div>
 
         <!-- Evaluation Status -->
-        <?php if ($existingEval && $existingEval['status'] !== 'draft'): ?>
+        <?php if ($existingEval): ?>
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="score-card">
                     <div class="value"><?php echo $existingEval['total_score']; ?>/115</div>
-                    <div>Total Score</div>
+                    <div>Points</div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -229,22 +241,47 @@ function calculateGrade($percentage) {
             </div>
         </div>
 
+        <?php if ($existingEval['status'] !== 'draft'): ?>
         <div class="alert alert-info">
             <i class="fas fa-check-circle me-2"></i>
-            Your evaluation has been submitted. Please contact your supervisor for any changes.
+            Your evaluation has been submitted. You can still update and resubmit at any time.
         </div>
+        <?php endif; ?>
+
         <div class="text-center mb-4">
             <a href="print-summary.php?id=<?php echo $existingEval['id']; ?>" target="_blank" class="btn btn-success btn-lg">
                 <i class="fas fa-print me-2"></i>Print Summary
             </a>
         </div>
-        <?php else: ?>
+        <?php endif; ?>
 
-        <!-- Self Evaluation Form -->
+        <!-- Self Evaluation Form - Always show for editing -->
         <form method="POST" id="evalForm">
             <input type="hidden" name="staff_id" value="<?php echo $staff['id']; ?>">
             <input type="hidden" name="academic_session_id" value="<?php echo $activeSession['id'] ?? 0; ?>">
             <input type="hidden" name="evaluation_year" value="<?php echo $settings['evaluation_year'] ?? date('Y'); ?>">
+
+            <!-- Live Score Display -->
+            <div class="row mb-4">
+                <div class="col-md-2">
+                    <div class="score-card" style="background: linear-gradient(135deg, #308a1e, #269c16);">
+                        <div class="value" id="liveTotalScore">0</div>
+                        <div>Points</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="score-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <div class="value" id="liveAvgScore">0</div>
+                        <div>Average</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="score-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <div class="value" id="livePercentScore">0%</div>
+                        <div>Percentage</div>
+                    </div>
+                </div>
+            </div>
 
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
@@ -356,8 +393,6 @@ function calculateGrade($percentage) {
                 </button>
             </div>
         </form>
-
-        <?php endif; ?>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -370,6 +405,19 @@ function calculateGrade($percentage) {
             total += parseInt(radio.value);
             count++;
         });
+
+        const avg = count > 0 ? (total / count).toFixed(2) : 0;
+        const maxPossible = 23 * 5;
+        const percentage = maxPossible > 0 ? ((total / maxPossible) * 100).toFixed(1) : 0;
+
+        // Update score display if it exists
+        const totalEl = document.getElementById('liveTotalScore');
+        const avgEl = document.getElementById('liveAvgScore');
+        const percentEl = document.getElementById('livePercentScore');
+
+        if (totalEl) totalEl.textContent = total;
+        if (avgEl) avgEl.textContent = avg;
+        if (percentEl) percentEl.textContent = percentage + '%';
     }
     </script>
 </body>

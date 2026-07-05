@@ -41,8 +41,8 @@ while ($row = $stmt->fetch()) {
 }
 
 // Get colors
-$primaryColor = $settings['primary_color'] ?? '#1e3a8a';
-$secondaryColor = $settings['secondary_color'] ?? '#3b82f6';
+$primaryColor = $settings['primary_color'] ?? '#308a1e';
+$secondaryColor = $settings['secondary_color'] ?? '#269c16';
 $logo = $settings['institution_logo'] ?? '';
 $instName = $settings['institution_name'] ?? 'Institution';
 $instAddress = $settings['institution_address'] ?? '';
@@ -235,7 +235,7 @@ $instAddress = $settings['institution_address'] ?? '';
         .stat-card .value {
             font-size: 2rem;
             font-weight: 700;
-            color: #1e3a8a;
+            color: #308a1e;
         }
     </style>
 </head>

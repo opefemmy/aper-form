@@ -87,9 +87,9 @@ foreach ($questions as $q) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --primary-blue: <?php echo $settings['primary_color'] ?? '#1e3a8a'; ?>; }
+        :root { --primary-blue: <?php echo $settings['primary_color'] ?? '#308a1e'; ?>; }
         body { background: #f3f4f6; }
-        .sidebar { min-height: 100vh; background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#1e3a8a'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#3b82f6'; ?> 100%); color: white; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
     </style>
@@ -99,15 +99,15 @@ foreach ($questions as $q) {
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 sidebar p-3">
-                <div class="text-center py-4 border-bottom border-secondary">
+                <div class="text-center sidebar-header">
                     <?php if (!empty($logo)): ?>
-                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 50px; margin-bottom: 10px;">
+                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 55px; margin-bottom: 10px;">
                     <?php else: ?>
-                        <i class="fas fa-graduation-cap fa-2x mb-2"></i>
+                        <i class="fas fa-graduation-cap fa-2x mb-2" style="font-size: 2rem;"></i>
                     <?php endif; ?>
-                    <h6 class="mb-0"><?php echo htmlspecialchars($instName); ?></h6>
+                    <h5 class="mb-0" style="font-weight: 800;"><?php echo htmlspecialchars($instName); ?></h5>
                     <?php if (!empty($instAddress)): ?>
-                        <small><?php echo htmlspecialchars($instAddress); ?></small>
+                        <small class="d-block" style="max-width: 180px; margin: 5px auto 0; font-weight: 600;"><?php echo htmlspecialchars($instAddress); ?></small>
                     <?php endif; ?>
                 </div>
                 <div class="py-3">

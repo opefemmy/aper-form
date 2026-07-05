@@ -12,8 +12,8 @@ while ($row = $stmt->fetch()) {
 $institutionName = $settings['institution_name'] ?? 'Institution';
 $institutionAddress = $settings['institution_address'] ?? '';
 $institutionLogo = $settings['institution_logo'] ?? '';
-$primaryColor = $settings['primary_color'] ?? '#1e3a8a';
-$secondaryColor = $settings['secondary_color'] ?? '#3b82f6';
+$primaryColor = $settings['primary_color'] ?? '#308a1e';
+$secondaryColor = $settings['secondary_color'] ?? '#269c16';
 
 $message = getMessage();
 $staffId = $_GET['staff_id'] ?? null;
@@ -272,17 +272,32 @@ $sessions = $stmt->fetchAll();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --primary-blue: #1e3a8a; }
+        :root { --primary-blue: #308a1e; }
         body { background: #f3f4f6; }
-        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%); color: white; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
         .question-item { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #e2e8f0; }
         .rating-label { padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 20px; cursor: pointer; margin-right: 0.25rem; margin-bottom: 0.25rem; display: inline-block; }
         .rating-label:hover { background: #dbeafe; }
         .rating-label input:checked + span { background: var(--primary-blue); color: white; }
-        .score-display { background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 1rem; border-radius: 10px; text-align: center; }
+        .score-display { background: linear-gradient(135deg, #308a1e, #269c16); color: white; padding: 1rem; border-radius: 10px; text-align: center; }
         .score-display .value { font-size: 2rem; font-weight: 700; }
+
+        /* Mobile Hamburger Menu */
+        .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 10px; z-index: 1001; }
+        .hamburger span { display: block; width: 25px; height: 3px; background: white; margin: 5px 0; border-radius: 2px; transition: 0.3s; }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -6px); }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+        .sidebar-overlay.active { display: block; }
+
+        @media (max-width: 768px) {
+            .hamburger { display: block; }
+            .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; width: 280px; z-index: 1000; transition: left 0.3s ease; overflow-y: auto; }
+            .sidebar.active { left: 0; }
+        }
     </style>
 </head>
 <body>
@@ -307,6 +322,13 @@ $sessions = $stmt->fetchAll();
 
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 p-4">
+                <!-- Mobile Menu Button -->
+                <button class="hamburger position-fixed" style="top: 10px; left: 10px;" onclick="toggleSidebar()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+
                 <?php if ($message): ?>
                     <div class="alert alert-<?php echo $message['type']; ?> alert-dismissible fade show">
                         <?php echo $message['message']; ?>
@@ -697,6 +719,24 @@ $sessions = $stmt->fetchAll();
 
     // Calculate on page load (for existing evaluations)
     document.addEventListener('DOMContentLoaded', calculateScores);
+    </script>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <script>
+    function toggleSidebar() {
+        document.querySelector('.sidebar').classList.toggle('active');
+        document.querySelector('.sidebar-overlay').classList.toggle('active');
+        document.querySelector('.hamburger').classList.toggle('active');
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelector('.sidebar').classList.remove('active');
+            document.querySelector('.sidebar-overlay').classList.remove('active');
+            document.querySelector('.hamburger').classList.remove('active');
+        }
+    });
     </script>
 </body>
 </html>

@@ -93,27 +93,55 @@ function getScoreLabel($score) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evaluation Summary - <?php echo htmlspecialchars($instName); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @media print {
             .no-print { display: none !important; }
             body { padding: 0; margin: 0; }
             .container { max-width: 100% !important; }
+            .watermark { opacity: 0.1 !important; }
         }
-        body { background: white; padding: 20px; }
-        .print-header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 20px; }
-        .print-header img { max-height: 60px; }
-        .staff-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .score-summary { background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        body { background: white; padding: 20px; position: relative; }
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            opacity: 0.05;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .watermark img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .print-header { text-align: center; border-bottom: 3px solid #308a1e; padding-bottom: 15px; margin-bottom: 20px; position: relative; z-index: 1; }
+        .print-header img.logo-img { max-height: 70px; margin-bottom: 10px; }
+        .staff-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #308a1e; position: relative; z-index: 1; }
+        .score-summary { background: linear-gradient(135deg, #308a1e, #269c16); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; position: relative; z-index: 1; }
         .score-box { font-size: 2rem; font-weight: bold; }
-        .question-section { margin-bottom: 20px; }
-        .question-section h5 { border-bottom: 2px solid #dee2e6; padding-bottom: 8px; color: #1e3a8a; }
+        .question-section { margin-bottom: 20px; position: relative; z-index: 1; }
+        .question-section h5 { border-bottom: 2px solid #308a1e; padding-bottom: 8px; color: #308a1e; font-weight: bold; }
         .question-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
         .question-label { font-weight: 500; }
-        .question-score { font-weight: bold; color: #1e3a8a; }
-        .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; font-size: 0.9rem; }
+        .question-score { font-weight: bold; color: #308a1e; }
+        .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; font-size: 0.9rem; position: relative; z-index: 1; }
+        .signature-section { margin-top: 20px; display: flex; justify-content: space-between; }
+        .signature-box { width: 30%; text-align: center; }
+        .signature-line { border-top: 1px solid #333; margin-top: 40px; padding-top: 5px; }
     </style>
 </head>
 <body>
+    <!-- Watermark -->
+    <?php if (!empty($logo)): ?>
+    <div class="watermark">
+        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Watermark">
+    </div>
+    <?php endif; ?>
+
     <div class="container">
         <div class="no-print text-center mb-4">
             <button class="btn btn-primary" onclick="window.print()">
@@ -126,13 +154,13 @@ function getScoreLabel($score) {
 
         <div class="print-header">
             <?php if (!empty($logo)): ?>
-            <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo">
+            <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" class="logo-img">
             <?php endif; ?>
-            <h2><?php echo htmlspecialchars($instName); ?></h2>
+            <h2 class="text-success"><?php echo htmlspecialchars($instName); ?></h2>
             <?php if (!empty($instAddress)): ?>
-            <p><?php echo htmlspecialchars($instAddress); ?></p>
+            <p class="text-muted"><i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($instAddress); ?></p>
             <?php endif; ?>
-            <h3>Annual Performance Evaluation Report</h3>
+            <h4 class="mt-3">Annual Performance Evaluation Report</h4>
         </div>
 
         <div class="staff-info">

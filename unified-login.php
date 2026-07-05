@@ -206,27 +206,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .background-text-overlay {
             position: fixed;
             top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
+            left: 15%;
+            transform: translateY(-50%);
+            text-align: left;
             z-index: 0;
-            width: 100%;
+            width: 40%;
             padding: 20px;
         }
         .background-text-overlay h1 {
             color: white;
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             font-weight: 800;
             text-shadow: 3px 3px 6px rgba(0,0,0,0.7);
             margin: 0;
             padding: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
+            line-height: 1.4;
         }
         .background-text-overlay h1 span {
             display: inline-block;
+            margin-right: 10px;
+        }
+        @media (max-width: 768px) {
+            .background-text-overlay {
+                left: 10%;
+                width: 60%;
+            }
+            .background-text-overlay h1 {
+                font-size: 1.4rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .background-text-overlay {
+                left: 5%;
+                width: 70%;
+            }
+            .background-text-overlay h1 {
+                font-size: 1.1rem;
+            }
         }
         @media (max-width: 768px) {
             .background-text-overlay h1 {

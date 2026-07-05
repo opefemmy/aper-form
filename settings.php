@@ -4,6 +4,123 @@ requireAdminLogin();
 
 $message = getMessage();
 
+// Handle AJAX request for adding a single grade level
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_add_grade_level'])) {
+    header('Content-Type: application/json');
+    try {
+        $pdo = getDBConnection();
+        $levelName = trim($_POST['level_name'] ?? '');
+
+        if (empty($levelName)) {
+            echo json_encode(['success' => false, 'message' => 'Level name is required']);
+            exit;
+        }
+
+        // Get the next level order
+        $stmt = $pdo->query("SELECT MAX(level_order) as max_order FROM grade_levels");
+        $row = $stmt->fetch();
+        $nextOrder = ($row['max_order'] ?? 0) + 1;
+
+        // Insert the new level
+        $stmt = $pdo->prepare("INSERT INTO grade_levels (level_name, level_order, is_active) VALUES (?, ?, 1)");
+        $stmt->execute([$levelName, $nextOrder]);
+
+        $newId = $pdo->lastInsertId();
+        echo json_encode([
+            'success' => true,
+            'message' => 'Level added successfully!',
+            'new_id' => $newId,
+            'level_name' => $levelName,
+            'level_order' => $nextOrder
+        ]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// Handle AJAX request for deleting a grade level
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_delete_grade_level'])) {
+    header('Content-Type: application/json');
+    try {
+        $pdo = getDBConnection();
+        $levelId = intval($_POST['level_id'] ?? 0);
+
+        if ($levelId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid level ID']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("DELETE FROM grade_levels WHERE id = ?");
+        $stmt->execute([$levelId]);
+
+        echo json_encode(['success' => true, 'message' => 'Level deleted successfully!']);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// Handle AJAX request for updating a single grade level
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_save_grade_level'])) {
+    header('Content-Type: application/json');
+    try {
+        $pdo = getDBConnection();
+        $levelId = intval($_POST['level_id'] ?? 0);
+        $levelName = trim($_POST['level_name'] ?? '');
+
+        if ($levelId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid level ID']);
+            exit;
+        }
+
+        if (empty($levelName)) {
+            echo json_encode(['success' => false, 'message' => 'Level name is required']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("UPDATE grade_levels SET level_name = ? WHERE id = ?");
+        $stmt->execute([$levelName, $levelId]);
+
+        echo json_encode(['success' => true, 'message' => 'Level updated successfully!']);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// Handle bulk save of grade levels (existing functionality)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_grade_levels'])) {
+    try {
+        $pdo = getDBConnection();
+        $gradeLevels = $_POST['grade_levels'] ?? [];
+
+        // Delete existing grade levels
+        $pdo->exec("DELETE FROM grade_levels");
+
+        // Insert new grade levels
+        if (!empty($gradeLevels)) {
+            $stmt = $pdo->prepare("INSERT INTO grade_levels (level_name, level_order, is_active) VALUES (?, ?, 1)");
+            $saved = 0;
+            foreach ($gradeLevels as $index => $levelName) {
+                if (!empty(trim($levelName))) {
+                    $stmt->execute([trim($levelName), $index + 1]);
+                    $saved++;
+                }
+            }
+            if ($saved > 0) {
+                $message = ['message' => 'Grade levels saved successfully!', 'type' => 'success'];
+            } else {
+                $message = ['message' => 'No grade levels to save', 'type' => 'warning'];
+            }
+        } else {
+            $message = ['message' => 'No grade levels to save', 'type' => 'warning'];
+        }
+    } catch (Exception $e) {
+        $message = ['message' => 'Error saving grade levels: ' . $e->getMessage(), 'type' => 'danger'];
+    }
+}
+
 // Save settings
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     try {
@@ -96,29 +213,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
                 ON DUPLICATE KEY UPDATE setting_value = ''");
             $stmt->execute();
             showMessage('Login background removed!', 'success');
-        }
-
-        // Handle grade levels
-        if (isset($_POST['save_grade_levels'])) {
-            $gradeLevels = $_POST['grade_levels'] ?? [];
-            if (!empty($gradeLevels)) {
-                $pdo->exec("TRUNCATE TABLE grade_levels");
-                $stmt = $pdo->prepare("INSERT INTO grade_levels (level_name, level_order, is_active) VALUES (?, ?, 1)");
-                $saved = 0;
-                foreach ($gradeLevels as $index => $levelName) {
-                    if (!empty(trim($levelName))) {
-                        $stmt->execute([trim($levelName), $index + 1]);
-                        $saved++;
-                    }
-                }
-                if ($saved > 0) {
-                    showMessage('Grade levels saved successfully!', 'success');
-                } else {
-                    showMessage('No grade levels to save', 'warning');
-                }
-            } else {
-                showMessage('No grade levels to save', 'warning');
-            }
         }
 
         $pdo->commit();
@@ -340,15 +434,15 @@ $instName = $settings['institution_name'] ?? 'Institution';
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Primary Color</label>
                                     <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" name="primary_color" value="<?php echo htmlspecialchars($settings['primary_color'] ?? '#1e3a8a'); ?>">
-                                        <input type="text" class="form-control" name="primary_color_text" value="<?php echo htmlspecialchars($settings['primary_color'] ?? '#1e3a8a'); ?>">
+                                        <input type="color" class="form-control form-control-color" name="primary_color" value="<?php echo htmlspecialchars($settings['primary_color'] ?? '#308a1e'); ?>">
+                                        <input type="text" class="form-control" name="primary_color_text" value="<?php echo htmlspecialchars($settings['primary_color'] ?? '#308a1e'); ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Secondary Color</label>
                                     <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" name="secondary_color" value="<?php echo htmlspecialchars($settings['secondary_color'] ?? '#3b82f6'); ?>">
-                                        <input type="text" class="form-control" name="secondary_color_text" value="<?php echo htmlspecialchars($settings['secondary_color'] ?? '#3b82f6'); ?>">
+                                        <input type="color" class="form-control form-control-color" name="secondary_color" value="<?php echo htmlspecialchars($settings['secondary_color'] ?? '#269c16'); ?>">
+                                        <input type="text" class="form-control" name="secondary_color_text" value="<?php echo htmlspecialchars($settings['secondary_color'] ?? '#269c16'); ?>">
                                     </div>
                                 </div>
                             </div>
@@ -432,22 +526,34 @@ $instName = $settings['institution_name'] ?? 'Institution';
                             <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Grade Levels</h5>
                         </div>
                         <div class="card-body">
-                            <p class="text-muted">Define the grade levels that can be assigned to staff. Click "Save Grade Levels" after making changes.</p>
+                            <p class="text-muted">Define the grade levels that can be assigned to staff. Click "Add Level" to save immediately.</p>
                             <div id="gradeLevelsContainer">
                                 <?php foreach ($gradeLevels as $index => $level): ?>
-                                <div class="row mb-2 grade-level-row">
+                                <div class="row mb-2 grade-level-row" data-level-id="<?php echo $level['id']; ?>">
                                     <div class="col-md-6">
-                                        <input type="text" class="form-control" name="grade_levels[]" value="<?php echo htmlspecialchars($level['level_name']); ?>" placeholder="e.g., Level 1">
+                                        <input type="text" class="form-control" name="grade_levels[]" value="<?php echo htmlspecialchars($level['level_name']); ?>" placeholder="e.g., Level 1" onchange="saveGradeLevel(this, <?php echo $level['id']; ?>)">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteGradeLevel(<?php echo $level['id']; ?>)" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </div>
                                 </div>
                                 <?php endforeach; ?>
                             </div>
-                            <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addGradeLevel()">
-                                <i class="fas fa-plus me-1"></i>Add Level
-                            </button>
-                            <button type="submit" name="save_grade_levels" class="btn btn-success mt-2">
-                                <i class="fas fa-save me-1"></i>Save Grade Levels
-                            </button>
+                            <div class="mt-2">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <input type="text" id="newGradeLevelName" class="form-control" placeholder="Enter new level name">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-success" onclick="addGradeLevel()">
+                                            <i class="fas fa-plus me-1"></i>Add Level
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="gradeLevelMessage" class="mt-2"></div>
                         </div>
                     </div>
 
@@ -460,11 +566,107 @@ $instName = $settings['institution_name'] ?? 'Institution';
     </div>
     <script>
     function addGradeLevel() {
-        const container = document.getElementById('gradeLevelsContainer');
-        const row = document.createElement('div');
-        row.className = 'row mb-2 grade-level-row';
-        row.innerHTML = '<div class="col-md-6"><input type="text" class="form-control" name="grade_levels[]" value="" placeholder="e.g., Level ' + (container.children.length + 1) + '"></div>';
-        container.appendChild(row);
+        const levelName = document.getElementById('newGradeLevelName').value.trim();
+        if (!levelName) {
+            showGradeMessage('Please enter a level name', 'warning');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('ajax_add_grade_level', '1');
+        formData.append('level_name', levelName);
+
+        fetch('settings.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Add the new row to the container
+                const container = document.getElementById('gradeLevelsContainer');
+                const row = document.createElement('div');
+                row.className = 'row mb-2 grade-level-row';
+                row.setAttribute('data-level-id', data.new_id);
+                row.innerHTML = '<div class="col-md-6"><input type="text" class="form-control" name="grade_levels[]" value="' + data.level_name + '" placeholder="e.g., Level 1" onchange="saveGradeLevel(this, ' + data.new_id + ')"></div><div class="col-md-1"><button type="button" class="btn btn-sm btn-danger" onclick="deleteGradeLevel(' + data.new_id + ')" title="Delete"><i class="fas fa-trash"></i></button></div>';
+                container.appendChild(row);
+
+                // Clear the input
+                document.getElementById('newGradeLevelName').value = '';
+                showGradeMessage(data.message, 'success');
+            } else {
+                showGradeMessage(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showGradeMessage('Error: ' + error.message, 'danger');
+        });
+    }
+
+    function saveGradeLevel(input, levelId) {
+        const levelName = input.value.trim();
+        if (!levelName) {
+            showGradeMessage('Level name cannot be empty', 'warning');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('ajax_save_grade_level', '1');
+        formData.append('level_id', levelId);
+        formData.append('level_name', levelName);
+
+        fetch('settings.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            showGradeMessage(data.message, data.success ? 'success' : 'danger');
+        })
+        .catch(error => {
+            showGradeMessage('Error: ' + error.message, 'danger');
+        });
+    }
+
+    function deleteGradeLevel(levelId) {
+        if (!confirm('Are you sure you want to delete this level?')) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('ajax_delete_grade_level', '1');
+        formData.append('level_id', levelId);
+
+        fetch('settings.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the row from the container
+                const row = document.querySelector('.grade-level-row[data-level-id="' + levelId + '"]');
+                if (row) {
+                    row.remove();
+                }
+                showGradeMessage(data.message, 'success');
+            } else {
+                showGradeMessage(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showGradeMessage('Error: ' + error.message, 'danger');
+        });
+    }
+
+    function showGradeMessage(message, type) {
+        const msgDiv = document.getElementById('gradeLevelMessage');
+        msgDiv.innerHTML = '<div class="alert alert-' + type + ' alert-dismissible fade show">' + message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            msgDiv.innerHTML = '';
+        }, 3000);
     }
     </script>
 
