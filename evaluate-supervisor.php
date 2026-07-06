@@ -177,13 +177,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
         $pdo->beginTransaction();
 
         // Determine next stage
+        // Determine next stage - registrar is final approval
         $nextStage = 'completed';
         if ($adminRole === 'supervisor' || $adminRole === 'admin' || $adminRole === 'super_admin') {
             $nextStage = 'hod';
         } elseif ($adminRole === 'dean') {
             $nextStage = 'dean';
         } elseif ($adminRole === 'registrar') {
-            $nextStage = 'registrar';
+            $nextStage = 'completed'; // Registrar is final approval
         }
 
         // Collect scores from form

@@ -99,17 +99,33 @@ function getScoreLabel($score) {
             .no-print { display: none !important; }
             body { padding: 0; margin: 0; }
             .container { max-width: 100% !important; }
-            .watermark { opacity: 0.1 !important; }
+            .watermark { opacity: 0.08 !important; }
+            .background-logo { opacity: 0.05 !important; }
         }
         body { background: white; padding: 20px; position: relative; }
+        /* Full background logo */
+        .background-logo {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0.08;
+            z-index: 0;
+            pointer-events: none;
+        }
+        /* Center watermark */
         .watermark {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 300px;
-            height: 300px;
-            opacity: 0.05;
+            width: 400px;
+            height: 400px;
+            opacity: 0.1;
             z-index: 0;
             pointer-events: none;
         }
@@ -135,7 +151,12 @@ function getScoreLabel($score) {
     </style>
 </head>
 <body>
-    <!-- Watermark -->
+    <!-- Full Background Logo -->
+    <?php if (!empty($logo)): ?>
+    <img src="<?php echo htmlspecialchars($logo); ?>" alt="Background Logo" class="background-logo">
+    <?php endif; ?>
+
+    <!-- Center Watermark -->
     <?php if (!empty($logo)): ?>
     <div class="watermark">
         <img src="<?php echo htmlspecialchars($logo); ?>" alt="Watermark">
