@@ -215,43 +215,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .background-text-overlay h1 {
             color: white;
-            font-size: 2.2rem;
-            font-weight: 800;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.7);
+            font-size: 3rem;
+            font-weight: 900;
+            text-shadow: 4px 4px 8px rgba(0,0,0,0.8);
             margin: 0;
-            padding: 20px;
-            line-height: 1.4;
+            padding: 30px;
+            line-height: 1.3;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            display: inline-block;
         }
         .background-text-overlay h1 span {
-            display: inline-block;
-            margin-right: 10px;
+            display: block;
+            margin-bottom: 10px;
         }
         @media (max-width: 768px) {
-            .background-text-overlay {
-                left: 10%;
-                width: 60%;
-            }
-            .background-text-overlay h1 {
-                font-size: 1.4rem;
-            }
-        }
-        @media (max-width: 480px) {
             .background-text-overlay {
                 left: 5%;
-                width: 70%;
+                width: 90%;
+                top: 30%;
             }
-            .background-text-overlay h1 {
-                font-size: 1.1rem;
-            }
-        }
-        @media (max-width: 768px) {
             .background-text-overlay h1 {
                 font-size: 1.8rem;
+                padding: 20px;
             }
         }
         @media (max-width: 480px) {
+            .background-text-overlay {
+                left: 3%;
+                width: 94%;
+                top: 25%;
+            }
             .background-text-overlay h1 {
-                font-size: 1.4rem;
+                font-size: 1.3rem;
+                padding: 15px;
             }
         }
         .login-card {

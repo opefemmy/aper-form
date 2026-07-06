@@ -23,9 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo = getDBConnection();
 
         if (isset($_POST['add_session'])) {
+            $customYear = intval($_POST['custom_year'] ?? date('Y'));
+            $sessionName = $customYear . '/' . ($customYear + 1);
             $stmt = $pdo->prepare("INSERT INTO academic_sessions (session_name, semester, year, is_active) VALUES (?, ?, ?, ?)");
             $stmt->execute([
-                sanitize($_POST['session_name']),
+                $sessionName,
                 sanitize($_POST['semester']),
                 intval($_POST['year']),
                 isset($_POST['is_active']) ? 1 : 0
@@ -121,15 +123,9 @@ $sessions = $stmt->fetchAll();
                     <div class="card-body">
                         <form method="POST" class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">Session Name</label>
-                                <select class="form-select" name="session_name" required>
-                                    <?php
-                                    $currentYear = date('Y');
-                                    for ($y = $currentYear + 1; $y >= $currentYear - 5; $y--) {
-                                        echo "<option value='{$y}/" . ($y + 1) . "'>{$y}/" . ($y + 1) . "</option>";
-                                    }
-                                    ?>
-                                </select>
+                                <label class="form-label">Start Year</label>
+                                <input type="number" class="form-control" name="custom_year" value="" placeholder="e.g., 2024" min="2000" max="2100" required>
+                                <small class="text-muted">Enter the starting year (e.g., 2024 for 2024/2025)</small>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Semester</label>
@@ -140,13 +136,13 @@ $sessions = $stmt->fetchAll();
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Year</label>
-                                <input type="number" class="form-control" name="year" value="<?php echo date('Y'); ?>" min="2020" max="2030" required>
+                                <label class="form-label">Evaluation Year</label>
+                                <input type="number" class="form-control" name="year" value="<?php echo date('Y'); ?>" min="2000" max="2100" required>
                             </div>
                             <div class="col-md-1">
                                 <label class="form-label">Active</label>
                                 <div class="form-check mt-4">
-                                    <input class="form-check-input" type="checkbox" name="is_active" id="is_active">
+                                    <input class="form-check-input" type="checkbox" name="is_active" id="is_active" checked>
                                     <label class="form-check-label" for="is_active">Yes</label>
                                 </div>
                             </div>

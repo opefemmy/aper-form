@@ -61,13 +61,13 @@ $staffCategory = $selectedStaff['staff_category'] ?? 'academic';
 // Define different questions for academic vs non-teaching staff
 if ($staffCategory === 'non-teaching') {
     // Non-teaching staff questions
-    $teaching = [
-        ['name' => 'teaching_1', 'label' => 'Job Knowledge & Expertise', 'hint' => 'Understanding of role requirements'],
-        ['name' => 'teaching_2', 'label' => 'Quality of Work', 'hint' => 'Accuracy and thoroughness'],
-        ['name' => 'teaching_3', 'label' => 'Productivity', 'hint' => 'Volume of work completed'],
-        ['name' => 'teaching_4', 'label' => 'Initiative', 'hint' => 'Proactiveness in tasks'],
-        ['name' => 'teaching_5', 'label' => 'Adaptability', 'hint' => 'Flexibility with changing demands'],
-        ['name' => 'teaching_6', 'label' => 'Technical Skills', 'hint' => 'Required technical competencies'],
+    $jobPerformance = [
+        ['name' => 'job_1', 'label' => 'Job Knowledge & Expertise', 'hint' => 'Understanding of role requirements'],
+        ['name' => 'job_2', 'label' => 'Quality of Work', 'hint' => 'Accuracy and thoroughness'],
+        ['name' => 'job_3', 'label' => 'Productivity', 'hint' => 'Volume of work completed'],
+        ['name' => 'job_4', 'label' => 'Initiative', 'hint' => 'Proactiveness in tasks'],
+        ['name' => 'job_5', 'label' => 'Adaptability', 'hint' => 'Flexibility with changing demands'],
+        ['name' => 'job_6', 'label' => 'Technical Skills', 'hint' => 'Required technical competencies'],
     ];
     $research = [
         ['name' => 'research_1', 'label' => 'Process Improvement', 'hint' => 'Suggestions for efficiency'],
@@ -78,13 +78,13 @@ if ($staffCategory === 'non-teaching') {
     ];
 } else {
     // Academic (teaching) staff questions
-    $teaching = [
-        ['name' => 'teaching_1', 'label' => 'Lecture Delivery', 'hint' => 'Quality of teaching delivery'],
-        ['name' => 'teaching_2', 'label' => 'Class Attendance', 'hint' => 'Student attendance rates'],
-        ['name' => 'teaching_3', 'label' => 'Student Engagement', 'hint' => 'Interaction with students'],
-        ['name' => 'teaching_4', 'label' => 'Course Preparation', 'hint' => 'Lesson planning quality'],
-        ['name' => 'teaching_5', 'label' => 'Course Coverage', 'hint' => 'Syllabus completion'],
-        ['name' => 'teaching_6', 'label' => 'Time Management', 'hint' => 'Punctuality in classes'],
+    $jobPerformance = [
+        ['name' => 'job_1', 'label' => 'Lecture Delivery', 'hint' => 'Quality of teaching delivery'],
+        ['name' => 'job_2', 'label' => 'Class Attendance', 'hint' => 'Student attendance rates'],
+        ['name' => 'job_3', 'label' => 'Student Engagement', 'hint' => 'Interaction with students'],
+        ['name' => 'job_4', 'label' => 'Course Preparation', 'hint' => 'Lesson planning quality'],
+        ['name' => 'job_5', 'label' => 'Course Coverage', 'hint' => 'Syllabus completion'],
+        ['name' => 'job_6', 'label' => 'Time Management', 'hint' => 'Punctuality in classes'],
     ];
     $research = [
         ['name' => 'research_1', 'label' => 'Publications', 'hint' => 'Research publications'],
@@ -136,12 +136,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
 
         // Collect all scores
         $scores = [
-            'teaching_1' => intval($_POST['teaching_1'] ?? 0),
-            'teaching_2' => intval($_POST['teaching_2'] ?? 0),
-            'teaching_3' => intval($_POST['teaching_3'] ?? 0),
-            'teaching_4' => intval($_POST['teaching_4'] ?? 0),
-            'teaching_5' => intval($_POST['teaching_5'] ?? 0),
-            'teaching_6' => intval($_POST['teaching_6'] ?? 0),
+            'job_1' => intval($_POST['job_1'] ?? 0),
+            'job_2' => intval($_POST['job_2'] ?? 0),
+            'job_3' => intval($_POST['job_3'] ?? 0),
+            'job_4' => intval($_POST['job_4'] ?? 0),
+            'job_5' => intval($_POST['job_5'] ?? 0),
+            'job_6' => intval($_POST['job_6'] ?? 0),
             'research_1' => intval($_POST['research_1'] ?? 0),
             'research_2' => intval($_POST['research_2'] ?? 0),
             'research_3' => intval($_POST['research_3'] ?? 0),
@@ -174,9 +174,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
             'evaluation_year' => intval($_POST['evaluation_year']),
 
             // Scores
-            'teaching_1' => $scores['teaching_1'], 'teaching_2' => $scores['teaching_2'],
-            'teaching_3' => $scores['teaching_3'], 'teaching_4' => $scores['teaching_4'],
-            'teaching_5' => $scores['teaching_5'], 'teaching_6' => $scores['teaching_6'],
+            'job_1' => $scores['job_1'], 'job_2' => $scores['job_2'],
+            'job_3' => $scores['job_3'], 'job_4' => $scores['job_4'],
+            'job_5' => $scores['job_5'], 'job_6' => $scores['job_6'],
             'research_1' => $scores['research_1'], 'research_2' => $scores['research_2'],
             'research_3' => $scores['research_3'], 'research_4' => $scores['research_4'],
             'research_5' => $scores['research_5'],
@@ -436,34 +436,6 @@ $sessions = $stmt->fetchAll();
                         <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Performance Evaluation</h5>
                     </div>
                     <div class="card-body">
-
-                        <!-- Teaching/Performance Section -->
-                        <div class="mb-4">
-                            <h6 class="text-primary border-bottom pb-2">
-                                <i class="fas fa-chalkboard-teacher me-2"></i>
-                                <?php echo $staffCategory === 'non-teaching' ? 'Job Performance' : 'Teaching Performance'; ?>
-                                <small class="text-muted">(<?php echo $staffCategory === 'non-teaching' ? 'Non-Teaching Staff' : 'Academic Staff'; ?>)</small>
-                            </h6>
-                            <?php foreach ($teaching as $q): ?>
-                            <div class="question-item">
-                                <label class="form-label fw-bold" title="<?php echo $q['hint'] ?? ''; ?>">
-                                    <?php echo $q['label']; ?>
-                                    <?php if (!empty($q['hint'])): ?>
-                                    <i class="fas fa-info-circle text-muted ms-1" style="font-size: 10px;" title="<?php echo htmlspecialchars($q['hint']); ?>"></i>
-                                    <?php endif; ?>
-                                </label>
-                                <div>
-                                    <?php for ($i = 5; $i >= 1; $i--): ?>
-                                    <label class="rating-label">
-                                        <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
-                                               onchange="calculateScores()" <?php echo ($existingEval[$q['name']] ?? '') == $i ? 'checked' : ''; ?>>
-                                        <span><?php echo $i; ?></span>
-                                    </label>
-                                    <?php endfor; ?>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
 
                         <!-- Research/Development Section -->
                         <div class="mb-4">
