@@ -305,9 +305,16 @@ $sessions = $stmt->fetchAll();
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 sidebar p-3">
-                <div class="text-center py-4 border-bottom border-secondary">
-                    <i class="fas fa-graduation-cap fa-2x mb-2"></i>
-                    <h5 class="mb-0"><?php echo htmlspecialchars($institutionName); ?></h5>
+                <div class="text-center sidebar-header">
+                    <?php if (!empty($institutionLogo)): ?>
+                        <img src="<?php echo htmlspecialchars($institutionLogo); ?>" alt="Logo" style="max-height: 55px; margin-bottom: 10px;">
+                    <?php else: ?>
+                        <i class="fas fa-graduation-cap fa-2x mb-2" style="font-size: 2rem;"></i>
+                    <?php endif; ?>
+                    <h5 class="mb-0" style="font-weight: 800;"><?php echo htmlspecialchars($institutionName); ?></h5>
+                    <?php if (!empty($institutionAddress)): ?>
+                        <small class="d-block" style="max-width: 180px; margin: 5px auto 0; font-weight: 600;"><?php echo htmlspecialchars($institutionAddress); ?></small>
+                    <?php endif; ?>
                 </div>
                 <div class="py-3">
                     <a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a>

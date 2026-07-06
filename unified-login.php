@@ -206,11 +206,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .background-text-overlay {
             position: fixed;
             top: 50%;
-            left: 15%;
+            left: 5%;
             transform: translateY(-50%);
             text-align: left;
             z-index: 0;
-            width: 40%;
+            width: 45%;
             padding: 20px;
         }
         .background-text-overlay h1 {

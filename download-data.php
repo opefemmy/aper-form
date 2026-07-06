@@ -140,13 +140,16 @@ $avgScore = $stmt->fetch()['avg'] ?? 0;
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 sidebar p-3">
-                <div class="text-center py-4 border-bottom border-secondary">
+                <div class="text-center sidebar-header">
                     <?php if (!empty($logo)): ?>
-                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 45px; margin-bottom: 8px; border: 2px solid white; border-radius: 6px; padding: 2px;">
+                        <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 55px; margin-bottom: 10px;">
                     <?php else: ?>
-                        <i class="fas fa-graduation-cap fa-2x mb-2"></i>
+                        <i class="fas fa-graduation-cap fa-2x mb-2" style="font-size: 2rem;"></i>
                     <?php endif; ?>
-                    <h5 class="mb-0" style="font-size: 1rem;"><?php echo htmlspecialchars($instName); ?></h5>
+                    <h5 class="mb-0" style="font-weight: 800;"><?php echo htmlspecialchars($instName); ?></h5>
+                    <?php if (!empty($instAddress)): ?>
+                        <small class="d-block" style="max-width: 180px; margin: 5px auto 0; font-weight: 600;"><?php echo htmlspecialchars($instAddress); ?></small>
+                    <?php endif; ?>
                 </div>
                 <div class="py-3">
                     <a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
