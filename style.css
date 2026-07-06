@@ -465,6 +465,9 @@ footer {
     cursor: pointer;
     padding: 10px;
     z-index: 1001;
+    position: fixed;
+    top: 15px;
+    left: 15px;
 }
 .hamburger span {
     display: block;
@@ -499,6 +502,17 @@ footer {
     display: block;
 }
 
+/* Institution Name in Green */
+.sidebar-header-institution-name {
+    color: #10b981 !important;
+    font-weight: 700;
+}
+.sidebar-header-institution-address {
+    color: #10b981 !important;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
 /* Responsive Styles */
 @media (max-width: 991px) {
     .institution-name {
@@ -520,6 +534,40 @@ footer {
     .rating-label {
         width: 100%;
         justify-content: center;
+    }
+
+    /* Mobile Sidebar */
+    .hamburger {
+        display: block;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 280px;
+        height: 100vh;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+        padding-top: 60px;
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+
+    .sidebar .sidebar-header {
+        padding: 60px 15px 15px !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        padding-top: 60px;
+    }
+
+    .content-wrapper {
+        margin-left: 0 !important;
     }
 }
 

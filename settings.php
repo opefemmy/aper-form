@@ -130,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
         $settings = [
             'institution_name' => sanitize($_POST['institution_name']),
             'institution_address' => sanitize($_POST['institution_address']),
+            'copyright_text' => sanitize($_POST['copyright_text'] ?? ''),
             'website_url' => sanitize($_POST['website_url']),
             'academic_session' => sanitize($_POST['academic_session']),
             'semester' => sanitize($_POST['semester']),
@@ -258,8 +259,8 @@ $instName = $settings['institution_name'] ?? 'Institution';
         body { background: #f3f4f6; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
         .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
         .sidebar .sidebar-header { padding: 15px 10px; border-bottom: 1px solid rgba(255,255,255,0.3); margin-bottom: 10px; }
-        .sidebar .sidebar-header h5 { font-size: 1.1rem !important; font-weight: 800 !important; margin: 8px 0 5px 0; }
-        .sidebar .sidebar-header small { font-size: 0.8rem !important; font-weight: 600 !important; }
+        .sidebar .sidebar-header h5 { font-size: 1.1rem !important; font-weight: 800 !important; margin: 8px 0 5px 0; color: #10b981 !important; }
+        .sidebar .sidebar-header small { font-size: 0.8rem !important; font-weight: 600 !important; color: #10b981 !important; }
         .sidebar .sidebar-header img { border: 2px solid white !important; border-radius: 8px !important; max-height: 55px; }
         .sidebar a { color: rgba(255,255,255,0.95); text-decoration: none; padding: 10px 12px; display: block; border-radius: 6px; margin-bottom: 3px; font-size: 0.95rem; font-weight: 600; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.25); color: white; font-weight: 700; }
@@ -348,6 +349,12 @@ $instName = $settings['institution_name'] ?? 'Institution';
                                     <label class="form-label">Institution Address</label>
                                     <input type="text" class="form-control" name="institution_address"
                                            value="<?php echo htmlspecialchars($settings['institution_address'] ?? ''); ?>">
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Copyright Text</label>
+                                    <input type="text" class="form-control" name="copyright_text"
+                                           value="<?php echo htmlspecialchars($settings['copyright_text'] ?? ''); ?>" placeholder="© 2024 Institution Name. All rights reserved.">
+                                    <small class="text-muted">Custom copyright text to display in the footer</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Website URL</label>

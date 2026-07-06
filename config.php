@@ -315,3 +315,36 @@ function getInstitutionName() {
     $row = $stmt->fetch();
     return $row['setting_value'] ?? 'Institution';
 }
+
+/**
+ * Get institution address
+ */
+function getInstitutionAddress() {
+    $pdo = getDBConnection();
+    $stmt = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'institution_address'");
+    $row = $stmt->fetch();
+    return $row['setting_value'] ?? '';
+}
+
+/**
+ * Get copyright text
+ */
+function getCopyrightText() {
+    $pdo = getDBConnection();
+    $stmt = $pdo->query("SELECT setting_value FROM settings WHERE setting_key = 'copyright_text'");
+    $row = $stmt->fetch();
+    return $row['setting_value'] ?? '';
+}
+
+/**
+ * Get all settings as an array
+ */
+function getAllSettings() {
+    $pdo = getDBConnection();
+    $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
+    $settings = [];
+    while ($row = $stmt->fetch()) {
+        $settings[$row['setting_key']] = $row['setting_value'];
+    }
+    return $settings;
+}

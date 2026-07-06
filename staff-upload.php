@@ -21,7 +21,10 @@ $message = getMessage();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_staff'])) {
     if (!isset($_FILES['staff_file']) || $_FILES['staff_file']['error'] !== UPLOAD_ERR_OK) {
         showMessage('Please select a valid CSV file', 'danger');
+    } elseif (empty($_POST['staff_category'])) {
+        showMessage('Please select a staff category (Academic or Non-Teaching)', 'danger');
     } else {
+        $staffCategory = sanitize($_POST['staff_category']);
         $file = $_FILES['staff_file']['tmp_name'];
         $handle = fopen($file, 'r');
 
@@ -89,12 +92,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_staff'])) {
 
                     if ($exists) {
                         // Update existing
-                        $stmt = $pdo->prepare("UPDATE staff SET surname = ?, first_name = ?, email = ?, department = ?, faculty = ?, designation = ?, grade_level = ?, employment_status = ?, years_of_service = ? WHERE staff_id = ?");
-                        $stmt->execute([$surname, $firstName, $email, $department, $faculty, $designation, $gradeLevel, $employmentStatus, $yearsOfService, $staffId]);
+                        $stmt = $pdo->prepare("UPDATE staff SET surname = ?, first_name = ?, email = ?, department = ?, faculty = ?, designation = ?, grade_level = ?, employment_status = ?, years_of_service = ?, staff_category = ? WHERE staff_id = ?");
+                        $stmt->execute([$surname, $firstName, $email, $department, $faculty, $designation, $gradeLevel, $employmentStatus, $yearsOfService, $staffCategory, $staffId]);
                     } else {
                         // Insert new
-                        $stmt = $pdo->prepare("INSERT INTO staff (staff_id, surname, first_name, email, department, faculty, designation, grade_level, employment_status, years_of_service, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$staffId, $surname, $firstName, $email, $department, $faculty, $designation, $gradeLevel, $employmentStatus, $yearsOfService, $password]);
+                        $stmt = $pdo->prepare("INSERT INTO staff (staff_id, surname, first_name, email, department, faculty, designation, grade_level, employment_status, years_of_service, staff_category, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$staffId, $surname, $firstName, $email, $department, $faculty, $designation, $gradeLevel, $employmentStatus, $yearsOfService, $staffCategory, $password]);
                     }
                     $successCount++;
                 } catch (Exception $e) {
@@ -165,11 +168,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_single_staff'])) 
         :root { --primary-blue: #308a1e; }
         body { background: #f3f4f6; }
         .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
+        .sidebar .sidebar-header h5 { color: #10b981 !important; font-weight: 700; }
+        .sidebar .sidebar-header small { color: #10b981 !important; font-weight: 600; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
+
+        /* Mobile Hamburger Menu */
+        .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 10px; z-index: 1001; position: fixed; top: 10px; left: 10px; }
+        .hamburger span { display: block; width: 25px; height: 3px; background: white; margin: 5px 0; border-radius: 2px; transition: 0.3s; }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -6px); }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+        .sidebar-overlay.active { display: block; }
+
+        @media (max-width: 768px) {
+            .hamburger { display: block; }
+            .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; width: 280px; z-index: 1000; transition: left 0.3s ease; overflow-y: auto; }
+            .sidebar.active { left: 0; }
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Hamburger Menu -->
+    <button class="hamburger" onclick="toggleSidebar()">
+        <span></span><span></span><span></span>
+    </button>
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
@@ -215,6 +241,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_single_staff'])) 
                     </div>
                     <div class="card-body">
                         <form method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label class="form-label">Staff Category <span class="text-danger">*</span></label>
+                                <select class="form-select" name="staff_category" required>
+                                    <option value="">-- Select Category --</option>
+                                    <option value="academic">Academic Staff (Teaching)</option>
+                                    <option value="non-teaching">Non-Teaching Staff</option>
+                                </select>
+                                <small class="text-muted">Select the category for all staff being uploaded</small>
+                            </div>
                             <div class="mb-3">
                                 <label class="form-label">Select CSV File</label>
                                 <input type="file" class="form-control" name="staff_file" accept=".csv" required>
@@ -265,6 +300,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_single_staff'])) 
 STF001,Adebayo,John,john.adebayo@school.edu,Computer Science,Science,Lecturer I,Level 5,Permanent,5
 STF002,Okonkwo,Chioma,chioma.okonkwo@school.edu,Mathematics,Science,Senior Lecturer,Level 7,Permanent,8
 STF003,Ibrahim,Fatima,fatima.ibrahim@school.edu,Physics,Science,Professor,Level 10,Permanent,15</pre>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> Select the Staff Category (Academic or Non-Teaching) from the dropdown above. This category will be applied to all staff in the uploaded CSV file.
+                        </div>
 
                         <a href="data:text/csv;charset=utf-8,staff_id%2Csurname%2Cfirst_name%2Cemail%2Cdepartment%2Cfaculty%2Cdesignation%2Cgrade_level%2Cemployment_status%2Cyears_of_service%0ASTF001%2CAdebayo%2CJohn%2Cjohn.adebayo%40school.edu%2CComputer+Science%2CScience%2CLecturer+I%2CLevel+5%2CPermanent%2C5%0ASTF002%2COkonkwo%2CChioma%2Cchioma.okonkwo%40school.edu%2CMathematics%2CScience%2CSenior+Lecturer%2CLevel+7%2CPermanent%2C8%0ASTF003%2CIbrahim%2CFatima%2Cfatima.ibrahim%40school.edu%2CPhysics%2CScience%2CProfessor%2CLevel+10%2CPermanent%2C15" download="staff_template.csv" class="btn btn-success">
                             <i class="fas fa-download me-2"></i>Download Template
@@ -326,5 +365,13 @@ STF003,Ibrahim,Fatima,fatima.ibrahim@school.edu,Physics,Science,Professor,Level 
             </div>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('active');
+            document.querySelector('.hamburger').classList.toggle('active');
+            document.querySelector('.sidebar-overlay').classList.toggle('active');
+        }
+    </script>
 </body>
 </html>

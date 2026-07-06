@@ -286,6 +286,8 @@ $sessions = $stmt->fetchAll();
         :root { --primary-blue: #308a1e; }
         body { background: #f3f4f6; }
         .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
+        .sidebar .sidebar-header h5 { color: #10b981 !important; font-weight: 700; }
+        .sidebar .sidebar-header small { color: #10b981 !important; font-weight: 600; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
 

@@ -102,22 +102,43 @@ $staffList = $stmt->fetchAll();
         .sidebar { min-height: 100vh; background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#308a1e'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#269c16'; ?> 100%); color: white; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
+        .sidebar-header-institution-name { color: #10b981 !important; font-weight: 700; }
+        .sidebar-header-institution-address { color: #10b981 !important; font-weight: 500; opacity: 0.9; }
+        .hamburger { display: none; position: fixed; top: 15px; left: 15px; z-index: 1001; background: <?php echo $settings['primary_color'] ?? '#308a1e'; ?>; border: none; border-radius: 5px; padding: 10px; cursor: pointer; }
+        .hamburger span { display: block; width: 25px; height: 3px; background: white; margin: 5px 0; border-radius: 2px; transition: 0.3s; }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -6px); }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+        .sidebar-overlay.active { display: block; }
+        @media (max-width: 991px) {
+            .hamburger { display: block; }
+            .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100vh; z-index: 1000; transition: left 0.3s ease; overflow-y: auto; }
+            .sidebar.active { left: 0; }
+            .main-content { margin-left: 0 !important; }
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Hamburger Menu -->
+    <button class="hamburger" onclick="toggleSidebar()">
+        <span></span><span></span><span></span>
+    </button>
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar p-3">
+            <div class="col-md-3 col-lg-2 sidebar p-3" id="sidebar">
                 <div class="text-center sidebar-header">
                     <?php if (!empty($logo)): ?>
                         <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" style="max-height: 55px; margin-bottom: 10px;">
                     <?php else: ?>
                         <i class="fas fa-graduation-cap fa-2x mb-2" style="font-size: 2rem;"></i>
                     <?php endif; ?>
-                    <h5 class="mb-0" style="font-weight: 800;"><?php echo htmlspecialchars($instName); ?></h5>
+                    <h5 class="mb-0 sidebar-header-institution-name" style="font-weight: 800;"><?php echo htmlspecialchars($instName); ?></h5>
                     <?php if (!empty($instAddress)): ?>
-                        <small class="d-block" style="max-width: 180px; margin: 5px auto 0; font-weight: 600;"><?php echo htmlspecialchars($instAddress); ?></small>
+                        <small class="d-block sidebar-header-institution-address" style="max-width: 180px; margin: 5px auto 0; font-weight: 600;"><?php echo htmlspecialchars($instAddress); ?></small>
                     <?php endif; ?>
                 </div>
                 <div class="py-3">
@@ -135,7 +156,7 @@ $staffList = $stmt->fetchAll();
             </div>
 
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 p-4">
+            <div class="col-md-9 col-lg-10 p-4 main-content">
                 <?php if ($message): ?>
                     <div class="alert alert-<?php echo $message['type']; ?> alert-dismissible fade show">
                         <?php echo $message['message']; ?>
@@ -428,5 +449,25 @@ $staffList = $stmt->fetchAll();
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('active');
+            document.querySelector('.hamburger').classList.toggle('active');
+            document.querySelector('.sidebar-overlay').classList.toggle('active');
+        }
+    </script>
+    <!-- Footer -->
+    <footer class="mt-4 py-3" style="background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#308a1e'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#269c16'; ?> 100%); color: white; border-radius: 8px;">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6">
+                    <small><?php echo !empty($settings['copyright_text']) ? htmlspecialchars($settings['copyright_text']) : '&copy; ' . date('Y') . ' ' . htmlspecialchars($instName) . '. All rights reserved.'; ?></small>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small>Powered by APER System</small>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

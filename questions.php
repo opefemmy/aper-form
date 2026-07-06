@@ -26,9 +26,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $options = sanitize($_POST['options']);
         }
 
+        // Handle custom category
+        $category = $_POST['category'];
+        if ($category === 'custom' && !empty($_POST['custom_category'])) {
+            $category = sanitize($_POST['custom_category']);
+        }
+
         $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_order, question_type, options, target_staff_category) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->execute([
-            sanitize($_POST['category']),
+            $category,
             sanitize($_POST['question_text']),
             intval($_POST['question_order']),
             $questionType,
@@ -46,9 +52,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $options = sanitize($_POST['options']);
         }
 
+        // Handle custom category
+        $category = $_POST['category'];
+        if ($category === 'custom' && !empty($_POST['custom_category'])) {
+            $category = sanitize($_POST['custom_category']);
+        }
+
         $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, question_text = ?, question_order = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ? WHERE id = ?");
         $stmt->execute([
-            sanitize($_POST['category']),
+            $category,
             sanitize($_POST['question_text']),
             intval($_POST['question_order']),
             $questionType,
@@ -213,13 +225,15 @@ foreach ($questions as $q) {
                                                     <div class="row">
                                                         <div class="col-md-4 mb-3">
                                                             <label class="form-label">Category</label>
-                                                            <select class="form-select" name="category">
+                                                            <select class="form-select" name="category" id="edit_category_<?php echo $q['id']; ?>" onchange="toggleCustomCategory(this, 'edit_<?php echo $q['id']; ?>')">
                                                                 <option value="Teaching" <?php echo $q['category'] == 'Teaching' ? 'selected' : ''; ?>>Teaching</option>
                                                                 <option value="Research" <?php echo $q['category'] == 'Research' ? 'selected' : ''; ?>>Research</option>
                                                                 <option value="Administrative" <?php echo $q['category'] == 'Administrative' ? 'selected' : ''; ?>>Administrative</option>
                                                                 <option value="Community" <?php echo $q['category'] == 'Community' ? 'selected' : ''; ?>>Community</option>
                                                                 <option value="Professional" <?php echo $q['category'] == 'Professional' ? 'selected' : ''; ?>>Professional</option>
+                                                                <option value="custom" <?php echo !in_array($q['category'], ['Teaching', 'Research', 'Administrative', 'Community', 'Professional']) ? 'selected' : ''; ?>>+ Add Custom Category</option>
                                                             </select>
+                                                            <input type="text" class="form-control mt-2" name="custom_category" id="edit_<?php echo $q['id']; ?>_custom_category" placeholder="Enter custom category name" style="display:none;" value="<?php echo !in_array($q['category'], ['Teaching', 'Research', 'Administrative', 'Community', 'Professional']) ? htmlspecialchars($q['category']) : ''; ?>">
                                                         </div>
                                                         <div class="col-md-4 mb-3">
                                                             <label class="form-label">Question Type</label>
@@ -302,14 +316,16 @@ foreach ($questions as $q) {
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Category</label>
-                                <select class="form-select" name="category" required>
+                                <select class="form-select" name="category" id="add_category" required onchange="toggleCustomCategory(this, 'add')">
                                     <option value="">Select Category</option>
                                     <option value="Teaching">Teaching Performance</option>
                                     <option value="Research">Research Performance</option>
                                     <option value="Administrative">Administrative Duties</option>
                                     <option value="Community">Community Service</option>
                                     <option value="Professional">Professional Development</option>
+                                    <option value="custom">+ Add Custom Category</option>
                                 </select>
+                                <input type="text" class="form-control mt-2" name="custom_category" id="add_custom_category" placeholder="Enter custom category name" style="display:none;">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Question Type</label>
@@ -365,6 +381,17 @@ foreach ($questions as $q) {
             optionsField.style.display = 'block';
         } else {
             optionsField.style.display = 'none';
+        }
+    }
+    function toggleCustomCategory(selectElem, prefix) {
+        var customField = document.getElementById(prefix + '_custom_category');
+        if (selectElem.value === 'custom') {
+            customField.style.display = 'block';
+            customField.required = true;
+        } else {
+            customField.style.display = 'none';
+            customField.required = false;
+            customField.value = '';
         }
     }
     </script>

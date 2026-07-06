@@ -261,6 +261,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             position: relative;
             z-index: 1;
         }
+        <?php if (!empty($logo)): ?>
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px;
+            height: 280px;
+            background-image: url('<?php echo htmlspecialchars($logo); ?>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.12;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .login-card > * {
+            position: relative;
+            z-index: 1;
+        }
+        <?php endif; ?>
         .login-header {
             background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%);
             color: white;

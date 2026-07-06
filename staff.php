@@ -128,8 +128,8 @@ $staffList = $stmt->fetchAll();
         body { background: #f3f4f6; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
         .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
         .sidebar .sidebar-header { padding: 15px 10px; border-bottom: 1px solid rgba(255,255,255,0.3); margin-bottom: 10px; }
-        .sidebar .sidebar-header h5 { font-size: 1.1rem !important; font-weight: 800 !important; }
-        .sidebar .sidebar-header small { font-size: 0.8rem !important; font-weight: 600 !important; }
+        .sidebar .sidebar-header h5 { font-size: 1.1rem !important; font-weight: 800 !important; color: #10b981 !important; }
+        .sidebar .sidebar-header small { font-size: 0.8rem !important; font-weight: 600 !important; color: #10b981 !important; }
         .sidebar .sidebar-header img { border: 2px solid white !important; border-radius: 8px !important; max-height: 55px; }
         .sidebar a { color: rgba(255,255,255,0.95); text-decoration: none; padding: 10px 12px; display: block; border-radius: 6px; margin-bottom: 3px; font-size: 0.95rem; font-weight: 600; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.25); color: white; font-weight: 700; }
