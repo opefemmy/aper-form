@@ -178,6 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         :root { --primary-blue: <?php echo $primaryColor; ?>; --secondary-blue: <?php echo $secondaryColor; ?>; }
         * { box-sizing: border-box; }
@@ -516,8 +517,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <i class="fas fa-globe me-2"></i>Back to Website
                 </a>
             </div>
+            <?php if (!empty($settings['copyright_text'])): ?>
+            <div class="text-center mt-3">
+                <small class="text-muted"><?php echo htmlspecialchars($settings['copyright_text']); ?></small>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

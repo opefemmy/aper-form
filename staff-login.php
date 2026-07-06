@@ -139,10 +139,15 @@ try {
                 </button>
             </form>
             <div class="text-center mt-3">
-                <a href="<?php echo ADMIN_URL; ?>/login.php" class="text-muted">
+                <a href="<?php echo SITE_URL; ?>/unified-login.php" class="text-muted">
                     <i class="fas fa-user-shield me-1"></i>Admin Login
                 </a>
             </div>
+            <?php if (!empty($settings['copyright_text'])): ?>
+            <div class="text-center mt-2">
+                <small class="text-muted"><?php echo htmlspecialchars($settings['copyright_text']); ?></small>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 </body>
