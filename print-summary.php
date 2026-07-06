@@ -103,17 +103,16 @@ function getScoreLabel($score) {
             .background-logo { opacity: 0.05 !important; }
         }
         body { background: white; padding: 20px; position: relative; }
-        /* Full background logo */
+        /* Full background logo - Institution Logo */
         .background-logo {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            opacity: 0.08;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            height: auto;
+            opacity: 0.12;
             z-index: 0;
             pointer-events: none;
         }
@@ -300,7 +299,8 @@ function getScoreLabel($score) {
                     <p><strong>Performance Status:</strong> <?php echo htmlspecialchars($eval['performance_status']); ?></p>
                 </div>
             </div>
-            <p class="text-center text-muted">This is a computer-generated document. No signature required.</p>
+            <p class="text-center text-muted"><?php echo !empty($settings['copyright_text']) ? htmlspecialchars($settings['copyright_text']) : htmlspecialchars($instName) . ' - Annual Performance Evaluation Report'; ?></p>
+            <p class="text-center text-muted" style="font-size: 0.8rem;">This is a computer-generated document. No signature required.</p>
         </div>
     </div>
 </body>
