@@ -747,5 +747,19 @@ $sessions = $stmt->fetchAll();
         document.getElementById('gradeDisplay').textContent = grade;
     }
     </script>
+
+    <!-- Footer -->
+    <footer class="mt-4 py-3" style="background: linear-gradient(180deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%); color: white; border-radius: 8px;">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6">
+                    <small><?php echo !empty($settings['copyright_text']) ? htmlspecialchars($settings['copyright_text']) : '&copy; ' . date('Y') . ' ' . htmlspecialchars($settings['institution_name'] ?? 'Institution') . '. All rights reserved.'; ?></small>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small>Powered by APER System</small>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

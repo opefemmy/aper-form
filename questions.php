@@ -397,5 +397,19 @@ foreach ($questions as $q) {
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Footer -->
+    <footer class="mt-4 py-3" style="background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#308a1e'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#269c16'; ?> 100%); color: white; border-radius: 8px;">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6">
+                    <small><?php echo !empty($settings['copyright_text']) ? htmlspecialchars($settings['copyright_text']) : '&copy; ' . date('Y') . ' ' . htmlspecialchars($settings['institution_name'] ?? 'Institution') . '. All rights reserved.'; ?></small>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small>Powered by APER System</small>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
