@@ -4,6 +4,11 @@
  * Annual Performance Evaluation System
  */
 
+// Prevent caching
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 // Database credentials - UPDATE THESE FOR YOUR SERVER
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'escohsti_aperform_db');
