@@ -200,6 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.5);
+            z-index: 1;
             <?php if (empty($loginBackground)): ?>
             display: none;
             <?php endif; ?>
@@ -210,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             left: 5%;
             transform: translateY(-50%);
             text-align: left;
-            z-index: 0;
+            z-index: 1;
             width: 45%;
             padding: 20px;
         }
@@ -259,6 +260,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             overflow: hidden;
             max-width: 500px;
             width: 100%;
+            position: relative;
+            z-index: 10;
         }
         .login-header {
             background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%);
