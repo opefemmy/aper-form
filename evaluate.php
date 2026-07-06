@@ -345,7 +345,7 @@ $sessions = $stmt->fetchAll();
 
                 <form method="POST" id="evalForm">
                 <!-- Staff Selection -->
-                <div class="card mb-4">
+                <div class="card">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="fas fa-user me-2"></i>Staff Information</h5>
                     </div>
@@ -431,7 +431,7 @@ $sessions = $stmt->fetchAll();
                 </div>
 
                 <!-- Performance Evaluation Questions -->
-                <div class="card mb-4">
+                <div class="card">
                     <div class="card-header bg-info text-white">
                         <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Performance Evaluation</h5>
                     </div>
@@ -540,7 +540,7 @@ $sessions = $stmt->fetchAll();
                 </div>
 
                 <!-- Supervisor Assessment -->
-                <div class="card mb-4">
+                <div class="card">
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0"><i class="fas fa-user-shield me-2"></i>Supervisor Assessment</h5>
                     </div>
@@ -594,7 +594,7 @@ $sessions = $stmt->fetchAll();
                 </div>
 
                 <!-- Registrar/Management -->
-                <div class="card mb-4">
+                <div class="card">
                     <div class="card-header bg-warning">
                         <h5 class="mb-0"><i class="fas fa-building me-2"></i>Registrar/Management Approval</h5>
                     </div>
@@ -630,7 +630,7 @@ $sessions = $stmt->fetchAll();
                 </div>
 
                 <!-- Status and Submit -->
-                <div class="card mb-4">
+                <div class="card">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4 mb-3">
