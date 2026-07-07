@@ -169,6 +169,30 @@ try {
         echo "   ℹ️  dean_evaluator_id already exists in staff table\n";
     }
 
+    // Add evaluator_type for HOD, Dean, etc.
+    try {
+        $pdo->exec("ALTER TABLE staff ADD COLUMN evaluator_type ENUM('HOD', 'Dean', 'Registrar', '') DEFAULT ''");
+        echo "   ✅ Added evaluator_type to staff table\n";
+    } catch (Exception $e) {
+        echo "   ℹ️  evaluator_type already exists in staff table\n";
+    }
+
+    // Add evaluate_department for HOD evaluation scope
+    try {
+        $pdo->exec("ALTER TABLE staff ADD COLUMN evaluate_department VARCHAR(100) DEFAULT NULL");
+        echo "   ✅ Added evaluate_department to staff table\n";
+    } catch (Exception $e) {
+        echo "   ℹ️  evaluate_department already exists in staff table\n";
+    }
+
+    // Add evaluate_faculty for Dean evaluation scope
+    try {
+        $pdo->exec("ALTER TABLE staff ADD COLUMN evaluate_faculty VARCHAR(100) DEFAULT NULL");
+        echo "   ✅ Added evaluate_faculty to staff table\n";
+    } catch (Exception $e) {
+        echo "   ℹ️  evaluate_faculty already exists in staff table\n";
+    }
+
     // Add login_background_image setting
     echo "Adding settings...\n";
     $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('login_background_image', '') ON DUPLICATE KEY UPDATE setting_value = setting_value");

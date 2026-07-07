@@ -67,11 +67,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('staff.php');
         }
 
-        if (isset($_POST['delete_staff']) && $staffId) {
-            $stmt = $pdo->prepare("DELETE FROM staff WHERE id = ?");
-            $stmt->execute([$staffId]);
-            showMessage('Staff member deleted successfully!', 'success');
-            redirect('staff.php');
+        if (isset($_POST['delete_staff'])) {
+            $deleteStaffId = intval($_POST['staff_id'] ?? 0);
+            if ($deleteStaffId) {
+                $stmt = $pdo->prepare("DELETE FROM staff WHERE id = ?");
+                $stmt->execute([$deleteStaffId]);
+                showMessage('Staff member deleted successfully!', 'success');
+                redirect('staff.php');
+            }
         }
 
         // Handle password reset
@@ -333,9 +336,12 @@ $staffList = $stmt->fetchAll();
                                                 <button class="btn btn-sm btn-info" title="Reset Evaluation (Allow Resubmit)" data-bs-toggle="modal" data-bs-target="#resetEvalModal<?php echo $staff['id']; ?>">
                                                     <i class="fas fa-redo"></i>
                                                 </button>
-                                                <a href="?action=delete&id=<?php echo $staff['id']; ?>" class="btn btn-sm btn-danger" title="Delete this staff member permanently" onclick="return confirm('Delete this staff member?');">
-                                                    <i class="fas fa-trash"></i>
-                                                </a>
+                                                <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this staff member permanently?');">
+                                                    <input type="hidden" name="staff_id" value="<?php echo $staff['id']; ?>">
+                                                    <button type="submit" name="delete_staff" class="btn btn-sm btn-danger" title="Delete this staff member permanently">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
 
                                                 <!-- Password Reset Modal -->
                                                 <div class="modal fade" id="resetPasswordModal<?php echo $staff['id']; ?>" tabindex="-1">

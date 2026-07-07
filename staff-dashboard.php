@@ -34,38 +34,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
     $academicSessionId = $_POST['academic_session_id'] ?? 0;
     $evaluationYear = $_POST['evaluation_year'] ?? date('Y');
 
-    // Collect all scores
+    // Collect all scores - handle both academic and non-teaching staff
+    // For non-teaching staff: job performance uses teaching_1-6, process improvement uses research_1-5
     $scores = [
-        'teaching_1' => $_POST['teaching_1'] ?? 0,
-        'teaching_2' => $_POST['teaching_2'] ?? 0,
-        'teaching_3' => $_POST['teaching_3'] ?? 0,
-        'teaching_4' => $_POST['teaching_4'] ?? 0,
-        'teaching_5' => $_POST['teaching_5'] ?? 0,
-        'teaching_6' => $_POST['teaching_6'] ?? 0,
-        'research_1' => $_POST['research_1'] ?? 0,
-        'research_2' => $_POST['research_2'] ?? 0,
-        'research_3' => $_POST['research_3'] ?? 0,
-        'research_4' => $_POST['research_4'] ?? 0,
-        'research_5' => $_POST['research_5'] ?? 0,
-        'admin_1' => $_POST['admin_1'] ?? 0,
-        'admin_2' => $_POST['admin_2'] ?? 0,
-        'admin_3' => $_POST['admin_3'] ?? 0,
-        'admin_4' => $_POST['admin_4'] ?? 0,
-        'admin_5' => $_POST['admin_5'] ?? 0,
-        'community_1' => $_POST['community_1'] ?? 0,
-        'community_2' => $_POST['community_2'] ?? 0,
-        'community_3' => $_POST['community_3'] ?? 0,
-        'professional_1' => $_POST['professional_1'] ?? 0,
-        'professional_2' => $_POST['professional_2'] ?? 0,
-        'professional_3' => $_POST['professional_3'] ?? 0,
-        'professional_4' => $_POST['professional_4'] ?? 0,
+        'teaching_1' => intval($_POST['teaching_1'] ?? $_POST['jp1'] ?? 0),
+        'teaching_2' => intval($_POST['teaching_2'] ?? $_POST['jp2'] ?? 0),
+        'teaching_3' => intval($_POST['teaching_3'] ?? $_POST['jp3'] ?? 0),
+        'teaching_4' => intval($_POST['teaching_4'] ?? $_POST['jp4'] ?? 0),
+        'teaching_5' => intval($_POST['teaching_5'] ?? $_POST['jp5'] ?? 0),
+        'teaching_6' => intval($_POST['teaching_6'] ?? $_POST['jp6'] ?? 0),
+        'research_1' => intval($_POST['research_1'] ?? $_POST['pi1'] ?? 0),
+        'research_2' => intval($_POST['research_2'] ?? $_POST['pi2'] ?? 0),
+        'research_3' => intval($_POST['research_3'] ?? $_POST['pi3'] ?? 0),
+        'research_4' => intval($_POST['research_4'] ?? $_POST['pi4'] ?? 0),
+        'research_5' => intval($_POST['research_5'] ?? $_POST['pi5'] ?? 0),
+        'admin_1' => intval($_POST['admin_1'] ?? 0),
+        'admin_2' => intval($_POST['admin_2'] ?? 0),
+        'admin_3' => intval($_POST['admin_3'] ?? 0),
+        'admin_4' => intval($_POST['admin_4'] ?? 0),
+        'admin_5' => intval($_POST['admin_5'] ?? 0),
+        'community_1' => intval($_POST['community_1'] ?? 0),
+        'community_2' => intval($_POST['community_2'] ?? 0),
+        'community_3' => intval($_POST['community_3'] ?? 0),
+        'professional_1' => intval($_POST['professional_1'] ?? 0),
+        'professional_2' => intval($_POST['professional_2'] ?? 0),
+        'professional_3' => intval($_POST['professional_3'] ?? 0),
+        'professional_4' => intval($_POST['professional_4'] ?? 0),
     ];
 
     // Calculate totals
     $totalScore = array_sum($scores);
     $questionCount = 23;
-    $averageScore = $totalScore / $questionCount;
-    $percentage = round(($totalScore / 115) * 100, 2);
+    $averageScore = $questionCount > 0 ? round($totalScore / $questionCount, 2) : 0;
+    $maxPossible = 23 * 5;
+    $percentage = $maxPossible > 0 ? round(($totalScore / $maxPossible) * 100, 2) : 0;
 
     // Calculate grade
     $gradeResult = calculateGrade($percentage);
@@ -87,12 +89,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 community_1=?, community_2=?, community_3=?,
                 professional_1=?, professional_2=?, professional_3=?, professional_4=?,
                 total_score=?, average_score=?, percentage=?, performance_grade=?, performance_status=?,
-                status=?, updated_at=NOW()
+                status=?, staff_category=?, updated_at=NOW()
                 WHERE id=?";
             $updateStmt = $pdo->prepare($sql);
             $updateStmt->execute([
                 ...array_values($scores), $totalScore, $averageScore, $percentage, $gradeResult[0], $gradeResult[1],
-                $newStatus,
+                $newStatus, $staffCategory,
                 $existingId['id']
             ]);
             $submitMessage = 'Evaluation updated and submitted successfully!';
@@ -105,12 +107,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 admin_1, admin_2, admin_3, admin_4, admin_5,
                 community_1, community_2, community_3,
                 professional_1, professional_2, professional_3, professional_4,
-                total_score, average_score, percentage, performance_grade, performance_status, status, evaluation_stage
-            ) VALUES (?, ?, ?, " . str_repeat('?,', 23) . "?, ?, ?, ?, ?, 'submitted', 'pending')";
+                total_score, average_score, percentage, performance_grade, performance_status, status, evaluation_stage, staff_category
+            ) VALUES (?, ?, ?, " . str_repeat('?,', 23) . "?, ?, ?, ?, ?, 'submitted', 'pending', ?)";
             $insertStmt = $pdo->prepare($sql);
             $insertStmt->execute([
                 $staffId, $academicSessionId, $evaluationYear,
-                ...array_values($scores), $totalScore, $averageScore, $percentage, $gradeResult[0], $gradeResult[1]
+                ...array_values($scores), $totalScore, $averageScore, $percentage, $gradeResult[0], $gradeResult[1],
+                $staffCategory
             ]);
             $submitMessage = 'Evaluation submitted successfully!';
         }
@@ -289,17 +292,56 @@ function calculateGrade($percentage) {
                 </div>
                 <div class="card-body">
 
-                    <!-- Teaching Performance -->
+                    <?php if ($staffCategory === 'non-teaching'): ?>
+                    <!-- Job Performance (Non-Teaching Staff) -->
+                    <div class="mb-4">
+                        <h6 class="text-primary border-bottom pb-2">Job Performance</h6>
+                        <?php $jobPerformance = [['jp1','Job Knowledge & Expertise'],['jp2','Quality of Work'],['jp3','Productivity'],['jp4','Initiative'],['jp5','Adaptability'],['jp6','Technical Skills']];
+                        foreach ($jobPerformance as $q): ?>
+                        <div class="question-item">
+                            <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
+                            <div>
+                                <?php for ($i = 5; $i >= 1; $i--): ?>
+                                <label class="rating-label">
+                                    <input type="radio" name="<?php echo $q[0]; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
+                                    <span><?php echo $i; ?></span>
+                                </label>
+                                <?php endfor; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- Process Improvement (Non-Teaching equivalent of Research) -->
+                    <div class="mb-4">
+                        <h6 class="text-primary border-bottom pb-2">Process Improvement & Innovation</h6>
+                        <?php $processImprovement = [['pi1','Process Improvement'],['pi2','Innovation'],['pi3','Documentation'],['pi4','Knowledge Sharing'],['pi5','Problem Solving']];
+                        foreach ($processImprovement as $q): ?>
+                        <div class="question-item">
+                            <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
+                            <div>
+                                <?php for ($i = 5; $i >= 1; $i--): ?>
+                                <label class="rating-label">
+                                    <input type="radio" name="<?php echo $q[0]; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
+                                    <span><?php echo $i; ?></span>
+                                </label>
+                                <?php endfor; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php else: ?>
+                    <!-- Teaching Performance (Academic/Teaching Staff) -->
                     <div class="mb-4">
                         <h6 class="text-primary border-bottom pb-2">Teaching Performance</h6>
-                        <?php $teaching = [['t1','Lecture Delivery'],['t2','Class Attendance'],['t3','Student Engagement'],['t4','Course Preparation'],['t5','Course Coverage'],['t6','Time Management']];
+                        <?php $teaching = [['teaching_1','Lecture Delivery'],['teaching_2','Class Attendance'],['teaching_3','Student Engagement'],['teaching_4','Course Preparation'],['teaching_5','Course Coverage'],['teaching_6','Time Management']];
                         foreach ($teaching as $q): ?>
                         <div class="question-item">
                             <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
                             <div>
                                 <?php for ($i = 5; $i >= 1; $i--): ?>
                                 <label class="rating-label">
-                                    <input type="radio" name="teaching_<?php echo substr($q[0],1); ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
+                                    <input type="radio" name="<?php echo $q[0]; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
                                     <span><?php echo $i; ?></span>
                                 </label>
                                 <?php endfor; ?>
@@ -311,14 +353,14 @@ function calculateGrade($percentage) {
                     <!-- Research Performance -->
                     <div class="mb-4">
                         <h6 class="text-primary border-bottom pb-2">Research Performance</h6>
-                        <?php $research = [['r1','Publications'],['r2','Conferences'],['r3','Research Grants'],['r4','Journal Articles'],['r5','Innovations']];
+                        <?php $research = [['research_1','Publications'],['research_2','Conferences'],['research_3','Research Grants'],['research_4','Journal Articles'],['research_5','Innovations']];
                         foreach ($research as $q): ?>
                         <div class="question-item">
                             <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
                             <div>
                                 <?php for ($i = 5; $i >= 1; $i--): ?>
                                 <label class="rating-label">
-                                    <input type="radio" name="research_<?php echo substr($q[0],1); ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
+                                    <input type="radio" name="<?php echo $q[0]; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
                                     <span><?php echo $i; ?></span>
                                 </label>
                                 <?php endfor; ?>
@@ -326,8 +368,9 @@ function calculateGrade($percentage) {
                         </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php endif; ?>
 
-                    <!-- Administrative Duties -->
+                    <!-- Administrative Duties (Common for all staff) -->
                     <div class="mb-4">
                         <h6 class="text-primary border-bottom pb-2">Administrative Duties</h6>
                         <?php $admin = [['a1','Attendance'],['a2','Punctuality'],['a3','Leadership'],['a4','Teamwork'],['a5','Record Keeping']];

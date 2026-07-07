@@ -26,96 +26,119 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_staff'])) {
     } else {
         $staffCategory = sanitize($_POST['staff_category']);
         $file = $_FILES['staff_file']['tmp_name'];
-        $handle = fopen($file, 'r');
 
-        // Skip BOM if present
-        $bom = fread($handle, 3);
-        if ($bom !== "\xef\xbb\xbf") {
-            rewind($handle);
-        }
-
-        if ($handle) {
-            $pdo = getDBConnection();
-            $pdo->beginTransaction();
-
-            $row = 0;
-            $successCount = 0;
-            $errorCount = 0;
-            $errors = [];
-
-            // Skip header row
-            fgetcsv($handle);
-
-            while (($data = fgetcsv($handle, 1000, ',')) !== FALSE) {
-                $row++;
-
-                // Expected columns: staff_id, surname, first_name, email, department, faculty, designation, grade_level, employment_status, years_of_service
-                if (count($data) < 5) {
-                    $errorCount++;
-                    $errors[] = "Row $row: Not enough columns";
-                    continue;
-                }
-
-                $staffId = sanitize(trim($data[0]));
-                $surname = sanitize(trim($data[1]));
-                $firstName = sanitize(trim($data[2] ?? ''));
-                $email = sanitize(trim($data[3]));
-                $department = sanitize(trim($data[4] ?? ''));
-                $faculty = sanitize(trim($data[5] ?? ''));
-                $designation = sanitize(trim($data[6] ?? ''));
-                $gradeLevel = sanitize(trim($data[7] ?? 'Level 1'));
-                $employmentStatus = sanitize(trim($data[8] ?? 'Permanent'));
-                $yearsOfService = intval($data[9] ?? 0);
-
-                // Validate required fields
-                if (empty($staffId) || empty($surname) || empty($email)) {
-                    $errorCount++;
-                    $errors[] = "Row $row: Missing required fields (staff_id, surname, email)";
-                    continue;
-                }
-
-                // Validate email
-                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    $errorCount++;
-                    $errors[] = "Row $row: Invalid email address";
-                    continue;
-                }
-
-                // Hash password (surname)
-                $password = password_hash(strtolower($surname), PASSWORD_DEFAULT);
-
-                try {
-                    // Check if staff exists
-                    $stmt = $pdo->prepare("SELECT id FROM staff WHERE staff_id = ?");
-                    $stmt->execute([$staffId]);
-                    $exists = $stmt->fetch();
-
-                    if ($exists) {
-                        // Update existing
-                        $stmt = $pdo->prepare("UPDATE staff SET surname = ?, first_name = ?, email = ?, department = ?, faculty = ?, designation = ?, grade_level = ?, employment_status = ?, years_of_service = ?, staff_category = ? WHERE staff_id = ?");
-                        $stmt->execute([$surname, $firstName, $email, $department, $faculty, $designation, $gradeLevel, $employmentStatus, $yearsOfService, $staffCategory, $staffId]);
-                    } else {
-                        // Insert new
-                        $stmt = $pdo->prepare("INSERT INTO staff (staff_id, surname, first_name, email, department, faculty, designation, grade_level, employment_status, years_of_service, staff_category, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$staffId, $surname, $firstName, $email, $department, $faculty, $designation, $gradeLevel, $employmentStatus, $yearsOfService, $staffCategory, $password]);
-                    }
-                    $successCount++;
-                } catch (Exception $e) {
-                    $errorCount++;
-                    $errors[] = "Row $row: " . $e->getMessage();
-                }
-            }
-
-            fclose($handle);
-            $pdo->commit();
-
-            if ($successCount > 0) {
-                showMessage("Successfully imported $successCount staff members!" . ($errorCount > 0 ? " $errorCount errors." : ""), $errorCount > 0 ? 'warning' : 'success');
-            } else {
-                showMessage("No staff imported. Errors: " . implode(', ', array_slice($errors, 0, 3)), 'danger');
-            }
+        // Read entire file content to handle BOM properly
+        $fileContent = file_get_contents($file);
+        if ($fileContent === false) {
+            showMessage('Could not read the file', 'danger');
         } else {
-            showMessage('Could not open the file', 'danger');
+            // Check and remove BOM if present
+            $bom = "\xef\xbb\xbf";
+            if (substr($fileContent, 0, 3) === $bom) {
+                $fileContent = substr($fileContent, 3);
+            }
+
+            // Parse CSV from string
+            $handle = fopen('php://memory', 'r+');
+            fwrite($handle, $fileContent);
+            rewind($handle);
+
+            if ($handle) {
+                $pdo = getDBConnection();
+                $pdo->beginTransaction();
+
+                $row = 0;
+                $successCount = 0;
+                $errorCount = 0;
+                $errors = [];
+
+                // Skip header row
+                fgetcsv($handle);
+
+                while (($data = fgetcsv($handle, 1000, ',')) !== FALSE) {
+                    $row++;
+
+                    // Expected columns: staff_id, surname, first_name, email, department, faculty, designation, grade_level, employment_status, years_of_service, evaluator_type, evaluate_department, evaluate_faculty
+                    if (count($data) < 5) {
+                        $errorCount++;
+                        $errors[] = "Row $row: Not enough columns";
+                        continue;
+                    }
+
+                    $staffId = sanitize(trim($data[0]));
+                    $surname = sanitize(trim($data[1]));
+                    $firstName = sanitize(trim($data[2] ?? ''));
+                    $email = sanitize(trim($data[3]));
+                    $department = sanitize(trim($data[4] ?? ''));
+                    $faculty = sanitize(trim($data[5] ?? ''));
+                    $designation = sanitize(trim($data[6] ?? ''));
+                    $gradeLevel = sanitize(trim($data[7] ?? 'Level 1'));
+                    $employmentStatus = sanitize(trim($data[8] ?? 'Permanent'));
+                    $yearsOfService = intval($data[9] ?? 0);
+
+                    // Evaluator fields (optional - for HOD, Dean, etc.)
+                    $evaluatorType = sanitize(trim($data[10] ?? '')); // HOD, Dean, or empty
+                    $evaluateDepartment = sanitize(trim($data[11] ?? '')); // Department to evaluate
+                    $evaluateFaculty = sanitize(trim($data[12] ?? '')); // Faculty to evaluate
+
+                    // If evaluator_type is set but evaluate_department/faculty is empty, use the staff's own department/faculty
+                    if (!empty($evaluatorType) && empty($evaluateDepartment)) {
+                        $evaluateDepartment = $department;
+                    }
+                    if (!empty($evaluatorType) && empty($evaluateFaculty)) {
+                        $evaluateFaculty = $faculty;
+                    }
+
+                    // Validate required fields
+                    if (empty($staffId) || empty($surname) || empty($email)) {
+                        $errorCount++;
+                        $errors[] = "Row $row: Missing required fields (staff_id, surname, email)";
+                        continue;
+                    }
+
+                    // Validate email
+                    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $errorCount++;
+                        $errors[] = "Row $row: Invalid email address";
+                        continue;
+                    }
+
+                    // Hash password (surname)
+                    $password = password_hash(strtolower($surname), PASSWORD_DEFAULT);
+
+                    try {
+                        // Check if staff exists
+                        $stmt = $pdo->prepare("SELECT id FROM staff WHERE staff_id = ?");
+                        $stmt->execute([$staffId]);
+                        $exists = $stmt->fetch();
+
+                        if ($exists) {
+                            // Update existing
+                            $stmt = $pdo->prepare("UPDATE staff SET surname = ?, first_name = ?, email = ?, department = ?, faculty = ?, designation = ?, grade_level = ?, employment_status = ?, years_of_service = ?, staff_category = ?, evaluator_type = ?, evaluate_department = ?, evaluate_faculty = ? WHERE staff_id = ?");
+                            $stmt->execute([$surname, $firstName, $email, $department, $faculty, $designation, $gradeLevel, $employmentStatus, $yearsOfService, $staffCategory, $evaluatorType, $evaluateDepartment, $evaluateFaculty, $staffId]);
+                        } else {
+                            // Insert new
+                            $stmt = $pdo->prepare("INSERT INTO staff (staff_id, surname, first_name, email, department, faculty, designation, grade_level, employment_status, years_of_service, staff_category, evaluator_type, evaluate_department, evaluate_faculty, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                            $stmt->execute([$staffId, $surname, $firstName, $email, $department, $faculty, $designation, $gradeLevel, $employmentStatus, $yearsOfService, $staffCategory, $evaluatorType, $evaluateDepartment, $evaluateFaculty, $password]);
+                        }
+                        $successCount++;
+                    } catch (Exception $e) {
+                        $errorCount++;
+                        $errors[] = "Row $row: " . $e->getMessage();
+                    }
+                }
+
+                fclose($handle);
+                $pdo->commit();
+
+                if ($successCount > 0) {
+                    showMessage("Successfully imported $successCount staff members!" . ($errorCount > 0 ? " $errorCount errors." : ""), $errorCount > 0 ? 'warning' : 'success');
+                } else {
+                    showMessage("No staff imported. Errors: " . implode(', ', array_slice($errors, 0, 3)), 'danger');
+                }
+            } else {
+                showMessage('Could not open the file', 'danger');
+            }
         }
     }
 }
@@ -291,21 +314,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_single_staff'])) 
                                     <tr><td>8</td><td>Grade Level</td><td><span class="badge bg-success">No</span></td><td>Level 5</td></tr>
                                     <tr><td>9</td><td>Employment Status</td><td><span class="badge bg-success">No</span></td><td>Permanent</td></tr>
                                     <tr><td>10</td><td>Years of Service</td><td><span class="badge bg-success">No</span></td><td>5</td></tr>
+                                    <tr><td>11</td><td>Evaluator Type</td><td><span class="badge bg-success">No</span></td><td>HOD, Dean, or empty</td></tr>
+                                    <tr><td>12</td><td>Evaluate Department</td><td><span class="badge bg-success">No</span></td><td>Computer Science</td></tr>
+                                    <tr><td>13</td><td>Evaluate Faculty</td><td><span class="badge bg-success">No</span></td><td>Science</td></tr>
                                 </tbody>
                             </table>
                         </div>
 
                         <h6>Sample CSV Content:</h6>
-                        <pre style="background: #f8fafc; padding: 1rem; border-radius: 8px; overflow-x: auto;">staff_id,surname,first_name,email,department,faculty,designation,grade_level,employment_status,years_of_service
-STF001,Adebayo,John,john.adebayo@school.edu,Computer Science,Science,Lecturer I,Level 5,Permanent,5
-STF002,Okonkwo,Chioma,chioma.okonkwo@school.edu,Mathematics,Science,Senior Lecturer,Level 7,Permanent,8
-STF003,Ibrahim,Fatima,fatima.ibrahim@school.edu,Physics,Science,Professor,Level 10,Permanent,15</pre>
+                        <pre style="background: #f8fafc; padding: 1rem; border-radius: 8px; overflow-x: auto;">staff_id,surname,first_name,email,department,faculty,designation,grade_level,employment_status,years_of_service,evaluator_type,evaluate_department,evaluate_faculty
+STF001,Adebayo,John,john.adebayo@school.edu,Computer Science,Science,Lecturer I,Level 5,Permanent,5,,,
+STF002,Okonkwo,Chioma,chioma.okonkwo@school.edu,Mathematics,Science,Senior Lecturer,Level 7,Permanent,8,HOD,Mathematics,Science
+STF003,Ibrahim,Fatima,fatima.ibrahim@school.edu,Physics,Science,Professor,Level 10,Permanent,15,Dean,,Science</pre>
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Note:</strong> Select the Staff Category (Academic or Non-Teaching) from the dropdown above. This category will be applied to all staff in the uploaded CSV file.
+                            <strong>Note:</strong> Select the Staff Category (Academic or Non-Teaching) from the dropdown above. For HOD or Dean, leave evaluator_type empty but specify in the CSV columns 11-13. HODs evaluate staff in their department, Deans evaluate staff in their faculty.
                         </div>
 
-                        <a href="data:text/csv;charset=utf-8,staff_id%2Csurname%2Cfirst_name%2Cemail%2Cdepartment%2Cfaculty%2Cdesignation%2Cgrade_level%2Cemployment_status%2Cyears_of_service%0ASTF001%2CAdebayo%2CJohn%2Cjohn.adebayo%40school.edu%2CComputer+Science%2CScience%2CLecturer+I%2CLevel+5%2CPermanent%2C5%0ASTF002%2COkonkwo%2CChioma%2Cchioma.okonkwo%40school.edu%2CMathematics%2CScience%2CSenior+Lecturer%2CLevel+7%2CPermanent%2C8%0ASTF003%2CIbrahim%2CFatima%2Cfatima.ibrahim%40school.edu%2CPhysics%2CScience%2CProfessor%2CLevel+10%2CPermanent%2C15" download="staff_template.csv" class="btn btn-success">
+                        <a href="data:text/csv;charset=utf-8,staff_id%2Csurname%2Cfirst_name%2Cemail%2Cdepartment%2Cfaculty%2Cdesignation%2Cgrade_level%2Cemployment_status%2Cyears_of_service%2Cevaluator_type%2Cevaluate_department%2Cevaluate_faculty%0ASTF001%2CAdebayo%2CJohn%2Cjohn.adebayo%40school.edu%2CComputer+Science%2CScience%2CLecturer+I%2CLevel+5%2CPermanent%2C5%2C%2C%2C%2C%0ASTF002%2COkonkwo%2CChioma%2Cchioma.okonkwo%40school.edu%2CMathematics%2CScience%2CSenior+Lecturer%2CLevel+7%2CPermanent%2C8%2CHOD%2CMathematics%2CScience%0ASTF003%2CIbrahim%2CFatima%2Cfatima.ibrahim%40school.edu%2CPhysics%2CScience%2CProfessor%2CLevel+10%2CPermanent%2C15%2CDean%2C%2CScience" download="staff_template.csv" class="btn btn-success">
                             <i class="fas fa-download me-2"></i>Download Template
                         </a>
                     </div>

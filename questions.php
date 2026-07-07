@@ -32,11 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $category = sanitize($_POST['custom_category']);
         }
 
-        $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_order, question_type, options, target_staff_category) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_type, options, target_staff_category) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([
             $category,
             sanitize($_POST['question_text']),
-            intval($_POST['question_order']),
             $questionType,
             $options,
             sanitize($_POST['target_staff_category'] ?? 'both')
@@ -58,11 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $category = sanitize($_POST['custom_category']);
         }
 
-        $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, question_text = ?, question_order = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ? WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ? WHERE id = ?");
         $stmt->execute([
             $category,
             sanitize($_POST['question_text']),
-            intval($_POST['question_order']),
             $questionType,
             $options,
             isset($_POST['is_active']) ? 1 : 0,
@@ -82,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get all questions grouped by category
-$stmt = $pdo->query("SELECT * FROM evaluation_questions ORDER BY category, question_order");
+$stmt = $pdo->query("SELECT * FROM evaluation_questions ORDER BY category, id");
 $questions = $stmt->fetchAll();
 
 $questionsByCategory = [];
@@ -169,9 +167,9 @@ foreach ($questions as $q) {
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>Order</th>
                                     <th>Question Type</th>
                                     <th>Question</th>
+                                    <th>Target Staff</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -190,9 +188,16 @@ foreach ($questions as $q) {
                                     ];
                                 ?>
                                 <tr>
-                                    <td><?php echo $q['question_order']; ?></td>
                                     <td><span class="badge bg-info"><?php echo $typeLabels[$q['question_type']] ?? $q['question_type']; ?></span></td>
                                     <td><?php echo htmlspecialchars($q['question_text']); ?></td>
+                                    <td>
+                                        <span class="badge bg-<?php echo ($q['target_staff_category'] ?? 'both') == 'both' ? 'primary' : (($q['target_staff_category'] ?? '') == 'academic' ? 'success' : 'warning'); ?>">
+                                            <?php
+                                                $target = $q['target_staff_category'] ?? 'both';
+                                                echo $target == 'both' ? 'All Staff' : ($target == 'academic' ? 'Academic' : 'Non-Teaching');
+                                            ?>
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="badge bg-<?php echo $q['is_active'] ? 'success' : 'secondary'; ?>">
                                             <?php echo $q['is_active'] ? 'Active' : 'Inactive'; ?>
@@ -266,13 +271,8 @@ foreach ($questions as $q) {
                                                         <textarea class="form-control" name="options" rows="4"><?php echo htmlspecialchars($q['options'] ?? ''); ?></textarea>
                                                     </div>
                                                     <div class="row">
-                                                        <div class="col-md-6 mb-3">
-                                                            <label class="form-label">Order</label>
-                                                            <input type="number" class="form-control" name="question_order" value="<?php echo $q['question_order']; ?>" required>
-                                                        </div>
-                                                        <div class="col-md-6 mb-3">
-                                                            <label class="form-label">&nbsp;</label>
-                                                            <div class="form-check mt-2">
+                                                        <div class="col-md-12 mb-3">
+                                                            <div class="form-check">
                                                                 <input class="form-check-input" type="checkbox" name="is_active" id="active<?php echo $q['id']; ?>" <?php echo $q['is_active'] ? 'checked' : ''; ?>>
                                                                 <label class="form-check-label" for="active<?php echo $q['id']; ?>">Active (include in form)</label>
                                                             </div>
@@ -358,10 +358,6 @@ foreach ($questions as $q) {
                             <label class="form-label">Options (one per line)</label>
                             <textarea class="form-control" name="options" rows="4" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
                             <small class="text-muted">Enter each option on a new line</small>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Order (for sorting)</label>
-                            <input type="number" class="form-control" name="question_order" value="24" min="1">
                         </div>
                     </div>
                     <div class="modal-footer">
