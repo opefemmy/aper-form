@@ -18,6 +18,9 @@ while ($row = $stmt->fetch()) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
 
+$primaryColor = $settings['primary_color'] ?? '#308a1e';
+$secondaryColor = $settings['secondary_color'] ?? '#269c16';
+
 // Check if evaluation already exists for this staff
 $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1");
 $stmt->execute([$staff['id']]);
@@ -190,8 +193,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         .score-card { background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 1.5rem; border-radius: 12px; text-align: center; }
         .score-card .value { font-size: 2.5rem; font-weight: 700; }
         .question-item { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #e2e8f0; }
-        .rating-label { padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 20px; cursor: pointer; margin-right: 0.25rem; display: inline-block; }
+        .rating-label { padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 20px; cursor: pointer; margin-right: 0.25rem; display: inline-block; text-align: center; min-width: 45px; }
         .rating-label:hover { background: #dbeafe; }
+        .rating-label input:checked + span { background: var(--primary-blue); color: white; border-radius: 15px; padding: 2px 8px; }
 
         /* Mobile responsive */
         @media (max-width: 768px) {
@@ -201,6 +205,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             .score-card .value { font-size: 1.5rem; }
             .staff-info-card .row > div { margin-bottom: 5px; }
         }
+
+        /* Dark Mode Styles */
+        body.dark-mode { background: #1a1a2e; color: #e0e0e0; }
+        body.dark-mode .staff-info-card { background: #16213e; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        body.dark-mode .question-item { background: #16213e; border-color: #2a2a4a; }
+        body.dark-mode .question-item label { color: #e0e0e0; }
+        body.dark-mode .rating-label { background: #2a2a4a; color: #e0e0e0; }
+        body.dark-mode .rating-label:hover { background: #3a3a5a; }
+        body.dark-mode .card { background: #16213e; border-color: #2a2a4a; }
+        body.dark-mode .card-header { background: #1e3a8a !important; }
+        body.dark-mode .form-control { background: #2a2a4a; border-color: #3a3a5a; color: #e0e0e0; }
+        body.dark-mode .form-control::placeholder { color: #888; }
+        body.dark-mode .form-select { background: #2a2a4a; border-color: #3a3a5a; color: #e0e0e0; }
+        body.dark-mode .form-check-label { color: #e0e0e0; }
+        body.dark-mode .alert-info { background: #1e3a8a; border-color: #2563eb; color: #e0e0e0; }
+        body.dark-mode .text-muted { color: #aaa !important; }
+        body.dark-mode .table { color: #e0e0e0; }
+        body.dark-mode footer { background: linear-gradient(180deg, #1e3a8a 0%, #2563eb 100%) !important; }
+
+        /* Dark mode toggle button */
+        .dark-mode-toggle {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .dark-mode-toggle:hover { background: rgba(255,255,255,0.3); }
     </style>
 </head>
 <body>
@@ -226,6 +260,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                         </ul>
+                        <button class="dark-mode-toggle ms-2" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+                            <i class="fas fa-moon"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -428,10 +465,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                                 <?php elseif ($q['question_type'] === 'long_answer'): ?>
                                 <textarea class="form-control" name="<?php echo $fieldName; ?>" rows="3" placeholder="Enter your answer"><?php echo htmlspecialchars($existingValue ?? ''); ?></textarea>
                                 <?php else: ?>
-                                <?php for ($i = 5; $i >= 1; $i--): ?>
-                                <label class="rating-label">
+                                <?php
+                                $ratingLabels = [
+                                    5 => 'Excellent',
+                                    4 => 'Very Good',
+                                    3 => 'Good',
+                                    2 => 'Fair',
+                                    1 => 'Poor'
+                                ];
+                                for ($i = 5; $i >= 1; $i--): ?>
+                                <label class="rating-label" title="<?php echo $ratingLabels[$i]; ?>">
                                     <input type="radio" name="<?php echo $fieldName; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" <?php echo $existingValue == $i ? 'checked' : ''; ?>>
                                     <span><?php echo $i; ?></span>
+                                    <small class="d-block" style="font-size: 9px;"><?php echo $ratingLabels[$i]; ?></small>
                                 </label>
                                 <?php endfor; ?>
                                 <?php endif; ?>
@@ -481,6 +527,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
 
     // Set question count for dynamic score calculation
     window.questionCount = <?php echo count(array_filter($dbQuestions, fn($q) => $q['question_type'] === 'rating' || $q['question_type'] === 'scale')); ?>;
+
+    // Dark mode toggle
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+    }
+
+    // Check for saved dark mode preference
+    if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+    }
     </script>
 
     <!-- Footer -->
