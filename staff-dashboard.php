@@ -92,26 +92,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
     $gradeResult = calculateGrade($percentage);
 
     try {
+        // Check if responses column exists, add if not
+        try {
+            $colStmt = $pdo->query("SHOW COLUMNS FROM evaluations LIKE 'responses'");
+            $columnExists = $colStmt->fetch() !== false;
+            if (!$columnExists) {
+                $pdo->exec("ALTER TABLE evaluations ADD COLUMN responses JSON AFTER staff_category");
+            }
+        } catch (Exception $e) {
+            // Column creation might have failed, continue anyway
+        }
+
         // Check if evaluation exists
         $checkStmt = $pdo->prepare("SELECT id, status, responses FROM evaluations WHERE staff_id = ? AND academic_session_id = ? AND evaluation_year = ?");
         $checkStmt->execute([$staffId, $academicSessionId, $evaluationYear]);
         $existingId = $checkStmt->fetch();
 
-        // Check if responses column exists, add if not
-        $columnExists = false;
-        try {
-            $colStmt = $pdo->query("SHOW COLUMNS FROM evaluations LIKE 'responses'");
-            $columnExists = $colStmt->fetch() !== false;
-        } catch (Exception $e) {
-            // Table might not have responses column yet
-        }
-
-        if (!$columnExists) {
-            $pdo->exec("ALTER TABLE evaluations ADD COLUMN responses JSON");
-        }
-
-        if ($existingId) {
-            // Update existing
+        // Only allow submission if not already submitted (or if it's a draft)
+        if ($existingId && $existingId['status'] === 'submitted') {
+            $submitMessage = 'You have already submitted your evaluation for this session. Please contact the administrator if you need to make changes.';
+        } elseif ($existingId) {
+            // Update existing - allow resubmission
             $newStatus = 'submitted';
 
             // Get legacy scores from existing columns if needed
@@ -146,8 +147,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 $existingId['id']
             ]);
             $submitMessage = 'Evaluation updated and submitted successfully!';
-        } else {
-            // Insert new
+
+            // Refresh the evaluation data
+            $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1");
+            $stmt->execute([$staff['id']]);
+            $existingEval = $stmt->fetch();
+        } elseif (!$existingId) {
+            // Insert new (first submission)
             $insertStmt = $pdo->prepare("INSERT INTO evaluations (
                 staff_id, academic_session_id, evaluation_year,
                 responses,
@@ -166,12 +172,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 $staffCategory
             ]);
             $submitMessage = 'Evaluation submitted successfully!';
-        }
 
-        // Refresh the evaluation data
-        $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1");
-        $stmt->execute([$staff['id']]);
-        $existingEval = $stmt->fetch();
+            // Refresh the evaluation data
+            $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1");
+            $stmt->execute([$staff['id']]);
+            $existingEval = $stmt->fetch();
+        }
+        // If already submitted, don't do anything - message is already set above
     } catch (Exception $e) {
         $submitMessage = 'Error: ' . $e->getMessage();
     }
@@ -491,11 +498,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 </div>
             </div>
 
+            <?php if ($existingEval && $existingEval['status'] === 'submitted'): ?>
+            <div class="alert alert-info">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Already Submitted:</strong> You have already submitted your evaluation for this session. Contact the administrator to make changes.
+            </div>
+            <?php else: ?>
             <div class="d-flex gap-2">
                 <button type="submit" name="submit_evaluation" class="btn btn-primary btn-lg">
                     <i class="fas fa-paper-plane me-2"></i>Submit Evaluation
                 </button>
             </div>
+            <?php endif; ?>
         </form>
     </div>
 
