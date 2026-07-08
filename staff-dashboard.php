@@ -2,6 +2,7 @@
 require_once 'config.php';
 requireStaffLogin();
 
+$pdo = getDBConnection();
 $staff = getCurrentStaff();
 
 // Get staff category from database
@@ -11,7 +12,6 @@ $staffRow = $stmt->fetch();
 $staffCategory = $staffRow['staff_category'] ?? 'academic';
 
 // Get settings
-$pdo = getDBConnection();
 $stmt = $pdo->query("SELECT * FROM settings");
 $settings = [];
 while ($row = $stmt->fetch()) {
@@ -27,103 +27,15 @@ $existingEval = $stmt->fetch();
 $stmt = $pdo->query("SELECT * FROM academic_sessions WHERE is_active = 1 LIMIT 1");
 $activeSession = $stmt->fetch();
 
-// Handle form submission
-$submitMessage = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation'])) {
-    $staffId = $_POST['staff_id'] ?? 0;
-    $academicSessionId = $_POST['academic_session_id'] ?? 0;
-    $evaluationYear = $_POST['evaluation_year'] ?? date('Y');
+// Get questions from database based on staff category
+$stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') ORDER BY category, question_order, id");
+$stmt->execute([$staffCategory]);
+$dbQuestions = $stmt->fetchAll();
 
-    // Collect all scores - handle both academic and non-teaching staff
-    // For non-teaching staff: job performance uses teaching_1-6, process improvement uses research_1-5
-    $scores = [
-        'teaching_1' => intval($_POST['teaching_1'] ?? $_POST['jp1'] ?? 0),
-        'teaching_2' => intval($_POST['teaching_2'] ?? $_POST['jp2'] ?? 0),
-        'teaching_3' => intval($_POST['teaching_3'] ?? $_POST['jp3'] ?? 0),
-        'teaching_4' => intval($_POST['teaching_4'] ?? $_POST['jp4'] ?? 0),
-        'teaching_5' => intval($_POST['teaching_5'] ?? $_POST['jp5'] ?? 0),
-        'teaching_6' => intval($_POST['teaching_6'] ?? $_POST['jp6'] ?? 0),
-        'research_1' => intval($_POST['research_1'] ?? $_POST['pi1'] ?? 0),
-        'research_2' => intval($_POST['research_2'] ?? $_POST['pi2'] ?? 0),
-        'research_3' => intval($_POST['research_3'] ?? $_POST['pi3'] ?? 0),
-        'research_4' => intval($_POST['research_4'] ?? $_POST['pi4'] ?? 0),
-        'research_5' => intval($_POST['research_5'] ?? $_POST['pi5'] ?? 0),
-        'admin_1' => intval($_POST['admin_1'] ?? 0),
-        'admin_2' => intval($_POST['admin_2'] ?? 0),
-        'admin_3' => intval($_POST['admin_3'] ?? 0),
-        'admin_4' => intval($_POST['admin_4'] ?? 0),
-        'admin_5' => intval($_POST['admin_5'] ?? 0),
-        'community_1' => intval($_POST['community_1'] ?? 0),
-        'community_2' => intval($_POST['community_2'] ?? 0),
-        'community_3' => intval($_POST['community_3'] ?? 0),
-        'professional_1' => intval($_POST['professional_1'] ?? 0),
-        'professional_2' => intval($_POST['professional_2'] ?? 0),
-        'professional_3' => intval($_POST['professional_3'] ?? 0),
-        'professional_4' => intval($_POST['professional_4'] ?? 0),
-    ];
-
-    // Calculate totals
-    $totalScore = array_sum($scores);
-    $questionCount = 23;
-    $averageScore = $questionCount > 0 ? round($totalScore / $questionCount, 2) : 0;
-    $maxPossible = 23 * 5;
-    $percentage = $maxPossible > 0 ? round(($totalScore / $maxPossible) * 100, 2) : 0;
-
-    // Calculate grade
-    $gradeResult = calculateGrade($percentage);
-
-    try {
-        // Check if evaluation exists
-        $checkStmt = $pdo->prepare("SELECT id, status FROM evaluations WHERE staff_id = ? AND academic_session_id = ? AND evaluation_year = ?");
-        $checkStmt->execute([$staffId, $academicSessionId, $evaluationYear]);
-        $existingId = $checkStmt->fetch();
-
-        if ($existingId) {
-            // Update existing - keep existing stage but update scores
-            $currentStatus = $existingId['status'] ?? 'draft';
-            $newStatus = 'submitted'; // Always submit when staff updates
-            $sql = "UPDATE evaluations SET
-                teaching_1=?, teaching_2=?, teaching_3=?, teaching_4=?, teaching_5=?, teaching_6=?,
-                research_1=?, research_2=?, research_3=?, research_4=?, research_5=?,
-                admin_1=?, admin_2=?, admin_3=?, admin_4=?, admin_5=?,
-                community_1=?, community_2=?, community_3=?,
-                professional_1=?, professional_2=?, professional_3=?, professional_4=?,
-                total_score=?, average_score=?, percentage=?, performance_grade=?, performance_status=?,
-                status=?, staff_category=?, updated_at=NOW()
-                WHERE id=?";
-            $updateStmt = $pdo->prepare($sql);
-            $updateStmt->execute([
-                ...array_values($scores), $totalScore, $averageScore, $percentage, $gradeResult[0], $gradeResult[1],
-                $newStatus, $staffCategory,
-                $existingId['id']
-            ]);
-            $submitMessage = 'Evaluation updated and submitted successfully!';
-        } else {
-            // Insert new
-            $sql = "INSERT INTO evaluations (
-                staff_id, academic_session_id, evaluation_year,
-                teaching_1, teaching_2, teaching_3, teaching_4, teaching_5, teaching_6,
-                research_1, research_2, research_3, research_4, research_5,
-                admin_1, admin_2, admin_3, admin_4, admin_5,
-                community_1, community_2, community_3,
-                professional_1, professional_2, professional_3, professional_4,
-                total_score, average_score, percentage, performance_grade, performance_status, status, evaluation_stage, staff_category
-            ) VALUES (?, ?, ?, " . str_repeat('?,', 23) . "?, ?, ?, ?, ?, 'submitted', 'pending', ?)";
-            $insertStmt = $pdo->prepare($sql);
-            $insertStmt->execute([
-                $staffId, $academicSessionId, $evaluationYear,
-                ...array_values($scores), $totalScore, $averageScore, $percentage, $gradeResult[0], $gradeResult[1],
-                $staffCategory
-            ]);
-            $submitMessage = 'Evaluation submitted successfully!';
-        }
-        // Refresh the evaluation data
-        $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1");
-        $stmt->execute([$staff['id']]);
-        $existingEval = $stmt->fetch();
-    } catch (Exception $e) {
-        $submitMessage = 'Error: ' . $e->getMessage();
-    }
+// Group questions by category
+$questionsByCategory = [];
+foreach ($dbQuestions as $q) {
+    $questionsByCategory[$q['category']][] = $q;
 }
 
 // Calculate grade function
@@ -134,6 +46,132 @@ function calculateGrade($percentage) {
     if ($percentage >= 60) return ['Good', 'Satisfactory'];
     if ($percentage >= 50) return ['Fair', 'Needs Improvement'];
     return ['Poor', 'Unsatisfactory'];
+}
+
+// Handle form submission
+$submitMessage = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation'])) {
+    $staffId = $_POST['staff_id'] ?? 0;
+    $academicSessionId = $_POST['academic_session_id'] ?? 0;
+    $evaluationYear = $_POST['evaluation_year'] ?? date('Y');
+
+    // Collect dynamic responses from the database questions
+    $responses = [];
+    $numericScore = 0;
+    $ratingQuestionCount = 0;
+
+    foreach ($dbQuestions as $q) {
+        $fieldName = 'q_' . $q['id'];
+
+        if ($q['question_type'] === 'multiple_choice') {
+            // Multiple choice - checkbox array
+            $responses[$q['id']] = $_POST[$fieldName] ?? [];
+        } else {
+            // All other types
+            $responses[$q['id']] = $_POST[$fieldName] ?? '';
+        }
+
+        // For numeric rating questions, calculate score
+        if (($q['question_type'] === 'rating' || $q['question_type'] === 'scale') && !empty($responses[$q['id']])) {
+            $numericScore += intval($responses[$q['id']]);
+            $ratingQuestionCount++;
+        }
+    }
+
+    // Calculate totals based on actual rating questions
+    $totalScore = $numericScore;
+    $questionCount = count(array_filter($dbQuestions, fn($q) => $q['question_type'] === 'rating' || $q['question_type'] === 'scale'));
+    $averageScore = $questionCount > 0 ? round($totalScore / $questionCount, 2) : 0;
+    $maxPossible = $questionCount * 5;
+    $percentage = $maxPossible > 0 ? round(($totalScore / $maxPossible) * 100, 2) : 0;
+
+    // Calculate grade
+    $gradeResult = calculateGrade($percentage);
+
+    try {
+        // Check if evaluation exists
+        $checkStmt = $pdo->prepare("SELECT id, status, responses FROM evaluations WHERE staff_id = ? AND academic_session_id = ? AND evaluation_year = ?");
+        $checkStmt->execute([$staffId, $academicSessionId, $evaluationYear]);
+        $existingId = $checkStmt->fetch();
+
+        // Check if responses column exists, add if not
+        $columnExists = false;
+        try {
+            $colStmt = $pdo->query("SHOW COLUMNS FROM evaluations LIKE 'responses'");
+            $columnExists = $colStmt->fetch() !== false;
+        } catch (Exception $e) {
+            // Table might not have responses column yet
+        }
+
+        if (!$columnExists) {
+            $pdo->exec("ALTER TABLE evaluations ADD COLUMN responses JSON");
+        }
+
+        if ($existingId) {
+            // Update existing
+            $newStatus = 'submitted';
+
+            // Get legacy scores from existing columns if needed
+            $legacyScores = [];
+            if (isset($existingId['responses']) && $existingId['responses']) {
+                $legacyScores = is_array($existingId['responses']) ? $existingId['responses'] : json_decode($existingId['responses'], true);
+            }
+
+            // Merge new dynamic responses with any legacy data
+            $allResponses = array_merge($legacyScores ?? [], $responses);
+
+            $updateStmt = $pdo->prepare("UPDATE evaluations SET
+                responses = ?,
+                total_score = ?,
+                average_score = ?,
+                percentage = ?,
+                performance_grade = ?,
+                performance_status = ?,
+                status = ?,
+                staff_category = ?,
+                updated_at = NOW()
+                WHERE id = ?");
+            $updateStmt->execute([
+                json_encode($allResponses),
+                $totalScore,
+                $averageScore,
+                $percentage,
+                $gradeResult[0],
+                $gradeResult[1],
+                $newStatus,
+                $staffCategory,
+                $existingId['id']
+            ]);
+            $submitMessage = 'Evaluation updated and submitted successfully!';
+        } else {
+            // Insert new
+            $insertStmt = $pdo->prepare("INSERT INTO evaluations (
+                staff_id, academic_session_id, evaluation_year,
+                responses,
+                total_score, average_score, percentage, performance_grade, performance_status, status, evaluation_stage, staff_category
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted', 'pending', ?)");
+            $insertStmt->execute([
+                $staffId,
+                $academicSessionId,
+                $evaluationYear,
+                json_encode($responses),
+                $totalScore,
+                $averageScore,
+                $percentage,
+                $gradeResult[0],
+                $gradeResult[1],
+                $staffCategory
+            ]);
+            $submitMessage = 'Evaluation submitted successfully!';
+        }
+
+        // Refresh the evaluation data
+        $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1");
+        $stmt->execute([$staff['id']]);
+        $existingEval = $stmt->fetch();
+    } catch (Exception $e) {
+        $submitMessage = 'Error: ' . $e->getMessage();
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -216,11 +254,14 @@ function calculateGrade($percentage) {
         </div>
 
         <!-- Evaluation Status -->
-        <?php if ($existingEval): ?>
+        <?php if ($existingEval):
+            $ratingQuestionCount = count(array_filter($dbQuestions, fn($q) => $q['question_type'] === 'rating' || $q['question_type'] === 'scale'));
+            $maxPoints = $ratingQuestionCount * 5;
+        ?>
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="score-card">
-                    <div class="value"><?php echo $existingEval['total_score']; ?>/115</div>
+                    <div class="value"><?php echo $existingEval['total_score']; ?>/<?php echo $maxPoints; ?></div>
                     <div>Points</div>
                 </div>
             </div>
@@ -292,140 +333,114 @@ function calculateGrade($percentage) {
                 </div>
                 <div class="card-body">
 
-                    <?php if ($staffCategory === 'non-teaching'): ?>
-                    <!-- Job Performance (Non-Teaching Staff) -->
-                    <div class="mb-4">
-                        <h6 class="text-primary border-bottom pb-2">Job Performance</h6>
-                        <?php $jobPerformance = [['jp1','Job Knowledge & Expertise'],['jp2','Quality of Work'],['jp3','Productivity'],['jp4','Initiative'],['jp5','Adaptability'],['jp6','Technical Skills']];
-                        foreach ($jobPerformance as $q): ?>
-                        <div class="question-item">
-                            <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
-                            <div>
-                                <?php for ($i = 5; $i >= 1; $i--): ?>
-                                <label class="rating-label">
-                                    <input type="radio" name="<?php echo $q[0]; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
-                                    <span><?php echo $i; ?></span>
-                                </label>
-                                <?php endfor; ?>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <!-- Process Improvement (Non-Teaching equivalent of Research) -->
-                    <div class="mb-4">
-                        <h6 class="text-primary border-bottom pb-2">Process Improvement & Innovation</h6>
-                        <?php $processImprovement = [['pi1','Process Improvement'],['pi2','Innovation'],['pi3','Documentation'],['pi4','Knowledge Sharing'],['pi5','Problem Solving']];
-                        foreach ($processImprovement as $q): ?>
-                        <div class="question-item">
-                            <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
-                            <div>
-                                <?php for ($i = 5; $i >= 1; $i--): ?>
-                                <label class="rating-label">
-                                    <input type="radio" name="<?php echo $q[0]; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
-                                    <span><?php echo $i; ?></span>
-                                </label>
-                                <?php endfor; ?>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
+                    <?php if (empty($questionsByCategory)): ?>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No evaluation questions have been configured yet. Please contact the administrator.
                     </div>
                     <?php else: ?>
-                    <!-- Teaching Performance (Academic/Teaching Staff) -->
-                    <div class="mb-4">
-                        <h6 class="text-primary border-bottom pb-2">Teaching Performance</h6>
-                        <?php $teaching = [['teaching_1','Lecture Delivery'],['teaching_2','Class Attendance'],['teaching_3','Student Engagement'],['teaching_4','Course Preparation'],['teaching_5','Course Coverage'],['teaching_6','Time Management']];
-                        foreach ($teaching as $q): ?>
-                        <div class="question-item">
-                            <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
-                            <div>
-                                <?php for ($i = 5; $i >= 1; $i--): ?>
-                                <label class="rating-label">
-                                    <input type="radio" name="<?php echo $q[0]; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
-                                    <span><?php echo $i; ?></span>
-                                </label>
-                                <?php endfor; ?>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
 
-                    <!-- Research Performance -->
+                    <?php
+                    // Define category display names
+                    $categoryNames = [
+                        'Teaching' => 'Teaching Performance',
+                        'Research' => 'Research Performance',
+                        'Administrative' => 'Administrative Duties',
+                        'Community' => 'Community Service',
+                        'Professional' => 'Professional Development'
+                    ];
+
+                    // Load existing responses from JSON column
+                    $existingResponses = [];
+                    if (!empty($existingEval['responses'])) {
+                        if (is_array($existingEval['responses'])) {
+                            $existingResponses = $existingEval['responses'];
+                        } else {
+                            $existingResponses = json_decode($existingEval['responses'], true) ?? [];
+                        }
+                    }
+
+                    // Render each category
+                    foreach ($questionsByCategory as $category => $categoryQuestions):
+                    ?>
                     <div class="mb-4">
-                        <h6 class="text-primary border-bottom pb-2">Research Performance</h6>
-                        <?php $research = [['research_1','Publications'],['research_2','Conferences'],['research_3','Research Grants'],['research_4','Journal Articles'],['research_5','Innovations']];
-                        foreach ($research as $q): ?>
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-folder me-2"></i><?php echo htmlspecialchars($categoryNames[$category] ?? $category); ?>
+                        </h6>
+                        <?php foreach ($categoryQuestions as $index => $q):
+                            $fieldName = 'q_' . $q['id'];
+                            $existingValue = $existingResponses[$q['id']] ?? '';
+                        ?>
                         <div class="question-item">
-                            <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
+                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['question_text']); ?></label>
                             <div>
+                                <?php
+                                // Render based on question type
+                                if ($q['question_type'] === 'rating' || $q['question_type'] === 'scale'):
+                                    for ($i = 5; $i >= 1; $i--): ?>
+                                <label class="rating-label">
+                                    <input type="radio" name="<?php echo $fieldName; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" <?php echo $existingValue == $i ? 'checked' : ''; ?>>
+                                    <span><?php echo $i; ?></span>
+                                </label>
+                                    <?php endfor;
+                                elseif ($q['question_type'] === 'yes_no'): ?>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="yes" <?php echo $existingValue == 'yes' ? 'checked' : ''; ?>>
+                                    <label class="form-check-label">Yes</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="no" <?php echo $existingValue == 'no' ? 'checked' : ''; ?>>
+                                    <label class="form-check-label">No</label>
+                                </div>
+                                <?php elseif ($q['question_type'] === 'true_false'): ?>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="true" <?php echo $existingValue == 'true' ? 'checked' : ''; ?>>
+                                    <label class="form-check-label">True</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="false" <?php echo $existingValue == 'false' ? 'checked' : ''; ?>>
+                                    <label class="form-check-label">False</label>
+                                </div>
+                                <?php elseif ($q['question_type'] === 'single_choice' && !empty($q['options'])):
+                                    $options = explode("\n", $q['options']); ?>
+                                <select class="form-select" name="<?php echo $fieldName; ?>" onchange="calculateScores()">
+                                    <option value="">Select an option</option>
+                                    <?php foreach ($options as $opt): ?>
+                                    <option value="<?php echo htmlspecialchars(trim($opt)); ?>" <?php echo $existingValue == trim($opt) ? 'selected' : ''; ?>><?php echo htmlspecialchars(trim($opt)); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <?php elseif ($q['question_type'] === 'multiple_choice' && !empty($q['options'])):
+                                    $options = explode("\n", $q['options']);
+                                    // Handle both array and string (legacy) formats
+                                    if (is_array($existingValue)) {
+                                        $existingMulti = $existingValue;
+                                    } else {
+                                        $existingMulti = explode(',', $existingValue ?? '');
+                                    } ?>
+                                <?php foreach ($options as $opt): ?>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="<?php echo $fieldName; ?>[]" value="<?php echo htmlspecialchars(trim($opt)); ?>" <?php echo in_array(trim($opt), $existingMulti) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label"><?php echo htmlspecialchars(trim($opt)); ?></label>
+                                </div>
+                                <?php endforeach; ?>
+                                <?php elseif ($q['question_type'] === 'short_answer'): ?>
+                                <input type="text" class="form-control" name="<?php echo $fieldName; ?>" value="<?php echo htmlspecialchars($existingValue ?? ''); ?>" placeholder="Enter your answer">
+                                <?php elseif ($q['question_type'] === 'long_answer'): ?>
+                                <textarea class="form-control" name="<?php echo $fieldName; ?>" rows="3" placeholder="Enter your answer"><?php echo htmlspecialchars($existingValue ?? ''); ?></textarea>
+                                <?php else: ?>
                                 <?php for ($i = 5; $i >= 1; $i--): ?>
                                 <label class="rating-label">
-                                    <input type="radio" name="<?php echo $q[0]; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
+                                    <input type="radio" name="<?php echo $fieldName; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" <?php echo $existingValue == $i ? 'checked' : ''; ?>>
                                     <span><?php echo $i; ?></span>
                                 </label>
                                 <?php endfor; ?>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php endforeach; ?>
                     <?php endif; ?>
-
-                    <!-- Administrative Duties (Common for all staff) -->
-                    <div class="mb-4">
-                        <h6 class="text-primary border-bottom pb-2">Administrative Duties</h6>
-                        <?php $admin = [['a1','Attendance'],['a2','Punctuality'],['a3','Leadership'],['a4','Teamwork'],['a5','Record Keeping']];
-                        foreach ($admin as $q): ?>
-                        <div class="question-item">
-                            <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
-                            <div>
-                                <?php for ($i = 5; $i >= 1; $i--): ?>
-                                <label class="rating-label">
-                                    <input type="radio" name="admin_<?php echo substr($q[0],1); ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
-                                    <span><?php echo $i; ?></span>
-                                </label>
-                                <?php endfor; ?>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <!-- Community Service -->
-                    <div class="mb-4">
-                        <h6 class="text-primary border-bottom pb-2">Community Service</h6>
-                        <?php $community = [['c1','Community Development'],['c2','Committee Participation'],['c3','Institutional Representation']];
-                        foreach ($community as $q): ?>
-                        <div class="question-item">
-                            <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
-                            <div>
-                                <?php for ($i = 5; $i >= 1; $i--): ?>
-                                <label class="rating-label">
-                                    <input type="radio" name="community_<?php echo substr($q[0],1); ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
-                                    <span><?php echo $i; ?></span>
-                                </label>
-                                <?php endfor; ?>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <!-- Professional Development -->
-                    <div class="mb-4">
-                        <h6 class="text-primary border-bottom pb-2">Professional Development</h6>
-                        <?php $professional = [['p1','Workshops'],['p2','Training'],['p3','Certifications'],['p4','Seminars']];
-                        foreach ($professional as $q): ?>
-                        <div class="question-item">
-                            <label class="form-label fw-bold"><?php echo $q[1]; ?></label>
-                            <div>
-                                <?php for ($i = 5; $i >= 1; $i--): ?>
-                                <label class="rating-label">
-                                    <input type="radio" name="professional_<?php echo substr($q[0],1); ?>" value="<?php echo $i; ?>" onchange="calculateScores()" required>
-                                    <span><?php echo $i; ?></span>
-                                </label>
-                                <?php endfor; ?>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
 
                 </div>
             </div>
@@ -450,7 +465,8 @@ function calculateGrade($percentage) {
         });
 
         const avg = count > 0 ? (total / count).toFixed(2) : 0;
-        const maxPossible = 23 * 5;
+        // Dynamic max possible based on number of rating questions
+        const maxPossible = window.questionCount ? window.questionCount * 5 : 23 * 5;
         const percentage = maxPossible > 0 ? ((total / maxPossible) * 100).toFixed(1) : 0;
 
         // Update score display if it exists
@@ -462,6 +478,9 @@ function calculateGrade($percentage) {
         if (avgEl) avgEl.textContent = avg;
         if (percentEl) percentEl.textContent = percentage + '%';
     }
+
+    // Set question count for dynamic score calculation
+    window.questionCount = <?php echo count(array_filter($dbQuestions, fn($q) => $q['question_type'] === 'rating' || $q['question_type'] === 'scale')); ?>;
     </script>
 
     <!-- Footer -->
