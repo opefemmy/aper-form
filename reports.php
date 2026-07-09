@@ -1253,6 +1253,7 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
                     <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
                     <a href="staff.php"><i class="fas fa-users"></i> Staff</a>
                     <a href="staff-upload.php"><i class="fas fa-upload"></i> Upload Staff</a>
+                    <a href="manage-evaluators.php"><i class="fas fa-user-tie"></i> Evaluators</a>
                     <a href="questions.php"><i class="fas fa-question-circle"></i> Questions</a>
                     <a href="roles.php"><i class="fas fa-user-tag"></i> Staff Roles</a>
                     <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>

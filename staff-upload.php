@@ -239,6 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_single_staff'])) 
                     <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
                     <a href="staff.php"><i class="fas fa-users"></i> Staff</a>
                     <a href="staff-upload.php" class="active"><i class="fas fa-upload"></i> Upload Staff</a>
+                    <a href="manage-evaluators.php"><i class="fas fa-user-tie"></i> Evaluators</a>
                     <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>
                     <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
                     <a href="sessions.php"><i class="fas fa-calendar"></i> Sessions</a>
