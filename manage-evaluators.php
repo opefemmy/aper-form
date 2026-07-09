@@ -16,13 +16,42 @@ while ($row = $stmt->fetch()) {
 }
 $instName = $settings['institution_name'] ?? 'Institution';
 
-// Get all unique departments
-$stmt = $pdo->query("SELECT DISTINCT department FROM staff WHERE department IS NOT NULL AND department != '' ORDER BY department");
+// Get all unique departments from staff (excluding placeholders)
+$stmt = $pdo->query("SELECT DISTINCT department FROM staff WHERE department IS NOT NULL AND department != '' AND (staff_id IS NULL OR staff_id NOT LIKE 'DEPT-%') ORDER BY department");
 $departments = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Get all unique faculties
-$stmt = $pdo->query("SELECT DISTINCT faculty FROM staff WHERE faculty IS NOT NULL AND faculty != '' ORDER BY faculty");
+// Get all unique faculties from staff (excluding placeholders)
+$stmt = $pdo->query("SELECT DISTINCT faculty FROM staff WHERE faculty IS NOT NULL AND faculty != '' AND (staff_id IS NULL OR staff_id NOT LIKE 'FAC-%') ORDER BY faculty");
 $faculties = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Handle add new department
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_department'])) {
+    $departmentName = sanitize($_POST['department_name'] ?? '');
+    $departmentFaculty = sanitize($_POST['department_faculty'] ?? '');
+
+    if (!empty($departmentName)) {
+        // Insert a placeholder staff record to store the department
+        $stmt = $pdo->prepare("INSERT INTO staff (staff_id, surname, first_name, department, faculty, employment_status) VALUES (?, 'SYSTEM', 'DEPARTMENT', ?, ?, 'active')");
+        $placeholderId = 'DEPT-' . str_replace(' ', '-', $departmentName);
+        $stmt->execute([$placeholderId, $departmentName, $departmentFaculty]);
+        showMessage('Department "' . htmlspecialchars($departmentName) . '" added successfully!', 'success');
+    }
+    redirect('manage-evaluators.php');
+}
+
+// Handle add new faculty
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_faculty'])) {
+    $facultyName = sanitize($_POST['faculty_name'] ?? '');
+
+    if (!empty($facultyName)) {
+        // Insert a placeholder staff record to store the faculty
+        $stmt = $pdo->prepare("INSERT INTO staff (staff_id, surname, first_name, department, faculty, employment_status) VALUES (?, 'SYSTEM', 'FACULTY', ?, ?, 'active')");
+        $placeholderId = 'FAC-' . str_replace(' ', '-', $facultyName);
+        $stmt->execute([$placeholderId, '', $facultyName]);
+        showMessage('Faculty "' . htmlspecialchars($facultyName) . '" added successfully!', 'success');
+    }
+    redirect('manage-evaluators.php');
+}
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -102,7 +131,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (isset($_POST['update_evaluator']) && $editId) {
-            // Validation based on evaluator type
             if (empty($designation)) {
                 showMessage('Designation (username) is required', 'danger');
             } elseif ($evaluatorType === 'HOD' && empty($department)) {
@@ -110,7 +138,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($evaluatorType === 'Dean' && empty($faculty)) {
                 showMessage('Faculty is required for Dean', 'danger');
             } else {
-                // Check if designation exists for other records
                 $stmt = $pdo->prepare("SELECT id FROM staff WHERE designation = ? AND id != ?");
                 $stmt->execute([$designation, $editId]);
                 if ($stmt->fetch()) {
@@ -127,7 +154,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'evaluator_type' => $evaluatorType,
                     ];
 
-                    // Update password if provided
                     if (!empty($password) && strlen($password) >= 6) {
                         $updateData['password'] = password_hash($password, PASSWORD_DEFAULT);
                     }
@@ -194,9 +220,9 @@ if ($editId) {
         .btn-primary:hover { background: var(--secondary); }
         .evaluator-card { transition: transform 0.2s; }
         .evaluator-card:hover { transform: translateY(-5px); }
-        .badge-hod { background: #f59e0b; }
-        .badge-dean { background: #3b82f6; }
-        .badge-registrar { background: #8b5cf6; }
+        .dept-fac-badge { font-size: 0.75rem; padding: 3px 8px; }
+        .add-new-link { color: var(--primary); cursor: pointer; text-decoration: underline; }
+        .add-new-link:hover { color: var(--secondary); }
     </style>
 </head>
 <body>
@@ -223,6 +249,53 @@ if ($editId) {
             <!-- Main Content -->
             <div class="col-md-10 main-content">
                 <?php echo $message; ?>
+
+                <!-- Department/Faculty Manager -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-building"></i> Manage Departments & Faculties</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="border-bottom pb-2 mb-3">Departments (<?php echo count($departments); ?>)</h6>
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    <?php if (empty($departments)): ?>
+                                        <span class="text-muted">No departments yet</span>
+                                    <?php else: ?>
+                                        <?php foreach ($departments as $dept): ?>
+                                            <span class="badge bg-secondary"><?php echo htmlspecialchars($dept); ?></span>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                                <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
+                                    <i class="fas fa-plus"></i> Add Department
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="border-bottom pb-2 mb-3">Faculties (<?php echo count($faculties); ?>)</h6>
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    <?php if (empty($faculties)): ?>
+                                        <span class="text-muted">No faculties yet</span>
+                                    <?php else: ?>
+                                        <?php foreach ($faculties as $fac): ?>
+                                            <span class="badge bg-info"><?php echo htmlspecialchars($fac); ?></span>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                                <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#addFacultyModal">
+                                    <i class="fas fa-plus"></i> Add Faculty
+                                </button>
+                            </div>
+                        </div>
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Tip:</strong> Departments and faculties are automatically loaded from your uploaded staff.
+                            Add staff with the correct department/faculty, then promote them as HOD/Dean.
+                            If you need a department/faculty that doesn't exist in your staff data, you can add it here.
+                        </div>
+                    </div>
+                </div>
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="fas fa-user-tie"></i> Manage Evaluators (HOD, Dean, Registrar)</h2>
@@ -294,11 +367,70 @@ if ($editId) {
                     <?php if (empty($evaluators)): ?>
                     <div class="col-12">
                         <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> No evaluators found. Click "Add Evaluator" to create one.
+                            <i class="fas fa-info-circle"></i> No evaluators found. Click "Add Evaluator" to create one or promote from staff.
                         </div>
                     </div>
                     <?php endif; ?>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Department Modal -->
+    <div class="modal fade" id="addDepartmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus"></i> Add Department</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Department Name</label>
+                            <input type="text" name="department_name" class="form-control" placeholder="e.g., Computer Science" required>
+                            <small class="text-muted">This will be available when assigning HOD</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Assign to Faculty</label>
+                            <select name="department_faculty" class="form-select">
+                                <option value="">Select Faculty (Optional)</option>
+                                <?php foreach ($faculties as $fac): ?>
+                                <option value="<?php echo htmlspecialchars($fac); ?>"><?php echo htmlspecialchars($fac); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="add_department" class="btn btn-success">Add Department</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Faculty Modal -->
+    <div class="modal fade" id="addFacultyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus"></i> Add Faculty</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Faculty Name</label>
+                            <input type="text" name="faculty_name" class="form-control" placeholder="e.g., Engineering" required>
+                            <small class="text-muted">This will be available when assigning Dean</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="add_faculty" class="btn btn-info">Add Faculty</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -320,7 +452,6 @@ if ($editId) {
                 </div>
 
                 <?php if (!$editEvaluator): ?>
-                <!-- Tabs for Create New vs Promote -->
                 <ul class="nav nav-tabs" id="evaluatorTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="create-tab" data-bs-toggle="tab" data-bs-target="#createPane" type="button" role="tab">
@@ -338,9 +469,7 @@ if ($editId) {
                 <form method="POST">
                     <div class="modal-body">
                         <?php if (!$editEvaluator): ?>
-                        <!-- Tab Content -->
                         <div class="tab-content" id="evaluatorTabsContent">
-                            <!-- Create New Tab -->
                             <div class="tab-pane fade show active" id="createPane" role="tabpanel">
                         <?php endif; ?>
 
@@ -386,23 +515,33 @@ if ($editId) {
                         <div class="row">
                             <div class="col-md-6 mb-3" id="departmentField">
                                 <label class="form-label">Department <span class="text-danger">*</span></label>
-                                <input type="text" name="department" id="departmentInput" class="form-control" list="departmentsList" value="<?php echo htmlspecialchars($editEvaluator['department'] ?? ''); ?>">
+                                <div class="input-group">
+                                    <input type="text" name="department" id="departmentInput" class="form-control" list="departmentsList" value="<?php echo htmlspecialchars($editEvaluator['department'] ?? ''); ?>" autocomplete="off">
+                                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
                                 <datalist id="departmentsList">
                                     <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo htmlspecialchars($dept); ?>">
                                     <?php endforeach; ?>
                                 </datalist>
-                                <small class="text-muted">Required for HOD - select from uploaded staff departments</small>
+                                <small class="text-muted">Required for HOD - select or add new</small>
                             </div>
                             <div class="col-md-6 mb-3" id="facultyField">
                                 <label class="form-label">Faculty <span class="text-danger">*</span></label>
-                                <input type="text" name="faculty" id="facultyInput" class="form-control" list="facultiesList" value="<?php echo htmlspecialchars($editEvaluator['faculty'] ?? ''); ?>">
+                                <div class="input-group">
+                                    <input type="text" name="faculty" id="facultyInput" class="form-control" list="facultiesList" value="<?php echo htmlspecialchars($editEvaluator['faculty'] ?? ''); ?>" autocomplete="off">
+                                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#addFacultyModal">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
                                 <datalist id="facultiesList">
                                     <?php foreach ($faculties as $fac): ?>
                                     <option value="<?php echo htmlspecialchars($fac); ?>">
                                     <?php endforeach; ?>
                                 </datalist>
-                                <small class="text-muted">Required for Dean - select from uploaded staff faculties</small>
+                                <small class="text-muted">Required for Dean - select or add new</small>
                             </div>
                         </div>
 
@@ -430,11 +569,10 @@ if ($editId) {
                                         <select name="promote_staff_id" class="form-select" id="promoteStaffSelect">
                                             <option value="">Select Staff Member</option>
                                             <?php
-                                            // Get staff who are not already evaluators
-                                            $stmt = $pdo->query("SELECT id, staff_id, surname, first_name, department, faculty FROM staff WHERE evaluator_type = '' OR evaluator_type IS NULL ORDER BY surname, first_name");
+                                            $stmt = $pdo->query("SELECT id, staff_id, surname, first_name, department, faculty FROM staff WHERE (evaluator_type = '' OR evaluator_type IS NULL) AND staff_id NOT LIKE 'DEPT-%' AND staff_id NOT LIKE 'FAC-%' ORDER BY surname, first_name");
                                             while ($staffMember = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                                 echo '<option value="' . $staffMember['id'] . '" data-dept="' . htmlspecialchars($staffMember['department'] ?? '') . '" data-fac="' . htmlspecialchars($staffMember['faculty'] ?? '') . '">';
-                                                echo htmlspecialchars($staffMember['surname'] . ' ' . $staffMember['first_name'] . ' (' . $staffMember['staff_id'] . ')';
+                                                echo htmlspecialchars($staffMember['surname'] . ' ' . $staffMember['first_name'] . ' (' . $staffMember['staff_id'] . ')');
                                                 if ($staffMember['department']) echo ' - ' . $staffMember['department'];
                                                 echo '</option>';
                                             }
@@ -517,7 +655,6 @@ if ($editId) {
                 facInput.required = true;
                 deptInput.value = '';
             } else {
-                // Registrar - both optional
                 deptField.style.display = 'block';
                 facField.style.display = 'block';
                 deptInput.required = false;
@@ -525,8 +662,14 @@ if ($editId) {
             }
         }
 
-        // Tab switching for Create New vs Promote
         document.addEventListener('DOMContentLoaded', function() {
+            var evaluatorSelect = document.querySelector('select[name="evaluator_type"]');
+            if (evaluatorSelect) {
+                evaluatorSelect.addEventListener('change', toggleFields);
+                toggleFields();
+            }
+
+            // Tab switching
             var createTab = document.getElementById('create-tab');
             var promoteTab = document.getElementById('promote-tab');
             var addBtn = document.getElementById('addBtn');
@@ -553,15 +696,6 @@ if ($editId) {
                     document.getElementById('promoteDepartment').value = dept || '';
                     document.getElementById('promoteFaculty').value = fac || '';
                 });
-            }
-        });
-
-        // Add event listener to evaluator type dropdown
-        document.addEventListener('DOMContentLoaded', function() {
-            var evaluatorSelect = document.querySelector('select[name="evaluator_type"]');
-            if (evaluatorSelect) {
-                evaluatorSelect.addEventListener('change', toggleFields);
-                toggleFields(); // Initial call
             }
         });
     </script>
