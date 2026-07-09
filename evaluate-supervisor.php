@@ -154,6 +154,22 @@ if ($evalId) {
         $stmt->execute([$staffId]);
         $selectedStaff = $stmt->fetch();
     }
+} elseif ($staffId) {
+    // Get staff details directly
+    $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ?");
+    $stmt->execute([$staffId]);
+    $selectedStaff = $stmt->fetch();
+
+    // Get existing evaluation or create new one
+    if ($selectedStaff) {
+        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
+            FROM evaluations e
+            JOIN staff s ON e.staff_id = s.id
+            WHERE e.staff_id = ? AND e.evaluation_year = ?
+            ORDER BY e.created_at DESC LIMIT 1");
+        $stmt->execute([$staffId, date('Y')]);
+        $selectedEval = $stmt->fetch();
+    }
 }
 
 // Determine staff category for question display
@@ -178,35 +194,25 @@ if ($staffCategory === 'non-teaching') {
             ['name' => 'teaching_5', 'label' => 'Adaptability'],
             ['name' => 'teaching_6', 'label' => 'Technical Skills'],
         ];
-        $research = [
-            ['name' => 'research_1', 'label' => 'Process Improvement'],
-            ['name' => 'research_2', 'label' => 'Innovation'],
-            ['name' => 'research_3', 'label' => 'Documentation'],
-            ['name' => 'research_4', 'label' => 'Knowledge Sharing'],
-            ['name' => 'research_5', 'label' => 'Problem Solving'],
-        ];
+        // Use only simplified questions for HOD
+        $research = [];
     } else {
         // Dean and Registrar see summary only - no new questions
         $teaching = [];
         $research = [];
     }
 } else {
-    // Academic staff questions
+    // Academic staff questions - Simplified for HOD
     if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod') {
+        // HOD-specific simplified evaluation questions
         $teaching = [
-            ['name' => 'teaching_1', 'label' => 'Lecture Delivery'],
-            ['name' => 'teaching_2', 'label' => 'Class Attendance'],
-            ['name' => 'teaching_3', 'label' => 'Student Engagement'],
-            ['name' => 'teaching_4', 'label' => 'Course Preparation'],
-            ['name' => 'teaching_5', 'label' => 'Course Coverage'],
-            ['name' => 'teaching_6', 'label' => 'Time Management'],
+            ['name' => 'teaching_1', 'label' => 'Teaching Quality'],
+            ['name' => 'teaching_2', 'label' => 'Class Control & Attendance'],
+            ['name' => 'teaching_3', 'label' => 'Course Material Preparation'],
         ];
         $research = [
-            ['name' => 'research_1', 'label' => 'Publications'],
-            ['name' => 'research_2', 'label' => 'Conferences'],
-            ['name' => 'research_3', 'label' => 'Research Grants'],
-            ['name' => 'research_4', 'label' => 'Journal Articles'],
-            ['name' => 'research_5', 'label' => 'Innovations'],
+            ['name' => 'research_1', 'label' => 'Research Output'],
+            ['name' => 'research_2', 'label' => 'Academic Publications'],
         ];
     } else {
         // Dean and Registrar see summary only
@@ -215,26 +221,24 @@ if ($staffCategory === 'non-teaching') {
     }
 }
 
-$adminQuestions = [
-    ['name' => 'admin_1', 'label' => 'Attendance'],
-    ['name' => 'admin_2', 'label' => 'Punctuality'],
-    ['name' => 'admin_3', 'label' => 'Leadership'],
-    ['name' => 'admin_4', 'label' => 'Teamwork'],
-    ['name' => 'admin_5', 'label' => 'Record Keeping'],
-];
-
-$community = [
-    ['name' => 'community_1', 'label' => 'Community Development'],
-    ['name' => 'community_2', 'label' => 'Committee Participation'],
-    ['name' => 'community_3', 'label' => 'Institutional Representation'],
-];
-
-$professional = [
-    ['name' => 'professional_1', 'label' => 'Workshops'],
-    ['name' => 'professional_2', 'label' => 'Training'],
-    ['name' => 'professional_3', 'label' => 'Certifications'],
-    ['name' => 'professional_4', 'label' => 'Seminars'],
-];
+// Only show admin/community/professional questions to HOD, simplified
+if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod') {
+    $adminQuestions = [
+        ['name' => 'admin_1', 'label' => 'Punctuality & Attendance'],
+        ['name' => 'admin_2', 'label' => 'Administrative Duties'],
+        ['name' => 'admin_3', 'label' => 'Teamwork & Cooperation'],
+    ];
+    $community = [
+        ['name' => 'community_1', 'label' => 'Community Service'],
+    ];
+    $professional = [
+        ['name' => 'professional_1', 'label' => 'Professional Development'],
+    ];
+} else {
+    $adminQuestions = [];
+    $community = [];
+    $professional = [];
+}
 
 // Calculate scores and grade
 function calculateGrade($percentage) {
@@ -417,12 +421,12 @@ $sessions = $stmt->fetchAll();
                     <a href="evaluator-dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
                     <?php if ($adminRole === 'registrar'): ?>
                     <a href="registrar-reports.php"><i class="fas fa-chart-bar"></i> Reports & Print</a>
-                    <?php endif; ?>
+                    <a href="download-data.php"><i class="fas fa-download"></i> Download Data</a>
                     <?php else: ?>
                     <a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
                     <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
                     <?php endif; ?>
-                    <a href="evaluate-supervisor.php" class="active"><i class="fas fa-user-check"></i> My Evaluations</a>
+                    <a href="evaluate-supervisor.php" class="active"><i class="fas fa-user-check"></i> Evaluations</a>
                     <a href="logout.php" class="text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
             </div>

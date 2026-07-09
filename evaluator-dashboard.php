@@ -89,9 +89,10 @@ if ($evaluatorType === 'HOD') {
             <div class="col-md-2 sidebar">
                 <h4 class="text-white mb-4"><i class="fas fa-university"></i> <?php echo htmlspecialchars($instName); ?></h4>
                 <a href="evaluator-dashboard.php" class="active"><i class="fas fa-home"></i> Dashboard</a>
-                <a href="evaluate-supervisor.php"><i class="fas fa-clipboard-check"></i> Evaluation</a>
+                <a href="evaluate-supervisor.php"><i class="fas fa-clipboard-check"></i> Evaluations</a>
                 <?php if ($evaluatorType === 'Registrar'): ?>
                 <a href="registrar-reports.php"><i class="fas fa-chart-bar"></i> Reports & Print</a>
+                <a href="download-data.php"><i class="fas fa-download"></i> Download Data</a>
                 <?php endif; ?>
                 <a href="logout.php" class="text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
