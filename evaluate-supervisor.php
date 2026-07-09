@@ -291,7 +291,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
         } elseif ($adminRole === 'dean') {
             $updateData['evaluation_stage'] = 'dean';
             $updateData['dean_id'] = $adminId;
-            $updateData['dean_remarks'] = sanitize($_POST['supervisor_remarks'] ?? '');
+            $updateData['dean_remarks'] = sanitize($_POST['dean_remarks'] ?? '');
+            $updateData['dean_name'] = sanitize($_POST['dean_name'] ?? $adminName);
+            $updateData['dean_date'] = sanitize($_POST['dean_date'] ?? date('Y-m-d'));
         } elseif ($adminRole === 'registrar') {
             $updateData['evaluation_stage'] = 'completed';
             $updateData['registrar_name'] = sanitize($_POST['registrar_name'] ?? $adminName);
@@ -402,12 +404,16 @@ $sessions = $stmt->fetchAll();
                     <small class="d-block mt-2"><?php echo ucfirst($adminRole); ?> Portal</small>
                 </div>
                 <div class="py-3">
+                    <?php if (isset($_SESSION['is_evaluator']) && $_SESSION['is_evaluator']): ?>
+                    <a href="evaluator-dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
+                    <?php if ($adminRole === 'registrar'): ?>
+                    <a href="registrar-reports.php"><i class="fas fa-chart-bar"></i> Reports & Print</a>
+                    <?php endif; ?>
+                    <?php else: ?>
                     <a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
-                    <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
-                    <a href="staff.php"><i class="fas fa-users"></i> Staff</a>
-                    <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Full Evaluation</a>
-                    <a href="evaluate-supervisor.php" class="active"><i class="fas fa-user-check"></i> My Evaluations</a>
                     <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
+                    <?php endif; ?>
+                    <a href="evaluate-supervisor.php" class="active"><i class="fas fa-user-check"></i> My Evaluations</a>
                     <a href="logout.php" class="text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
             </div>
@@ -702,9 +708,20 @@ $sessions = $stmt->fetchAll();
                                             </div>
                                         </div>
                                         <?php elseif ($adminRole === 'dean'): ?>
-                                        <div class="col-md-12 mb-3">
-                                            <label class="form-label">Dean Remarks</label>
-                                            <textarea class="form-control" name="supervisor_remarks" rows="3"><?php echo htmlspecialchars($selectedEval['dean_remarks'] ?? ''); ?></textarea>
+                                        <div class="row">
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label"><strong>Dean Comments/Observations</strong></label>
+                                                <textarea class="form-control" name="dean_remarks" rows="4" placeholder="Enter your evaluation comments, observations, and recommendations..."><?php echo htmlspecialchars($selectedEval['dean_remarks'] ?? ''); ?></textarea>
+                                                <small class="text-muted">Provide detailed comments on the staff performance before forwarding to Registrar</small>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Dean Name</label>
+                                                <input type="text" class="form-control" name="dean_name" value="<?php echo htmlspecialchars($selectedEval['dean_name'] ?? $adminName); ?>">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Date</label>
+                                                <input type="date" class="form-control" name="dean_date" value="<?php echo $selectedEval['dean_date'] ?? date('Y-m-d'); ?>">
+                                            </div>
                                         </div>
                                         <?php elseif ($adminRole === 'registrar'): ?>
                                         <div class="row">

@@ -1,5 +1,11 @@
 <?php
 require_once 'config.php';
+
+// Check for evaluator login first - redirect to evaluator dashboard
+if (isEvaluatorLoggedIn()) {
+    redirect(SITE_URL . '/evaluator-dashboard.php');
+}
+
 requireAdminLogin();
 
 $admin = getCurrentAdmin();

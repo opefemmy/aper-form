@@ -1,5 +1,16 @@
 <?php
 require_once 'config.php';
+
+// Check for evaluator login first
+if (isEvaluatorLoggedIn()) {
+    $evalType = getEvaluatorType();
+    if ($evalType === 'Registrar') {
+        redirect(SITE_URL . '/registrar-reports.php');
+    } else {
+        redirect(SITE_URL . '/evaluate-supervisor.php');
+    }
+}
+
 requireAdminLogin();
 requirePermission('reports_view');
 
