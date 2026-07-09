@@ -2,7 +2,13 @@
 require_once 'config.php';
 requireAdminLogin();
 
-$message = getMessage();
+$messageData = getMessage();
+$message = '';
+if ($messageData && is_array($messageData)) {
+    $messageType = $messageData['type'] ?? 'success';
+    $messageText = $messageData['message'] ?? '';
+    $message = '<div class="alert alert-' . $messageType . '">' . $messageText . '</div>';
+}
 $action = $_GET['action'] ?? 'list';
 $editId = $_GET['id'] ?? null;
 
