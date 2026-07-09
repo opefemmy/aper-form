@@ -169,7 +169,7 @@ if ($evalId) {
 }
 
 // Determine staff category for question display
-$staffCategory = $selectedStaff['staff_category'] ?? 'academic';
+$staffCategory = ($selectedStaff && isset($selectedStaff['staff_category'])) ? $selectedStaff['staff_category'] : 'academic';
 
 // Define questions (same as evaluate.php)
 if ($staffCategory === 'non-teaching') {

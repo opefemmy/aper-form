@@ -130,8 +130,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     showMessage('Designation already exists. Please use a different designation.', 'danger');
                 } else {
                     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $pdo->prepare("INSERT INTO staff (designation, surname, first_name, email, phone, department, faculty, evaluator_type, password, staff_category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'non-teaching')");
-                    $stmt->execute([$designation, $surname, $firstName, $email, $phone, $department, $faculty, $evaluatorType, $hashedPassword]);
+                    // Generate a unique staff_id for the evaluator
+                    $staffId = 'EVAL-' . strtoupper(str_replace(' ', '-', $designation));
+                    $stmt = $pdo->prepare("INSERT INTO staff (staff_id, designation, surname, first_name, email, phone, department, faculty, evaluator_type, password, staff_category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'non-teaching')");
+                    $stmt->execute([$staffId, $designation, $surname, $firstName, $email, $phone, $department, $faculty, $evaluatorType, $hashedPassword]);
                     showMessage(ucfirst($evaluatorType) . ' added successfully!', 'success');
                     redirect('manage-evaluators.php');
                 }
