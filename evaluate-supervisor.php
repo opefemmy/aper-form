@@ -1,16 +1,33 @@
 <?php
 require_once 'config.php';
-requireAdminLogin();
 
-// Get current admin info
-$admin = getCurrentAdmin();
-$adminRole = $admin['role'];
-$adminId = $admin['id'];
-$adminName = $admin['name'];
+// Check if evaluator (HOD/Dean/Registrar) is logged in
+if (isEvaluatorLoggedIn()) {
+    // Evaluator is logged in - set up the page for them
+    $evaluatorType = getEvaluatorType();
+    $evaluatorId = $_SESSION['staff_id'];
+    $evaluatorName = $_SESSION['staff_name'];
+    $adminRole = strtolower($evaluatorType); // 'hod', 'dean', or 'registrar'
+    $admin = [
+        'id' => $evaluatorId,
+        'name' => $evaluatorName,
+        'role' => $adminRole,
+        'email' => ''
+    ];
+    $adminId = $evaluatorId;
+    $adminName = $evaluatorName;
+} else {
+    // Admin login required
+    requireAdminLogin();
+    $admin = getCurrentAdmin();
+    $adminRole = $admin['role'];
+    $adminId = $admin['id'];
+    $adminName = $admin['name'];
 
-// Only allow supervisors, deans, and registrars
-if (!in_array($adminRole, ['supervisor', 'dean', 'registrar', 'super_admin', 'admin'])) {
-    die("You don't have permission to access this page.");
+    // Only allow supervisors, deans, and registrars
+    if (!in_array($adminRole, ['supervisor', 'dean', 'registrar', 'super_admin', 'admin'])) {
+        die("You don't have permission to access this page.");
+    }
 }
 
 // Get settings

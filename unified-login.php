@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                 } else {
-                    // Normal login
+                    // Normal login - check admins table
                     $stmt = $pdo->prepare("SELECT * FROM admins WHERE email = ? LIMIT 1");
                     $stmt->execute([$email]);
                     $admin = $stmt->fetch();
@@ -105,7 +105,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['admin_role'] = $admin['role'];
                         redirect(SITE_URL . '/dashboard.php');
                     } else {
-                        $error = 'Invalid email or password';
+                        // Also check if it's an evaluator (HOD, Dean, Registrar) logging in with designation + password
+                        $stmt = $pdo->prepare("SELECT * FROM staff WHERE designation = ? AND evaluator_type IN ('HOD', 'Dean', 'Registrar') LIMIT 1");
+                        $stmt->execute([$email]);
+                        $evaluator = $stmt->fetch();
+
+                        if ($evaluator && !empty($evaluator['password']) && password_verify($password, $evaluator['password'])) {
+                            // Evaluator login - redirect to evaluator dashboard
+                            $_SESSION['staff_id'] = $evaluator['id'];
+                            $_SESSION['staff_name'] = $evaluator['first_name'] . ' ' . $evaluator['surname'];
+                            $_SESSION['staff_number'] = $evaluator['designation'];
+                            $_SESSION['staff_department'] = $evaluator['department'];
+                            $_SESSION['staff_faculty'] = $evaluator['faculty'];
+                            $_SESSION['evaluator_type'] = $evaluator['evaluator_type'];
+                            $_SESSION['is_evaluator'] = true;
+                            redirect(SITE_URL . '/evaluate-supervisor.php');
+                        } else {
+                            $error = 'Invalid email or password';
+                        }
                     }
                 }
             } catch (PDOException $e) {
@@ -494,11 +511,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="tab-pane fade" id="admin-login" role="tabpanel">
                     <form method="POST" action="">
                         <input type="hidden" name="login_type" value="admin">
+                        <div class="hint">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Admin/Evaluator Login:</strong><br>
+                            Admin: Email + Password<br>
+                            Evaluator (HOD/Dean/Registrar): Designation (Username) + Password
+                        </div>
                         <div class="mb-3">
-                            <label class="form-label">Email Address</label>
+                            <label class="form-label">Email or Username</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                <input type="email" class="form-control" name="email" placeholder="admin@yourdomain.com" required>
+                                <input type="text" class="form-control" name="email" placeholder="admin@domain.com OR HOD-Computer Science" required>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -509,7 +532,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary btn-login">
-                            <i class="fas fa-sign-in-alt me-2"></i>Admin Login
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
                         </button>
                     </form>
                 </div>

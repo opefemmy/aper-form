@@ -92,6 +92,31 @@ function isStaffLoggedIn() {
 }
 
 /**
+ * Check if evaluator (HOD/Dean/Registrar) is logged in
+ */
+function isEvaluatorLoggedIn() {
+    startSession();
+    return isset($_SESSION['is_evaluator']) && $_SESSION['is_evaluator'] === true && isset($_SESSION['evaluator_type']);
+}
+
+/**
+ * Get current evaluator type
+ */
+function getEvaluatorType() {
+    startSession();
+    return $_SESSION['evaluator_type'] ?? null;
+}
+
+/**
+ * Require evaluator login - redirects to login if not logged in
+ */
+function requireEvaluatorLogin() {
+    if (!isEvaluatorLoggedIn()) {
+        redirect(SITE_URL . '/unified-login.php');
+    }
+}
+
+/**
  * Get current admin role
  */
 function getAdminRole() {
