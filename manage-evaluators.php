@@ -38,10 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
 
         if (isset($_POST['add_evaluator'])) {
+            // Validation based on evaluator type
             if (empty($designation)) {
                 showMessage('Designation (username) is required', 'danger');
             } elseif (empty($password) || strlen($password) < 6) {
                 showMessage('Password must be at least 6 characters', 'danger');
+            } elseif ($evaluatorType === 'HOD' && empty($department)) {
+                showMessage('Department is required for HOD', 'danger');
+            } elseif ($evaluatorType === 'Dean' && empty($faculty)) {
+                showMessage('Faculty is required for Dean', 'danger');
             } else {
                 // Check if designation already exists
                 $stmt = $pdo->prepare("SELECT id FROM staff WHERE designation = ?");
@@ -59,8 +64,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (isset($_POST['update_evaluator']) && $editId) {
+            // Validation based on evaluator type
             if (empty($designation)) {
                 showMessage('Designation (username) is required', 'danger');
+            } elseif ($evaluatorType === 'HOD' && empty($department)) {
+                showMessage('Department is required for HOD', 'danger');
+            } elseif ($evaluatorType === 'Dean' && empty($faculty)) {
+                showMessage('Faculty is required for Dean', 'danger');
             } else {
                 // Check if designation exists for other records
                 $stmt = $pdo->prepare("SELECT id FROM staff WHERE designation = ? AND id != ?");
@@ -218,14 +228,19 @@ if ($editId) {
                                 <p class="card-text text-muted mb-1">
                                     <i class="fas fa-user"></i> <strong>Username:</strong> <?php echo htmlspecialchars($eval['designation']); ?>
                                 </p>
-                                <?php if ($eval['department']): ?>
+                                <?php if ($eval['evaluator_type'] === 'HOD' && $eval['department']): ?>
                                 <p class="card-text text-muted mb-1">
-                                    <i class="fas fa-building"></i> <?php echo htmlspecialchars($eval['department']); ?>
+                                    <i class="fas fa-building"></i> <strong>Department:</strong> <?php echo htmlspecialchars($eval['department']); ?>
                                 </p>
                                 <?php endif; ?>
-                                <?php if ($eval['faculty']): ?>
+                                <?php if ($eval['evaluator_type'] === 'Dean' && $eval['faculty']): ?>
                                 <p class="card-text text-muted mb-1">
-                                    <i class="fas fa-school"></i> <?php echo htmlspecialchars($eval['faculty']); ?>
+                                    <i class="fas fa-school"></i> <strong>Faculty:</strong> <?php echo htmlspecialchars($eval['faculty']); ?>
+                                </p>
+                                <?php endif; ?>
+                                <?php if ($eval['evaluator_type'] === 'Registrar'): ?>
+                                <p class="card-text text-muted mb-1">
+                                    <i class="fas fa-globe"></i> <strong>Scope:</strong> All Departments/Faculties
                                 </p>
                                 <?php endif; ?>
                                 <?php if ($eval['email']): ?>
@@ -307,23 +322,25 @@ if ($editId) {
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Department</label>
-                                <input type="text" name="department" class="form-control" list="departmentsList" value="<?php echo htmlspecialchars($editEvaluator['department'] ?? ''); ?>">
+                            <div class="col-md-6 mb-3" id="departmentField">
+                                <label class="form-label">Department <span class="text-danger">*</span></label>
+                                <input type="text" name="department" id="departmentInput" class="form-control" list="departmentsList" value="<?php echo htmlspecialchars($editEvaluator['department'] ?? ''); ?>">
                                 <datalist id="departmentsList">
                                     <?php foreach ($departments as $dept): ?>
                                     <option value="<?php echo htmlspecialchars($dept); ?>">
                                     <?php endforeach; ?>
                                 </datalist>
+                                <small class="text-muted">Required for HOD - select from uploaded staff departments</small>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Faculty</label>
-                                <input type="text" name="faculty" class="form-control" list="facultiesList" value="<?php echo htmlspecialchars($editEvaluator['faculty'] ?? ''); ?>">
+                            <div class="col-md-6 mb-3" id="facultyField">
+                                <label class="form-label">Faculty <span class="text-danger">*</span></label>
+                                <input type="text" name="faculty" id="facultyInput" class="form-control" list="facultiesList" value="<?php echo htmlspecialchars($editEvaluator['faculty'] ?? ''); ?>">
                                 <datalist id="facultiesList">
                                     <?php foreach ($faculties as $fac): ?>
                                     <option value="<?php echo htmlspecialchars($fac); ?>">
                                     <?php endforeach; ?>
                                 </datalist>
+                                <small class="text-muted">Required for Dean - select from uploaded staff faculties</small>
                             </div>
                         </div>
 
@@ -356,6 +373,44 @@ if ($editId) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleFields() {
+            var evaluatorType = document.querySelector('select[name="evaluator_type"]').value;
+            var deptField = document.getElementById('departmentField');
+            var facField = document.getElementById('facultyField');
+            var deptInput = document.getElementById('departmentInput');
+            var facInput = document.getElementById('facultyInput');
+
+            if (evaluatorType === 'HOD') {
+                deptField.style.display = 'block';
+                facField.style.display = 'none';
+                deptInput.required = true;
+                facInput.required = false;
+                facInput.value = '';
+            } else if (evaluatorType === 'Dean') {
+                deptField.style.display = 'none';
+                facField.style.display = 'block';
+                deptInput.required = false;
+                facInput.required = true;
+                deptInput.value = '';
+            } else {
+                // Registrar - both optional
+                deptField.style.display = 'block';
+                facField.style.display = 'block';
+                deptInput.required = false;
+                facInput.required = false;
+            }
+        }
+
+        // Add event listener to evaluator type dropdown
+        document.addEventListener('DOMContentLoaded', function() {
+            var evaluatorSelect = document.querySelector('select[name="evaluator_type"]');
+            if (evaluatorSelect) {
+                evaluatorSelect.addEventListener('change', toggleFields);
+                toggleFields(); // Initial call
+            }
+        });
+    </script>
     <?php if ($editEvaluator): ?>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
