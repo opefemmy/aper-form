@@ -171,42 +171,63 @@ if ($evalId) {
 // Determine staff category for question display
 $staffCategory = ($selectedStaff && isset($selectedStaff['staff_category'])) ? $selectedStaff['staff_category'] : 'academic';
 
-// Define questions (same as evaluate.php)
+// Get evaluator type
+$evaluatorRole = $adminRole;
+
+// Define questions based on evaluator role
+// HOD evaluates based on staff self-evaluation, adds remarks
+// Dean reviews and adds comments
+// Registrar approves/rejects
+
 if ($staffCategory === 'non-teaching') {
-    $teaching = [
-        ['name' => 'teaching_1', 'label' => 'Job Knowledge & Expertise'],
-        ['name' => 'teaching_2', 'label' => 'Quality of Work'],
-        ['name' => 'teaching_3', 'label' => 'Productivity'],
-        ['name' => 'teaching_4', 'label' => 'Initiative'],
-        ['name' => 'teaching_5', 'label' => 'Adaptability'],
-        ['name' => 'teaching_6', 'label' => 'Technical Skills'],
-    ];
-    $research = [
-        ['name' => 'research_1', 'label' => 'Process Improvement'],
-        ['name' => 'research_2', 'label' => 'Innovation'],
-        ['name' => 'research_3', 'label' => 'Documentation'],
-        ['name' => 'research_4', 'label' => 'Knowledge Sharing'],
-        ['name' => 'research_5', 'label' => 'Problem Solving'],
-    ];
+    // Non-teaching questions
+    if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod') {
+        $teaching = [
+            ['name' => 'teaching_1', 'label' => 'Job Knowledge & Expertise'],
+            ['name' => 'teaching_2', 'label' => 'Quality of Work'],
+            ['name' => 'teaching_3', 'label' => 'Productivity'],
+            ['name' => 'teaching_4', 'label' => 'Initiative'],
+            ['name' => 'teaching_5', 'label' => 'Adaptability'],
+            ['name' => 'teaching_6', 'label' => 'Technical Skills'],
+        ];
+        $research = [
+            ['name' => 'research_1', 'label' => 'Process Improvement'],
+            ['name' => 'research_2', 'label' => 'Innovation'],
+            ['name' => 'research_3', 'label' => 'Documentation'],
+            ['name' => 'research_4', 'label' => 'Knowledge Sharing'],
+            ['name' => 'research_5', 'label' => 'Problem Solving'],
+        ];
+    } else {
+        // Dean and Registrar see summary only - no new questions
+        $teaching = [];
+        $research = [];
+    }
 } else {
-    $teaching = [
-        ['name' => 'teaching_1', 'label' => 'Lecture Delivery'],
-        ['name' => 'teaching_2', 'label' => 'Class Attendance'],
-        ['name' => 'teaching_3', 'label' => 'Student Engagement'],
-        ['name' => 'teaching_4', 'label' => 'Course Preparation'],
-        ['name' => 'teaching_5', 'label' => 'Course Coverage'],
-        ['name' => 'teaching_6', 'label' => 'Time Management'],
-    ];
-    $research = [
-        ['name' => 'research_1', 'label' => 'Publications'],
-        ['name' => 'research_2', 'label' => 'Conferences'],
-        ['name' => 'research_3', 'label' => 'Research Grants'],
-        ['name' => 'research_4', 'label' => 'Journal Articles'],
-        ['name' => 'research_5', 'label' => 'Innovations'],
-    ];
+    // Academic staff questions
+    if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod') {
+        $teaching = [
+            ['name' => 'teaching_1', 'label' => 'Lecture Delivery'],
+            ['name' => 'teaching_2', 'label' => 'Class Attendance'],
+            ['name' => 'teaching_3', 'label' => 'Student Engagement'],
+            ['name' => 'teaching_4', 'label' => 'Course Preparation'],
+            ['name' => 'teaching_5', 'label' => 'Course Coverage'],
+            ['name' => 'teaching_6', 'label' => 'Time Management'],
+        ];
+        $research = [
+            ['name' => 'research_1', 'label' => 'Publications'],
+            ['name' => 'research_2', 'label' => 'Conferences'],
+            ['name' => 'research_3', 'label' => 'Research Grants'],
+            ['name' => 'research_4', 'label' => 'Journal Articles'],
+            ['name' => 'research_5', 'label' => 'Innovations'],
+        ];
+    } else {
+        // Dean and Registrar see summary only
+        $teaching = [];
+        $research = [];
+    }
 }
 
-$admin = [
+$adminQuestions = [
     ['name' => 'admin_1', 'label' => 'Attendance'],
     ['name' => 'admin_2', 'label' => 'Punctuality'],
     ['name' => 'admin_3', 'label' => 'Leadership'],
@@ -558,6 +579,7 @@ $sessions = $stmt->fetchAll();
                                         <h5 class="mb-0"><i class="fas fa-star me-2"></i>Performance Ratings</h5>
                                     </div>
                                     <div class="card-body">
+                                        <?php if ($adminRole === 'supervisor' || $adminRole === 'hod'): ?>
                                         <p class="text-muted">Rate the staff member on each criterion (1-5)</p>
 
                                         <!-- Teaching -->
@@ -601,7 +623,7 @@ $sessions = $stmt->fetchAll();
                                         <!-- Admin -->
                                         <div class="mb-4">
                                             <h6 class="text-primary border-bottom pb-2">Administrative Duties</h6>
-                                            <?php foreach ($admin as $q): ?>
+                                            <?php foreach ($adminQuestions as $q): ?>
                                             <div class="question-item">
                                                 <label class="form-label fw-bold"><?php echo $q['label']; ?></label>
                                                 <div>
@@ -654,6 +676,15 @@ $sessions = $stmt->fetchAll();
                                             </div>
                                             <?php endforeach; ?>
                                         </div>
+                                        <?php endif; // End show questions only for HOD ?>
+
+                                        <!-- Show message if no questions (Dean/Registrar) -->
+                                        <?php if ($adminRole !== 'supervisor' && $adminRole !== 'hod'): ?>
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            The staff has completed their self-evaluation. Please review the scores and add your comments below.
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
 
