@@ -73,6 +73,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_faculty'])) {
     redirect('manage-evaluators.php');
 }
 
+// Handle delete department
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_department'])) {
+    $deptToDelete = sanitize($_POST['department_to_delete'] ?? '');
+
+    if (!empty($deptToDelete)) {
+        // Delete the placeholder record for this department
+        $stmt = $pdo->prepare("DELETE FROM staff WHERE department = ? AND staff_id LIKE 'DEPT-%'");
+        $stmt->execute([$deptToDelete]);
+        showMessage('Department "' . htmlspecialchars($deptToDelete) . '" deleted successfully!', 'success');
+    }
+    redirect('manage-evaluators.php');
+}
+
+// Handle delete faculty
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_faculty'])) {
+    $facToDelete = sanitize($_POST['faculty_to_delete'] ?? '');
+
+    if (!empty($facToDelete)) {
+        // Delete the placeholder record for this faculty
+        $stmt = $pdo->prepare("DELETE FROM staff WHERE faculty = ? AND staff_id LIKE 'FAC-%'");
+        $stmt->execute([$facToDelete]);
+        showMessage('Faculty "' . htmlspecialchars($facToDelete) . '" deleted successfully!', 'success');
+    }
+    redirect('manage-evaluators.php');
+}
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
@@ -284,7 +310,15 @@ if ($editId) {
                                         <span class="text-muted">No departments yet</span>
                                     <?php else: ?>
                                         <?php foreach ($departments as $dept): ?>
-                                            <span class="badge bg-secondary"><?php echo htmlspecialchars($dept); ?></span>
+                                            <span class="badge bg-secondary d-flex align-items-center">
+                                                <?php echo htmlspecialchars($dept); ?>
+                                                <form method="POST" class="d-inline ms-2">
+                                                    <input type="hidden" name="department_to_delete" value="<?php echo htmlspecialchars($dept); ?>">
+                                                    <button type="submit" name="delete_department" class="badge bg-secondary border-0 p-0 ms-1" style="font-size: 0.7rem;" onclick="return confirm('Delete department &quot;<?php echo htmlspecialchars($dept); ?>&quot;?')">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </form>
+                                            </span>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                 </div>
@@ -299,7 +333,15 @@ if ($editId) {
                                         <span class="text-muted">No faculties yet</span>
                                     <?php else: ?>
                                         <?php foreach ($faculties as $fac): ?>
-                                            <span class="badge bg-info"><?php echo htmlspecialchars($fac); ?></span>
+                                            <span class="badge bg-info d-flex align-items-center">
+                                                <?php echo htmlspecialchars($fac); ?>
+                                                <form method="POST" class="d-inline ms-2">
+                                                    <input type="hidden" name="faculty_to_delete" value="<?php echo htmlspecialchars($fac); ?>">
+                                                    <button type="submit" name="delete_faculty" class="badge bg-info border-0 p-0 ms-1" style="font-size: 0.7rem;" onclick="return confirm('Delete faculty &quot;<?php echo htmlspecialchars($fac); ?>&quot;?')">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </form>
+                                            </span>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
                                 </div>
