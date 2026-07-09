@@ -63,6 +63,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Handle promote staff to evaluator
+        if (isset($_POST['promote_evaluator'])) {
+            $promoteStaffId = intval($_POST['promote_staff_id'] ?? 0);
+            $promoteEvaluatorType = sanitize($_POST['promote_evaluator_type']);
+            $promotePassword = $_POST['promote_password'] ?? '';
+
+            if (!$promoteStaffId) {
+                showMessage('Please select a staff member to promote', 'danger');
+            } elseif (empty($promoteEvaluatorType)) {
+                showMessage('Please select evaluator type', 'danger');
+            } elseif (empty($promotePassword) || strlen($promotePassword) < 6) {
+                showMessage('Password must be at least 6 characters', 'danger');
+            } else {
+                // Get the staff member details
+                $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ?");
+                $stmt->execute([$promoteStaffId]);
+                $staffMember = $stmt->fetch();
+
+                if (!$staffMember) {
+                    showMessage('Staff member not found', 'danger');
+                } else {
+                    // Check if already an evaluator
+                    if (!empty($staffMember['evaluator_type'])) {
+                        showMessage('This staff member is already an evaluator', 'warning');
+                    } else {
+                        $hashedPassword = password_hash($promotePassword, PASSWORD_DEFAULT);
+                        // Use staff_id as designation if empty
+                        $newDesignation = $staffMember['staff_id'] ?: $staffMember['surname'] . '_' . $promoteEvaluatorType;
+
+                        $stmt = $pdo->prepare("UPDATE staff SET evaluator_type = ?, designation = ?, password = ? WHERE id = ?");
+                        $stmt->execute([$promoteEvaluatorType, $newDesignation, $hashedPassword, $promoteStaffId]);
+                        showMessage(ucfirst($staffMember['surname'] . ' ' . $staffMember['first_name']) . ' promoted as ' . $promoteEvaluatorType . ' successfully!', 'success');
+                        redirect('manage-evaluators.php');
+                    }
+                }
+            }
+        }
+
         if (isset($_POST['update_evaluator']) && $editId) {
             // Validation based on evaluator type
             if (empty($designation)) {
@@ -280,8 +318,32 @@ if ($editId) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     <?php endif; ?>
                 </div>
+
+                <?php if (!$editEvaluator): ?>
+                <!-- Tabs for Create New vs Promote -->
+                <ul class="nav nav-tabs" id="evaluatorTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="create-tab" data-bs-toggle="tab" data-bs-target="#createPane" type="button" role="tab">
+                            <i class="fas fa-plus"></i> Create New
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="promote-tab" data-bs-toggle="tab" data-bs-target="#promotePane" type="button" role="tab">
+                            <i class="fas fa-user-plus"></i> Promote from Staff
+                        </button>
+                    </li>
+                </ul>
+                <?php endif; ?>
+
                 <form method="POST">
                     <div class="modal-body">
+                        <?php if (!$editEvaluator): ?>
+                        <!-- Tab Content -->
+                        <div class="tab-content" id="evaluatorTabsContent">
+                            <!-- Create New Tab -->
+                            <div class="tab-pane fade show active" id="createPane" role="tabpanel">
+                        <?php endif; ?>
+
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Evaluator Type <span class="text-danger">*</span></label>
@@ -353,6 +415,64 @@ if ($editId) {
                                 <small class="text-muted">Minimum 6 characters</small>
                             </div>
                         </div>
+
+                        <?php if (!$editEvaluator): ?>
+                            </div>
+
+                            <!-- Promote from Staff Tab -->
+                            <div class="tab-pane fade" id="promotePane" role="tabpanel">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Select a staff member from your uploaded staff list to promote as evaluator. Their department/faculty will be automatically linked.
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Select Staff to Promote <span class="text-danger">*</span></label>
+                                        <select name="promote_staff_id" class="form-select" id="promoteStaffSelect">
+                                            <option value="">Select Staff Member</option>
+                                            <?php
+                                            // Get staff who are not already evaluators
+                                            $stmt = $pdo->query("SELECT id, staff_id, surname, first_name, department, faculty FROM staff WHERE evaluator_type = '' OR evaluator_type IS NULL ORDER BY surname, first_name");
+                                            while ($staffMember = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                                echo '<option value="' . $staffMember['id'] . '" data-dept="' . htmlspecialchars($staffMember['department'] ?? '') . '" data-fac="' . htmlspecialchars($staffMember['faculty'] ?? '') . '">';
+                                                echo htmlspecialchars($staffMember['surname'] . ' ' . $staffMember['first_name'] . ' (' . $staffMember['staff_id'] . ')';
+                                                if ($staffMember['department']) echo ' - ' . $staffMember['department'];
+                                                echo '</option>';
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Evaluator Type <span class="text-danger">*</span></label>
+                                        <select name="promote_evaluator_type" class="form-select" id="promoteEvaluatorType">
+                                            <option value="">Select Type</option>
+                                            <option value="HOD">HOD (Head of Department)</option>
+                                            <option value="Dean">Dean</option>
+                                            <option value="Registrar">Registrar</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Department (Auto-filled)</label>
+                                        <input type="text" name="promote_department" id="promoteDepartment" class="form-control" readonly>
+                                        <small class="text-muted">From staff record</small>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Faculty (Auto-filled)</label>
+                                        <input type="text" name="promote_faculty" id="promoteFaculty" class="form-control" readonly>
+                                        <small class="text-muted">From staff record</small>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Set Login Password <span class="text-danger">*</span></label>
+                                        <input type="password" name="promote_password" class="form-control" placeholder="Set password for evaluator login" minlength="6">
+                                        <small class="text-muted">Minimum 6 characters</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     <div class="modal-footer">
                         <?php if ($editEvaluator): ?>
@@ -362,8 +482,11 @@ if ($editId) {
                         </button>
                         <?php else: ?>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" name="add_evaluator" class="btn btn-primary">
+                        <button type="submit" name="add_evaluator" class="btn btn-primary" id="addBtn">
                             <i class="fas fa-plus"></i> Add Evaluator
+                        </button>
+                        <button type="submit" name="promote_evaluator" class="btn btn-success" id="promoteBtn" style="display:none;">
+                            <i class="fas fa-user-plus"></i> Promote to Evaluator
                         </button>
                         <?php endif; ?>
                     </div>
@@ -401,6 +524,37 @@ if ($editId) {
                 facInput.required = false;
             }
         }
+
+        // Tab switching for Create New vs Promote
+        document.addEventListener('DOMContentLoaded', function() {
+            var createTab = document.getElementById('create-tab');
+            var promoteTab = document.getElementById('promote-tab');
+            var addBtn = document.getElementById('addBtn');
+            var promoteBtn = document.getElementById('promoteBtn');
+
+            if (createTab && promoteTab) {
+                createTab.addEventListener('shown.bs.tab', function() {
+                    if (addBtn) addBtn.style.display = 'inline-block';
+                    if (promoteBtn) promoteBtn.style.display = 'none';
+                });
+                promoteTab.addEventListener('shown.bs.tab', function() {
+                    if (addBtn) addBtn.style.display = 'none';
+                    if (promoteBtn) promoteBtn.style.display = 'inline-block';
+                });
+            }
+
+            // Auto-fill department/faculty when selecting staff to promote
+            var promoteStaffSelect = document.getElementById('promoteStaffSelect');
+            if (promoteStaffSelect) {
+                promoteStaffSelect.addEventListener('change', function() {
+                    var selectedOption = this.options[this.selectedIndex];
+                    var dept = selectedOption.getAttribute('data-dept');
+                    var fac = selectedOption.getAttribute('data-fac');
+                    document.getElementById('promoteDepartment').value = dept || '';
+                    document.getElementById('promoteFaculty').value = fac || '';
+                });
+            }
+        });
 
         // Add event listener to evaluator type dropdown
         document.addEventListener('DOMContentLoaded', function() {
