@@ -1,10 +1,18 @@
 <?php
 require_once 'config.php';
-requireAdminLogin();
 
-// Check if user has permission to download all data
-if (!hasPermission('download_all_data')) {
-    die("You don't have permission to download all data.");
+// Check for evaluator login first
+if (isEvaluatorLoggedIn()) {
+    $evalType = getEvaluatorType();
+    if ($evalType !== 'Registrar') {
+        die("You don't have permission to download all data.");
+    }
+} else {
+    requireAdminLogin();
+    // Check if user has permission to download all data
+    if (!hasPermission('download_all_data')) {
+        die("You don't have permission to download all data.");
+    }
 }
 
 $message = getMessage();
@@ -130,6 +138,10 @@ $avgScore = $stmt->fetch()['avg'] ?? 0;
     <style>
         :root { --primary-blue: <?php echo $primaryColor; ?>; }
         body { background: #f3f4f6; }
+        .dark-mode { background: #1a1a1a !important; color: #e0e0e0 !important; }
+        .dark-mode .card { background: #2d2d2d !important; color: #e0e0e0 !important; }
+        .dark-mode .table { color: #e0e0e0 !important; }
+        .dark-mode-toggle { position: fixed; top: 20px; right: 20px; z-index: 9999; }
         .sidebar { min-height: 100vh; background: linear-gradient(180deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%); color: white; }
         .sidebar .sidebar-header h5 { color: #10b981 !important; font-weight: 700; }
         .sidebar .sidebar-header small { color: #10b981 !important; font-weight: 600; }
@@ -153,6 +165,10 @@ $avgScore = $stmt->fetch()['avg'] ?? 0;
     </style>
 </head>
 <body>
+    <!-- Dark Mode Toggle -->
+    <button class="btn btn-dark-mode-toggle dark-mode-toggle" onclick="toggleDarkMode()">
+        <i class="fas fa-moon"></i> Dark Mode
+    </button>
     <!-- Mobile Hamburger Menu -->
     <button class="hamburger" onclick="toggleSidebar()">
         <span></span><span></span><span></span>
@@ -312,6 +328,16 @@ $avgScore = $stmt->fetch()['avg'] ?? 0;
             document.querySelector('.sidebar').classList.toggle('active');
             document.querySelector('.hamburger').classList.toggle('active');
             document.querySelector('.sidebar-overlay').classList.toggle('active');
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
         }
     </script>
 </body>
