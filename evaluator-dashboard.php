@@ -67,6 +67,11 @@ if ($evaluatorType === 'HOD') {
             --secondary: <?php echo $settings['secondary_color'] ?? '#269c16'; ?>;
         }
         body { background: #f5f5f5; }
+        .dark-mode { background: #1a1a1a !important; color: #e0e0e0 !important; }
+        .dark-mode .card { background: #2d2d2d !important; color: #e0e0e0 !important; }
+        .dark-mode h2, .dark-mode h4, .dark-mode h5 { color: #e0e0e0 !important; }
+        .dark-mode .text-muted { color: #aaa !important; }
+        .dark-mode-toggle { position: fixed; top: 20px; right: 20px; z-index: 9999; }
         .sidebar { background: linear-gradient(135deg, var(--primary), var(--secondary)); min-height: 100vh; padding: 20px; }
         .sidebar a { color: white; text-decoration: none; padding: 12px 15px; display: block; border-radius: 5px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.2); }
@@ -75,6 +80,9 @@ if ($evaluatorType === 'HOD') {
     </style>
 </head>
 <body>
+    <button class="btn btn-dark-mode-toggle dark-mode-toggle" onclick="toggleDarkMode()">
+        <i class="fas fa-moon"></i> Dark Mode
+    </button>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
@@ -154,5 +162,14 @@ if ($evaluatorType === 'HOD') {
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+    </script>
 </body>
 </html>
