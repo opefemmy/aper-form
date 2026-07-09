@@ -496,29 +496,33 @@ $sessions = $stmt->fetchAll();
                                 <input type="hidden" name="eval_id" value="<?php echo $evalId; ?>">
 
                                 <!-- Staff Info -->
+                                <?php if ($selectedStaff && is_array($selectedStaff)): ?>
                                 <div class="card mb-4">
                                     <div class="card-header bg-info text-white">
-                                        <h5 class="mb-0"><i class="fas fa-user me-2"></i>Evaluating: <?php echo htmlspecialchars($selectedStaff['first_name'] . ' ' . $selectedStaff['surname']); ?></h5>
+                                        <h5 class="mb-0"><i class="fas fa-user me-2"></i>Evaluating: <?php echo htmlspecialchars(($selectedStaff['first_name'] ?? '') . ' ' . ($selectedStaff['surname'] ?? '')); ?></h5>
                                     </div>
                                     <div class="card-body">
                                         <div class="row">
-                                            <div class="col-md-3"><strong>Staff ID:</strong> <?php echo htmlspecialchars($selectedStaff['staff_id']); ?></div>
-                                            <div class="col-md-3"><strong>Department:</strong> <?php echo htmlspecialchars($selectedStaff['department']); ?></div>
-                                            <div class="col-md-3"><strong>Faculty:</strong> <?php echo htmlspecialchars($selectedStaff['faculty']); ?></div>
-                                            <div class="col-md-3"><strong>Grade Level:</strong> <?php echo htmlspecialchars($selectedStaff['grade_level']); ?></div>
+                                            <div class="col-md-3"><strong>Staff ID:</strong> <?php echo htmlspecialchars($selectedStaff['staff_id'] ?? 'N/A'); ?></div>
+                                            <div class="col-md-3"><strong>Department:</strong> <?php echo htmlspecialchars($selectedStaff['department'] ?? 'N/A'); ?></div>
+                                            <div class="col-md-3"><strong>Faculty:</strong> <?php echo htmlspecialchars($selectedStaff['faculty'] ?? 'N/A'); ?></div>
+                                            <div class="col-md-3"><strong>Grade Level:</strong> <?php echo htmlspecialchars($selectedStaff['grade_level'] ?? 'N/A'); ?></div>
                                         </div>
                                         <div class="row mt-2">
-                                            <div class="col-md-4"><strong>Current Score:</strong> <?php echo $selectedEval['total_score']; ?>/115</div>
-                                            <div class="col-md-4"><strong>Percentage:</strong> <?php echo $selectedEval['percentage']; ?>%</div>
-                                            <div class="col-md-4"><strong>Grade:</strong> <?php echo htmlspecialchars($selectedEval['performance_grade']); ?></div>
+                                            <div class="col-md-4"><strong>Current Score:</strong> <?php echo $selectedEval['total_score'] ?? 0; ?>/115</div>
+                                            <div class="col-md-4"><strong>Percentage:</strong> <?php echo $selectedEval['percentage'] ?? 0; ?>%</div>
+                                            <div class="col-md-4"><strong>Grade:</strong> <?php echo htmlspecialchars($selectedEval['performance_grade'] ?? 'N/A'); ?></div>
                                         </div>
                                         <div class="mt-2">
-                                            <span class="badge bg-<?php echo $selectedEval['evaluation_stage'] === 'pending' ? 'secondary' : ($selectedEval['evaluation_stage'] === 'hod' ? 'warning' : ($selectedEval['evaluation_stage'] === 'dean' ? 'info' : 'success')); ?>">
-                                                Stage: <?php echo strtoupper($selectedEval['evaluation_stage']); ?>
+                                            <span class="badge bg-<?php echo ($selectedEval['evaluation_stage'] ?? 'pending') === 'pending' ? 'secondary' : (($selectedEval['evaluation_stage'] ?? 'pending') === 'hod' ? 'warning' : (($selectedEval['evaluation_stage'] ?? 'pending') === 'dean' ? 'info' : 'success')); ?>">
+                                                Stage: <?php echo strtoupper($selectedEval['evaluation_stage'] ?? 'pending'); ?>
                                             </span>
                                         </div>
                                     </div>
                                 </div>
+                                <?php else: ?>
+                                <div class="alert alert-warning">No staff selected. Please select a staff member from the list above.</div>
+                                <?php endif; ?>
 
                                 <!-- Live Score Display -->
                                 <div class="row mb-4">
