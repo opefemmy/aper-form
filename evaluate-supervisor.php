@@ -61,36 +61,40 @@ $stmt->execute([$admin['email'] ?? '']);
 $evaluatorProfile = $stmt->fetch();
 
 // Get staff list based on role
-if ($adminRole === 'supervisor' || $adminRole === 'dean' || $evaluatorProfile) {
-    // Get staff in supervisor's department/faculty using evaluator profile
-    if ($evaluatorProfile) {
-        // Use the evaluator's scope from staff table
-        $evalDept = $evaluatorProfile['evaluate_department'] ?? '';
-        $evalFac = $evaluatorProfile['evaluate_faculty'] ?? '';
-        if (!empty($evalDept) || !empty($evalFac)) {
-            $query = "SELECT * FROM staff WHERE status = 'active' AND id != ?";
-            $params = [$evaluatorProfile['id']];
-            if (!empty($evalDept)) {
-                $query .= " AND department = ?";
-                $params[] = $evalDept;
-            }
-            if (!empty($evalFac)) {
-                $query .= " AND faculty = ?";
-                $params[] = $evalFac;
-            }
-            $query .= " ORDER BY first_name, surname";
-            $stmt = $pdo->prepare($query);
-            $stmt->execute($params);
-            $staffList = $stmt->fetchAll();
-        } else {
-            $staffList = [];
-        }
-    } else {
-        // Fallback to old method using admin name
-        $stmt = $pdo->prepare("SELECT * FROM staff WHERE status = 'active' AND (department = ? OR faculty = ?) ORDER BY first_name, surname");
-        $stmt->execute([$adminName, $adminName]);
+$evaluatorDept = '';
+$evaluatorFac = '';
+
+// Get evaluator's department/faculty from session or database
+if (isset($_SESSION['is_evaluator']) && $_SESSION['is_evaluator']) {
+    $evaluatorDept = $_SESSION['staff_department'] ?? '';
+    $evaluatorFac = $_SESSION['staff_faculty'] ?? '';
+} elseif ($evaluatorProfile) {
+    $evaluatorDept = $evaluatorProfile['department'] ?? '';
+    $evaluatorFac = $evaluatorProfile['faculty'] ?? '';
+}
+
+if ($adminRole === 'supervisor' || $adminRole === 'hod') {
+    // HOD sees only staff in their department
+    if (!empty($evaluatorDept)) {
+        $stmt = $pdo->prepare("SELECT * FROM staff WHERE status = 'active' AND department = ? ORDER BY first_name, surname");
+        $stmt->execute([$evaluatorDept]);
         $staffList = $stmt->fetchAll();
+    } else {
+        $staffList = [];
     }
+} elseif ($adminRole === 'dean') {
+    // Dean sees only staff in their faculty
+    if (!empty($evaluatorFac)) {
+        $stmt = $pdo->prepare("SELECT * FROM staff WHERE status = 'active' AND faculty = ? ORDER BY first_name, surname");
+        $stmt->execute([$evaluatorFac]);
+        $staffList = $stmt->fetchAll();
+    } else {
+        $staffList = [];
+    }
+} elseif ($adminRole === 'registrar') {
+    // Registrar sees ALL staff
+    $stmt = $pdo->query("SELECT * FROM staff WHERE status = 'active' ORDER BY first_name, surname");
+    $staffList = $stmt->fetchAll();
 } else {
     // Admin/Super admin sees all
     $stmt = $pdo->query("SELECT * FROM staff WHERE status = 'active' ORDER BY first_name, surname");
@@ -98,41 +102,25 @@ if ($adminRole === 'supervisor' || $adminRole === 'dean' || $evaluatorProfile) {
 }
 
 // Get pending evaluations for this evaluator
-// Filter by evaluator's department/faculty if they have evaluator profile
-$evalDept = $evaluatorProfile['evaluate_department'] ?? '';
-$evalFac = $evaluatorProfile['evaluate_faculty'] ?? '';
+// Use session variables for department/faculty
+$evalDept = $_SESSION['staff_department'] ?? '';
+$evalFac = $_SESSION['staff_faculty'] ?? '';
 
-if ($adminRole === 'supervisor' || ($evaluatorProfile && $evaluatorProfile['evaluator_type'] === 'HOD')) {
+if ($adminRole === 'supervisor' || $adminRole === 'hod') {
     // HOD sees pending evaluations from their department
-    $query = "SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
-        FROM evaluations e
-        JOIN staff s ON e.staff_id = s.id
-        WHERE e.evaluation_stage IN ('pending', 'hod')";
-    $params = [];
     if (!empty($evalDept)) {
-        $query .= " AND s.department = ?";
-        $params[] = $evalDept;
+        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+            FROM evaluations e
+            JOIN staff s ON e.staff_id = s.id
+            WHERE e.evaluation_stage IN ('pending', 'hod') AND s.department = ?
+            ORDER BY e.created_at DESC");
+        $stmt->execute([$evalDept]);
+        $pendingEvals = $stmt->fetchAll();
+    } else {
+        $pendingEvals = [];
     }
-    $query .= " ORDER BY e.created_at DESC";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute($params);
-    $pendingEvals = $stmt->fetchAll();
-} elseif ($adminRole === 'dean' || ($evaluatorProfile && $evaluatorProfile['evaluator_type'] === 'Dean')) {
-    // Dean sees evaluations from their faculty (that have passed HOD)
-    $query = "SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
-        FROM evaluations e
-        JOIN staff s ON e.staff_id = s.id
-        WHERE e.evaluation_stage IN ('hod')";
-    $params = [];
-    if (!empty($evalFac)) {
-        $query .= " AND s.faculty = ?";
-        $params[] = $evalFac;
-    }
-    $query .= " ORDER BY e.created_at DESC";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute($params);
-    $pendingEvals = $stmt->fetchAll();
-} elseif ($adminRole === 'registrar' || ($evaluatorProfile && $evaluatorProfile['evaluator_type'] === 'Registrar')) {
+} elseif ($adminRole === 'registrar') {
+    // Registrar sees all evaluations that have passed Dean
     $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
