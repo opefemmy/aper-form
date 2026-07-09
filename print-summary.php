@@ -11,7 +11,7 @@ if (!$evalId) {
 $pdo = getDBConnection();
 
 // Get evaluation
-$stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
+$stmt = $pdo->prepare("SELECT e.*, s.staff_id AS staff_identifier, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
     FROM evaluations e
     JOIN staff s ON e.staff_id = s.id
     WHERE e.id = ?");
@@ -28,7 +28,7 @@ if (!isAdminLoggedIn() && !isStaffLoggedIn()) {
 }
 
 if (isStaffLoggedIn() && $_SESSION['staff_id'] != $eval['staff_id']) {
-    die('Access denied');
+    die('Access denied: You can only print your own evaluation');
 }
 
 // Get settings
