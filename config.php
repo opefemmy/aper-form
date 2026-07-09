@@ -378,3 +378,19 @@ function getAllSettings() {
     }
     return $settings;
 }
+
+/**
+ * Get current dark mode state from session
+ */
+function isDarkMode() {
+    startSession();
+    return isset($_SESSION['dark_mode']) && $_SESSION['dark_mode'] === true;
+}
+
+/**
+ * Toggle dark mode
+ */
+function toggleDarkMode($enabled) {
+    startSession();
+    $_SESSION['dark_mode'] = $enabled;
+}

@@ -32,6 +32,7 @@ $logo = $settings['institution_logo'] ?? '';
 $filterYear = $_GET['year'] ?? date('Y');
 $filterFaculty = $_GET['faculty'] ?? '';
 $filterStatus = $_GET['status'] ?? '';
+$searchQuery = $_GET['search'] ?? '';
 
 // Build query
 $sql = "SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
@@ -48,6 +49,16 @@ if (!empty($filterFaculty)) {
 if (!empty($filterStatus)) {
     $sql .= " AND e.approval_status = ?";
     $params[] = $filterStatus;
+}
+
+if (!empty($searchQuery)) {
+    $sql .= " AND (s.staff_id LIKE ? OR s.surname LIKE ? OR s.first_name LIKE ? OR s.department LIKE ? OR s.faculty LIKE ?)";
+    $searchParam = "%$searchQuery%";
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParam;
 }
 
 $sql .= " ORDER BY s.surname, s.first_name";
@@ -86,6 +97,17 @@ $userRole = getEvaluatorType() ?? getAdminRole();
             --secondary: <?php echo $settings['secondary_color'] ?? '#269c16'; ?>;
         }
         body { background: #f5f5f5; }
+        .dark-mode { background: #1a1a1a !important; color: #e0e0e0 !important; }
+        .dark-mode .card { background: #2d2d2d !important; color: #e0e0e0 !important; }
+        .dark-mode .card-header { background: #2d2d2d !important; color: #e0e0e0 !important; }
+        .dark-mode .table { color: #e0e0e0 !important; }
+        .dark-mode .table-light { background: #3d3d3d !important; color: #e0e0e0 !important; }
+        .dark-mode .form-control { background: #3d3d3d !important; color: #e0e0e0 !important; border-color: #555 !important; }
+        .dark-mode .form-select { background: #3d3d3d !important; color: #e0e0e0 !important; border-color: #555 !important; }
+        .dark-mode .input-group-text { background: #3d3d3d !important; color: #e0e0e0 !important; border-color: #555 !important; }
+        .dark-mode .text-muted { color: #aaa !important; }
+        .dark-mode h2, .dark-mode h4, .dark-mode h5 { color: #e0e0e0 !important; }
+        .dark-mode .badge { color: #fff !important; }
         .sidebar { background: linear-gradient(135deg, var(--primary), var(--secondary)); min-height: 100vh; padding: 20px; }
         .sidebar a { color: white; text-decoration: none; padding: 12px 15px; display: block; border-radius: 5px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.2); }
@@ -94,9 +116,20 @@ $userRole = getEvaluatorType() ?? getAdminRole();
         .badge-approved { background: #22c55e; }
         .badge-rejected { background: #ef4444; }
         .badge-pending { background: #f59e0b; }
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
+    <!-- Dark Mode Toggle -->
+    <button class="btn btn-dark-mode-toggle dark-mode-toggle" onclick="toggleDarkMode()">
+        <i class="fas fa-moon"></i> Dark Mode
+    </button>
+
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
@@ -160,11 +193,18 @@ $userRole = getEvaluatorType() ?? getAdminRole();
                 <!-- Filters -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-filter"></i> Filter Reports</h5>
+                        <h5 class="mb-0"><i class="fas fa-filter"></i> Filter & Search Reports</h5>
                     </div>
                     <div class="card-body">
                         <form method="GET" class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label class="form-label">Search</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" name="search" class="form-control" placeholder="Staff ID, Name, Department..." value="<?php echo htmlspecialchars($searchQuery); ?>">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label">Academic Year</label>
                                 <select name="year" class="form-select">
                                     <?php for($y = date('Y'); $y >= date('Y')-5; $y--): ?>
@@ -172,7 +212,7 @@ $userRole = getEvaluatorType() ?? getAdminRole();
                                     <?php endfor; ?>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label">Faculty</label>
                                 <select name="faculty" class="form-select">
                                     <option value="">All Faculties</option>
@@ -181,7 +221,7 @@ $userRole = getEvaluatorType() ?? getAdminRole();
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label">Status</label>
                                 <select name="status" class="form-select">
                                     <option value="">All Status</option>
@@ -195,7 +235,7 @@ $userRole = getEvaluatorType() ?? getAdminRole();
                                     <i class="fas fa-filter"></i> Apply Filters
                                 </button>
                                 <a href="registrar-reports.php" class="btn btn-secondary">
-                                    <i class="fas fa-reset"></i> Reset
+                                    <i class="fas fa-redo"></i> Reset
                                 </a>
                             </div>
                         </form>
@@ -260,5 +300,17 @@ $userRole = getEvaluatorType() ?? getAdminRole();
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check for saved dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+        }
+    </script>
 </body>
 </html>

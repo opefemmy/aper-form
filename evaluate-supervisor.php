@@ -491,7 +491,7 @@ $sessions = $stmt->fetchAll();
 
                     <!-- Evaluation Form -->
                     <div class="col-md-8">
-                        <?php if ($selectedEval): ?>
+                        <?php if ($selectedEval && is_array($selectedEval)): ?>
                             <form method="POST" id="evalForm">
                                 <input type="hidden" name="eval_id" value="<?php echo $evalId; ?>">
 
