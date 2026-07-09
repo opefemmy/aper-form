@@ -22,12 +22,12 @@ while ($row = $stmt->fetch()) {
 }
 $instName = $settings['institution_name'] ?? 'Institution';
 
-// Get all unique departments from staff (excluding placeholders)
-$stmt = $pdo->query("SELECT DISTINCT department FROM staff WHERE department IS NOT NULL AND department != '' AND (staff_id IS NULL OR staff_id NOT LIKE 'DEPT-%') ORDER BY department");
+// Get all unique departments from staff
+$stmt = $pdo->query("SELECT DISTINCT department FROM staff WHERE department IS NOT NULL AND department != '' ORDER BY department");
 $departments = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Get all unique faculties from staff (excluding placeholders)
-$stmt = $pdo->query("SELECT DISTINCT faculty FROM staff WHERE faculty IS NOT NULL AND faculty != '' AND (staff_id IS NULL OR staff_id NOT LIKE 'FAC-%') ORDER BY faculty");
+// Get all unique faculties from staff
+$stmt = $pdo->query("SELECT DISTINCT faculty FROM staff WHERE faculty IS NOT NULL AND faculty != '' ORDER BY faculty");
 $faculties = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Handle add new department
@@ -36,11 +36,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_department'])) {
     $departmentFaculty = sanitize($_POST['department_faculty'] ?? '');
 
     if (!empty($departmentName)) {
-        // Insert a placeholder staff record to store the department
-        $stmt = $pdo->prepare("INSERT INTO staff (staff_id, surname, first_name, department, faculty, employment_status) VALUES (?, 'SYSTEM', 'DEPARTMENT', ?, ?, 'active')");
-        $placeholderId = 'DEPT-' . str_replace(' ', '-', $departmentName);
-        $stmt->execute([$placeholderId, $departmentName, $departmentFaculty]);
-        showMessage('Department "' . htmlspecialchars($departmentName) . '" added successfully!', 'success');
+        // Check if department already exists
+        $stmt = $pdo->prepare("SELECT id FROM staff WHERE department = ? AND staff_id LIKE 'DEPT-%'");
+        $stmt->execute([$departmentName]);
+        if ($stmt->fetch()) {
+            showMessage('Department "' . htmlspecialchars($departmentName) . '" already exists!', 'warning');
+        } else {
+            // Insert a placeholder staff record to store the department
+            $stmt = $pdo->prepare("INSERT INTO staff (staff_id, surname, first_name, department, faculty, employment_status) VALUES (?, 'SYSTEM', 'DEPARTMENT', ?, ?, 'active')");
+            $placeholderId = 'DEPT-' . str_replace(' ', '-', $departmentName);
+            $stmt->execute([$placeholderId, $departmentName, $departmentFaculty]);
+            showMessage('Department "' . htmlspecialchars($departmentName) . '" added successfully!', 'success');
+        }
     }
     redirect('manage-evaluators.php');
 }
@@ -50,11 +57,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_faculty'])) {
     $facultyName = sanitize($_POST['faculty_name'] ?? '');
 
     if (!empty($facultyName)) {
-        // Insert a placeholder staff record to store the faculty
-        $stmt = $pdo->prepare("INSERT INTO staff (staff_id, surname, first_name, department, faculty, employment_status) VALUES (?, 'SYSTEM', 'FACULTY', ?, ?, 'active')");
-        $placeholderId = 'FAC-' . str_replace(' ', '-', $facultyName);
-        $stmt->execute([$placeholderId, '', $facultyName]);
-        showMessage('Faculty "' . htmlspecialchars($facultyName) . '" added successfully!', 'success');
+        // Check if faculty already exists
+        $stmt = $pdo->prepare("SELECT id FROM staff WHERE faculty = ? AND staff_id LIKE 'FAC-%'");
+        $stmt->execute([$facultyName]);
+        if ($stmt->fetch()) {
+            showMessage('Faculty "' . htmlspecialchars($facultyName) . '" already exists!', 'warning');
+        } else {
+            // Insert a placeholder staff record to store the faculty
+            $stmt = $pdo->prepare("INSERT INTO staff (staff_id, surname, first_name, department, faculty, employment_status) VALUES (?, 'SYSTEM', 'FACULTY', ?, ?, 'active')");
+            $placeholderId = 'FAC-' . str_replace(' ', '-', $facultyName);
+            $stmt->execute([$placeholderId, '', $facultyName]);
+            showMessage('Faculty "' . htmlspecialchars($facultyName) . '" added successfully!', 'success');
+        }
     }
     redirect('manage-evaluators.php');
 }
