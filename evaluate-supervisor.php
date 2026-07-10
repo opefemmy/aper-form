@@ -108,28 +108,42 @@ $evalDept = $_SESSION['staff_department'] ?? '';
 $evalFac = $_SESSION['staff_faculty'] ?? '';
 
 if ($adminRole === 'supervisor' || $adminRole === 'hod') {
-    // HOD sees pending evaluations from their department
+    // HOD sees staff in their department who have submitted (evaluation_stage = 'pending' means staff submitted but HOD hasn't evaluated yet)
     if (!empty($evalDept)) {
         $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
             FROM evaluations e
             JOIN staff s ON e.staff_id = s.id
-            WHERE e.evaluation_stage IN ('pending', 'hod') AND s.department = ?
+            WHERE s.department = ? AND e.evaluation_stage = 'pending' AND e.status = 'submitted'
             ORDER BY e.created_at DESC");
         $stmt->execute([$evalDept]);
         $pendingEvals = $stmt->fetchAll();
     } else {
         $pendingEvals = [];
     }
+} elseif ($adminRole === 'dean') {
+    // Dean sees evaluations that have been evaluated by HOD (evaluation_stage = 'hod')
+    if (!empty($evalFac)) {
+        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+            FROM evaluations e
+            JOIN staff s ON e.staff_id = s.id
+            WHERE s.faculty = ? AND e.evaluation_stage = 'hod'
+            ORDER BY e.created_at DESC");
+        $stmt->execute([$evalFac]);
+        $pendingEvals = $stmt->fetchAll();
+    } else {
+        $pendingEvals = [];
+    }
 } elseif ($adminRole === 'registrar') {
-    // Registrar sees all evaluations that have passed Dean
+    // Registrar sees all evaluations that have passed Dean (evaluation_stage = 'dean')
     $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
-        WHERE e.evaluation_stage IN ('dean')
+        WHERE e.evaluation_stage = 'dean'
         ORDER BY e.created_at DESC");
     $stmt->execute();
     $pendingEvals = $stmt->fetchAll();
 } else {
+    // Admin/Super admin sees all non-completed
     $stmt = $pdo->query("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
@@ -313,7 +327,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
         ];
 
         // Add stage-specific fields
-        if ($adminRole === 'supervisor' || $adminRole === 'admin' || $adminRole === 'super_admin') {
+        if ($adminRole === 'supervisor' || $adminRole === 'hod' || $adminRole === 'admin' || $adminRole === 'super_admin') {
             $updateData['evaluation_stage'] = 'hod';
             $updateData['hod_id'] = $adminId;
             $updateData['supervisor_name'] = sanitize($_POST['supervisor_name'] ?? $adminName);
