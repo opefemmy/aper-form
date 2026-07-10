@@ -271,12 +271,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
         $pdo->beginTransaction();
 
         // Determine next stage
-        // Determine next stage - registrar is final approval
+        // Determine next stage - after HOD, goes to Dean; after Dean, goes to Registrar; after Registrar, completed
         $nextStage = 'completed';
-        if ($adminRole === 'supervisor' || $adminRole === 'admin' || $adminRole === 'super_admin') {
-            $nextStage = 'hod';
+        if ($adminRole === 'supervisor' || $adminRole === 'hod') {
+            $nextStage = 'dean'; // After HOD evaluates, passes to Dean
         } elseif ($adminRole === 'dean') {
-            $nextStage = 'dean';
+            $nextStage = 'registrar'; // After Dean evaluates, passes to Registrar
         } elseif ($adminRole === 'registrar') {
             $nextStage = 'completed'; // Registrar is final approval
         }
