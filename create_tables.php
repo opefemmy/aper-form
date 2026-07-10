@@ -21,7 +21,7 @@ try {
         question_type ENUM('rating', 'single_choice', 'multiple_choice', 'true_false', 'short_answer', 'long_answer', 'yes_no', 'scale') DEFAULT 'rating',
         options TEXT,
         is_active TINYINT(1) DEFAULT 1,
-        target_staff_category ENUM('academic', 'non-teaching', 'both') DEFAULT 'both',
+        target_staff_category ENUM('academic', 'non-teaching', 'hod', 'both') DEFAULT 'both',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
 
@@ -90,7 +90,7 @@ try {
 
     // Add target_staff_category to staff if not exists
     try {
-        $pdo->exec("ALTER TABLE staff ADD COLUMN staff_category ENUM('academic', 'non-teaching') DEFAULT 'academic'");
+        $pdo->exec("ALTER TABLE staff ADD COLUMN staff_category ENUM('academic', 'non-teaching', 'hod') DEFAULT 'academic'");
         echo "   ✅ Added staff_category to staff table\n";
     } catch (Exception $e) {
         echo "   ℹ️  staff_category already exists in staff table\n";

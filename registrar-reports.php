@@ -71,12 +71,12 @@ $evaluations = $stmt->fetchAll();
 $stmt = $pdo->query("SELECT DISTINCT faculty FROM staff WHERE faculty IS NOT NULL AND faculty != '' ORDER BY faculty");
 $faculties = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Get stats
+// Get stats - FIXED: Use evaluation_stage for accurate counting
 $stmt = $pdo->query("SELECT
     COUNT(*) as total,
-    SUM(CASE WHEN approval_status = 'Approved' THEN 1 ELSE 0 END) as approved,
-    SUM(CASE WHEN approval_status = 'Rejected' THEN 1 ELSE 0 END) as rejected,
-    SUM(CASE WHEN approval_status = 'Pending' OR approval_status IS NULL OR approval_status = '' THEN 1 ELSE 0 END) as pending
+    SUM(CASE WHEN evaluation_stage = 'completed' THEN 1 ELSE 0 END) as approved,
+    SUM(CASE WHEN evaluation_stage IN ('dean', 'registrar') THEN 1 ELSE 0 END) as processed,
+    SUM(CASE WHEN evaluation_stage = 'pending' THEN 1 ELSE 0 END) as pending
     FROM evaluations WHERE evaluation_year = $filterYear");
 $stats = $stmt->fetch();
 
@@ -90,6 +90,8 @@ $userRole = getEvaluatorType() ?? getAdminRole();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrar Reports - <?php echo htmlspecialchars($instName); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="theme-overrides.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {

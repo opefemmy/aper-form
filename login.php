@@ -69,6 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Admin Login - <?php echo htmlspecialchars($instName); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="theme-overrides.css" rel="stylesheet">
     <style>
         :root {
             --primary-blue: <?php echo $primaryColor; ?>;
@@ -163,8 +165,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <div class="login-header">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
             <?php if (!empty($logo)): ?>
             <img src="<?php echo htmlspecialchars($logo); ?>" alt="Logo" class="logo-img">
             <?php else: ?>
@@ -218,6 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <?php endif; ?>
         </div>
+    </div>
     </div>
 </body>
 </html>

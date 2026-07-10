@@ -131,21 +131,21 @@ if ($adminRole === 'supervisor' || $adminRole === 'hod') {
         $processedEvals = [];
     }
 } elseif ($adminRole === 'dean') {
-    // Dean sees evaluations that have been evaluated by HOD (evaluation_stage = 'hod')
+    // Dean sees evaluations that have been evaluated by HOD and passed to Dean (evaluation_stage = 'dean')
     if (!empty($evalFac)) {
         $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
             FROM evaluations e
             JOIN staff s ON e.staff_id = s.id
-            WHERE s.faculty = ? AND e.evaluation_stage = 'hod'
+            WHERE s.faculty = ? AND e.evaluation_stage = 'dean'
             ORDER BY e.created_at DESC");
         $stmt->execute([$evalFac]);
         $pendingEvals = $stmt->fetchAll();
 
-        // Get already processed by Dean (evaluation_stage = 'dean' or 'completed')
+        // Get already processed by Dean (evaluation_stage = 'registrar' or 'completed')
         $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
             FROM evaluations e
             JOIN staff s ON e.staff_id = s.id
-            WHERE s.faculty = ? AND e.evaluation_stage IN ('dean', 'completed')
+            WHERE s.faculty = ? AND e.evaluation_stage IN ('registrar', 'completed')
             ORDER BY e.updated_at DESC");
         $stmt->execute([$evalFac]);
         $processedEvals = $stmt->fetchAll();
@@ -154,11 +154,11 @@ if ($adminRole === 'supervisor' || $adminRole === 'hod') {
         $processedEvals = [];
     }
 } elseif ($adminRole === 'registrar') {
-    // Registrar sees all evaluations that have passed Dean (evaluation_stage = 'dean')
+    // Registrar sees all evaluations that have passed Dean and waiting for Registrar (evaluation_stage = 'registrar')
     $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
-        WHERE e.evaluation_stage = 'dean'
+        WHERE e.evaluation_stage = 'registrar'
         ORDER BY e.created_at DESC");
     $stmt->execute();
     $pendingEvals = $stmt->fetchAll();
@@ -475,9 +475,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
             'hod_performance_status' => $gradeInfo[1],
         ];
 
-        // Add stage-specific fields
+        // Add stage-specific fields - FIXED: Save & Now properly advances to next stage
         if ($adminRole === 'supervisor' || $adminRole === 'hod' || $adminRole === 'admin' || $adminRole === 'super_admin') {
-            $updateData['evaluation_stage'] = 'hod';
+            // HOD evaluation - advance to Dean stage
+            $updateData['evaluation_stage'] = 'dean';
             $updateData['hod_id'] = $adminId;
             $updateData['supervisor_name'] = sanitize($_POST['supervisor_name'] ?? $adminName);
             $updateData['supervisor_designation'] = sanitize($_POST['supervisor_designation'] ?? 'HOD');
@@ -487,12 +488,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
             $updateData['overall_rating'] = sanitize($_POST['overall_rating'] ?? '');
             $updateData['recommendation'] = sanitize($_POST['recommendation'] ?? '');
         } elseif ($adminRole === 'dean') {
-            $updateData['evaluation_stage'] = 'dean';
+            // Dean evaluation - advance to Registrar stage
+            $updateData['evaluation_stage'] = 'registrar';
             $updateData['dean_id'] = $adminId;
             $updateData['dean_remarks'] = sanitize($_POST['dean_remarks'] ?? '');
             $updateData['dean_name'] = sanitize($_POST['dean_name'] ?? $adminName);
             $updateData['dean_date'] = sanitize($_POST['dean_date'] ?? date('Y-m-d'));
         } elseif ($adminRole === 'registrar') {
+            // Registrar final approval - complete the evaluation
             $updateData['evaluation_stage'] = 'completed';
             $updateData['registrar_name'] = sanitize($_POST['registrar_name'] ?? $adminName);
             $updateData['registrar_remarks'] = sanitize($_POST['registrar_remarks'] ?? '');
@@ -582,6 +585,8 @@ $sessions = $stmt->fetchAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo ucfirst($adminRole); ?> Evaluation - <?php echo htmlspecialchars($institutionName); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="theme-overrides.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root { --primary-blue: #308a1e; }

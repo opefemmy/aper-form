@@ -30,8 +30,8 @@ $existingEval = $stmt->fetch();
 $stmt = $pdo->query("SELECT * FROM academic_sessions WHERE is_active = 1 LIMIT 1");
 $activeSession = $stmt->fetch();
 
-// Get questions from database based on staff category
-$stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') ORDER BY category, question_order, id");
+// Get questions from database based on staff category (include HOD category for HOD staff)
+$stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both' OR target_staff_category = 'hod') ORDER BY category, question_order, id");
 $stmt->execute([$staffCategory]);
 $dbQuestions = $stmt->fetchAll();
 
@@ -192,14 +192,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
     <title>My Evaluation - Staff Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="theme-overrides.css" rel="stylesheet">
     <style>
         :root { --primary-blue: #1e3a8a; --secondary-blue: #3b82f6; }
         body { background: #f3f4f6; }
         .top-bar { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; padding: 1rem 0; }
-        .staff-info-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .score-card { background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 1.5rem; border-radius: 12px; text-align: center; }
+        .staff-info-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .score-card { background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 1.5rem; border-radius: 16px; text-align: center; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3); }
         .score-card .value { font-size: 2.5rem; font-weight: 700; }
-        .question-item { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #e2e8f0; }
+        .question-item { background: white; padding: 1.25rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid #e5e7eb; transition: all 0.3s ease; }
+        .question-item:hover { border-color: #3b82f6; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .rating-label { padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 20px; cursor: pointer; margin-right: 0.25rem; display: inline-block; text-align: center; min-width: 45px; }
         .rating-label:hover { background: #dbeafe; }
         .rating-label input:checked + span { background: var(--primary-blue); color: white; border-radius: 15px; padding: 2px 8px; }

@@ -13,7 +13,7 @@ $pdo = getDBConnection();
 try {
     // 1. Add target_staff_category column to evaluation_questions table
     echo "1. Adding target_staff_category column to evaluation_questions...\n";
-    $pdo->exec("ALTER TABLE evaluation_questions ADD COLUMN target_staff_category ENUM('academic', 'non-teaching', 'both') DEFAULT 'both'");
+    $pdo->exec("ALTER TABLE evaluation_questions ADD COLUMN target_staff_category ENUM('academic', 'non-teaching', 'hod', 'both') DEFAULT 'both'");
     echo "   ✓ Done\n";
 
     // 2. Add login_background_image setting
@@ -58,7 +58,7 @@ try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS staff_category_questions (
         id INT AUTO_INCREMENT PRIMARY KEY,
         category VARCHAR(50) NOT NULL,
-        staff_category ENUM('academic', 'non-teaching') NOT NULL,
+        staff_category ENUM('academic', 'non-teaching', 'hod') NOT NULL,
         question_text TEXT NOT NULL,
         question_order INT DEFAULT 0,
         question_type ENUM('rating', 'single_choice', 'multiple_choice', 'true_false', 'short_answer', 'long_answer', 'yes_no', 'scale') DEFAULT 'rating',

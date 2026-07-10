@@ -27,30 +27,30 @@ $evaluatorName = $_SESSION['staff_name'];
 $evaluatorDept = $_SESSION['staff_department'] ?? '';
 $evaluatorFac = $_SESSION['staff_faculty'] ?? '';
 
-// Get stats based on evaluator type
+// Get stats based on evaluator type - FIXED: Updated stage filters to match workflow
 if ($evaluatorType === 'HOD') {
-    // HOD pending: only staff who have submitted but HOD hasn't evaluated yet (stage = 'pending')
+    // HOD pending: staff who have submitted but HOD hasn't evaluated yet (stage = 'pending')
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage = 'pending' AND e.status = 'submitted'");
     $stmt->execute([$evaluatorDept]);
     $pendingCount = $stmt->fetchColumn();
 
-    // HOD completed: staff who have been evaluated by HOD (stage = 'hod')
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage = 'hod'");
+    // HOD completed: staff who have been evaluated by HOD and passed to Dean (stage = 'dean')
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage IN ('dean', 'registrar', 'completed')");
     $stmt->execute([$evaluatorDept]);
     $completedByHod = $stmt->fetchColumn();
 } elseif ($evaluatorType === 'Dean') {
-    // Dean pending: only evaluations that have passed HOD (stage = 'hod')
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.faculty = ? AND e.evaluation_stage = 'hod'");
+    // Dean pending: evaluations that have passed HOD and waiting for Dean (stage = 'dean')
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.faculty = ? AND e.evaluation_stage = 'dean'");
     $stmt->execute([$evaluatorFac]);
     $pendingCount = $stmt->fetchColumn();
 
-    // Dean completed: evaluations that have passed Dean (stage = 'dean')
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.faculty = ? AND e.evaluation_stage = 'dean'");
+    // Dean completed: evaluations that have passed Dean (stage = 'registrar' or 'completed')
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.faculty = ? AND e.evaluation_stage IN ('registrar', 'completed')");
     $stmt->execute([$evaluatorFac]);
     $completedByHod = $stmt->fetchColumn();
 } else {
-    // Registrar pending: evaluations that have passed Dean (stage = 'dean')
-    $stmt = $pdo->query("SELECT COUNT(*) FROM evaluations WHERE evaluation_stage = 'dean'");
+    // Registrar pending: evaluations that have passed Dean and waiting for Registrar (stage = 'registrar')
+    $stmt = $pdo->query("SELECT COUNT(*) FROM evaluations WHERE evaluation_stage = 'registrar'");
     $pendingCount = $stmt->fetchColumn();
 
     // Registrar completed: fully approved evaluations (stage = 'completed')
@@ -65,6 +65,8 @@ if ($evaluatorType === 'HOD') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evaluator Dashboard - <?php echo htmlspecialchars($instName); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="theme-overrides.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {

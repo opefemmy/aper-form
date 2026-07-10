@@ -125,6 +125,8 @@ $staffList = $stmt->fetchAll();
     <link rel="icon" type="image/png" href="<?php echo htmlspecialchars($logo); ?>">
     <?php endif; ?>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="theme-overrides.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root { --primary-blue: <?php echo $primaryColor; ?>; --secondary-blue: <?php echo $secondaryColor; ?>; }
@@ -270,9 +272,10 @@ $staffList = $stmt->fetchAll();
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label">Staff Category <span class="text-danger">*</span></label>
-                                    <select class="form-select" name="staff_category" required title="Select whether this staff is Academic (teaching) or Non-Teaching (administrative)">
+                                    <select class="form-select" name="staff_category" required title="Select whether this staff is Academic (teaching), Non-Teaching (administrative), or HOD">
                                         <option value="academic" <?php echo ($staffMember['staff_category'] ?? 'academic') == 'academic' ? 'selected' : ''; ?>>Academic (Teaching)</option>
                                         <option value="non-teaching" <?php echo ($staffMember['staff_category'] ?? '') == 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching (Administrative)</option>
+                                        <option value="hod" <?php echo ($staffMember['staff_category'] ?? '') == 'hod' ? 'selected' : ''; ?>>HOD (Head of Department)</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3 mb-3">

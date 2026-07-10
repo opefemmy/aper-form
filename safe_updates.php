@@ -28,7 +28,7 @@ try {
     // 1. Add target_staff_category if not exists
     if (!columnExists($pdo, 'evaluation_questions', 'target_staff_category')) {
         echo "1. Adding target_staff_category column...\n";
-        $pdo->exec("ALTER TABLE evaluation_questions ADD COLUMN target_staff_category ENUM('academic', 'non-teaching', 'both') DEFAULT 'both'");
+        $pdo->exec("ALTER TABLE evaluation_questions ADD COLUMN target_staff_category ENUM('academic', 'non-teaching', 'hod', 'both') DEFAULT 'both'");
         echo "   ✅ Done\n";
     } else {
         echo "1. target_staff_category already exists (skipped)\n";
