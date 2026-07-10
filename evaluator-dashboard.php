@@ -29,26 +29,31 @@ $evaluatorFac = $_SESSION['staff_faculty'] ?? '';
 
 // Get stats based on evaluator type
 if ($evaluatorType === 'HOD') {
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage IN ('pending', 'hod')");
+    // HOD pending: only staff who have submitted but HOD hasn't evaluated yet (stage = 'pending')
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage = 'pending' AND e.status = 'submitted'");
     $stmt->execute([$evaluatorDept]);
     $pendingCount = $stmt->fetchColumn();
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage = 'dean'");
+    // HOD completed: staff who have been evaluated by HOD (stage = 'hod')
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage = 'hod'");
     $stmt->execute([$evaluatorDept]);
     $completedByHod = $stmt->fetchColumn();
 } elseif ($evaluatorType === 'Dean') {
+    // Dean pending: only evaluations that have passed HOD (stage = 'hod')
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.faculty = ? AND e.evaluation_stage = 'hod'");
     $stmt->execute([$evaluatorFac]);
     $pendingCount = $stmt->fetchColumn();
 
+    // Dean completed: evaluations that have passed Dean (stage = 'dean')
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.faculty = ? AND e.evaluation_stage = 'dean'");
     $stmt->execute([$evaluatorFac]);
     $completedByHod = $stmt->fetchColumn();
 } else {
-    // Registrar
+    // Registrar pending: evaluations that have passed Dean (stage = 'dean')
     $stmt = $pdo->query("SELECT COUNT(*) FROM evaluations WHERE evaluation_stage = 'dean'");
     $pendingCount = $stmt->fetchColumn();
 
+    // Registrar completed: fully approved evaluations (stage = 'completed')
     $stmt = $pdo->query("SELECT COUNT(*) FROM evaluations WHERE evaluation_stage = 'completed'");
     $completedByHod = $stmt->fetchColumn();
 }

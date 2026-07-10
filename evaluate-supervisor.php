@@ -236,9 +236,58 @@ $evaluatorRole = $adminRole;
 // Dean reviews and adds comments
 // Registrar approves/rejects
 
-if ($staffCategory === 'non-teaching') {
-    // Non-teaching questions
-    if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod') {
+// Load HOD-specific questions from database
+// Try to get questions from evaluation_questions table filtered by evaluator_category
+$teaching = [];
+$research = [];
+$adminQuestions = [];
+$community = [];
+$professional = [];
+
+if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod' || $evaluatorRole === 'dean') {
+    // Try to get questions from database
+    try {
+        // Get questions filtered by evaluator category (hod, dean, or all)
+        $questionCategory = ($evaluatorRole === 'dean') ? 'dean' : 'hod';
+        $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
+            WHERE is_active = 1
+            AND (evaluator_category = ? OR evaluator_category = 'all' OR evaluator_category IS NULL OR evaluator_category = '')
+            AND (target_staff_category = ? OR target_staff_category = 'both' OR target_staff_category IS NULL)
+            ORDER BY category, question_order");
+        $stmt->execute([$questionCategory, $staffCategory]);
+        $dbQuestions = $stmt->fetchAll();
+
+        if (!empty($dbQuestions)) {
+            // Group questions by category
+            foreach ($dbQuestions as $q) {
+                $qName = 'q_' . $q['id'];
+                $qLabel = $q['question_text'];
+                $qCat = $q['category'] ?? 'teaching';
+
+                if (strpos($qCat, 'teaching') !== false || strpos($qCat, 'job') !== false) {
+                    $teaching[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+                } elseif (strpos($qCat, 'research') !== false) {
+                    $research[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+                } elseif (strpos($qCat, 'admin') !== false) {
+                    $adminQuestions[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+                } elseif (strpos($qCat, 'community') !== false) {
+                    $community[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+                } elseif (strpos($qCat, 'professional') !== false) {
+                    $professional[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+                } else {
+                    $teaching[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+                }
+            }
+        }
+    } catch (Exception $e) {
+        // If table doesn't have evaluator_category column, use default questions
+    }
+}
+
+// If no database questions found, use default HOD questions
+if (empty($teaching) && empty($research) && empty($adminQuestions)) {
+    if ($staffCategory === 'non-teaching') {
+        // Non-teaching HOD questions
         $teaching = [
             ['name' => 'teaching_1', 'label' => 'Job Knowledge & Expertise'],
             ['name' => 'teaching_2', 'label' => 'Quality of Work'],
@@ -255,13 +304,7 @@ if ($staffCategory === 'non-teaching') {
             ['name' => 'research_5', 'label' => 'Problem Solving'],
         ];
     } else {
-        // Dean and Registrar see summary only - no new questions
-        $teaching = [];
-        $research = [];
-    }
-} else {
-    // Academic staff questions
-    if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod') {
+        // Academic staff HOD questions
         $teaching = [
             ['name' => 'teaching_1', 'label' => 'Lecture Delivery'],
             ['name' => 'teaching_2', 'label' => 'Class Attendance'],
@@ -277,33 +320,29 @@ if ($staffCategory === 'non-teaching') {
             ['name' => 'research_4', 'label' => 'Journal Articles'],
             ['name' => 'research_5', 'label' => 'Innovations'],
         ];
-    } else {
-        // Dean and Registrar see summary only
-        $teaching = [];
-        $research = [];
     }
+
+    $adminQuestions = [
+        ['name' => 'admin_1', 'label' => 'Attendance'],
+        ['name' => 'admin_2', 'label' => 'Punctuality'],
+        ['name' => 'admin_3', 'label' => 'Leadership'],
+        ['name' => 'admin_4', 'label' => 'Teamwork'],
+        ['name' => 'admin_5', 'label' => 'Record Keeping'],
+    ];
+
+    $community = [
+        ['name' => 'community_1', 'label' => 'Community Development'],
+        ['name' => 'community_2', 'label' => 'Committee Participation'],
+        ['name' => 'community_3', 'label' => 'Institutional Representation'],
+    ];
+
+    $professional = [
+        ['name' => 'professional_1', 'label' => 'Workshops'],
+        ['name' => 'professional_2', 'label' => 'Training'],
+        ['name' => 'professional_3', 'label' => 'Certifications'],
+        ['name' => 'professional_4', 'label' => 'Seminars'],
+    ];
 }
-
-$adminQuestions = [
-    ['name' => 'admin_1', 'label' => 'Attendance'],
-    ['name' => 'admin_2', 'label' => 'Punctuality'],
-    ['name' => 'admin_3', 'label' => 'Leadership'],
-    ['name' => 'admin_4', 'label' => 'Teamwork'],
-    ['name' => 'admin_5', 'label' => 'Record Keeping'],
-];
-
-$community = [
-    ['name' => 'community_1', 'label' => 'Community Development'],
-    ['name' => 'community_2', 'label' => 'Committee Participation'],
-    ['name' => 'community_3', 'label' => 'Institutional Representation'],
-];
-
-$professional = [
-    ['name' => 'professional_1', 'label' => 'Workshops'],
-    ['name' => 'professional_2', 'label' => 'Training'],
-    ['name' => 'professional_3', 'label' => 'Certifications'],
-    ['name' => 'professional_4', 'label' => 'Seminars'],
-];
 
 // Calculate scores and grade
 function calculateGrade($percentage) {
@@ -313,6 +352,43 @@ function calculateGrade($percentage) {
     if ($percentage >= 60) return ['Good', 'Satisfactory'];
     if ($percentage >= 50) return ['Fair', 'Needs Improvement'];
     return ['Poor', 'Unsatisfactory'];
+}
+
+// Handle bulk approval for Registrar
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_approve_all']) && $adminRole === 'registrar') {
+    try {
+        $pdo->beginTransaction();
+
+        // Get all evaluations at 'dean' stage
+        $stmt = $pdo->query("SELECT id FROM evaluations WHERE evaluation_stage = 'dean'");
+        $evalsToApprove = $stmt->fetchAll();
+
+        $adminId = $_SESSION['admin_id'] ?? 0;
+        $adminName = $_SESSION['admin_name'] ?? 'Registrar';
+
+        $approvedCount = 0;
+        foreach ($evalsToApprove as $eval) {
+            $updateStmt = $pdo->prepare("UPDATE evaluations SET
+                evaluation_stage = 'completed',
+                registrar_name = ?,
+                registrar_remarks = 'Approved via bulk approval',
+                approval_status = 'Approved',
+                registrar_signature = ?,
+                registrar_date = ?,
+                status = 'approved',
+                updated_at = NOW()
+                WHERE id = ?");
+            $updateStmt->execute([$adminName, $adminName, date('Y-m-d'), $eval['id']]);
+            $approvedCount++;
+        }
+
+        $pdo->commit();
+        showMessage("Successfully approved $approvedCount evaluations!", 'success');
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        showMessage('Error: ' . $e->getMessage(), 'danger');
+    }
+    redirect('evaluate-supervisor.php');
 }
 
 // Handle form submission
@@ -372,31 +448,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
             }
         }
 
-        // Combine staff scores and HOD scores (average them)
-        $combinedScores = [];
-        $allScoreKeys = array_unique(array_merge(array_keys($staffScores), array_keys($scores)));
+        // HOD scores only - staff scores are for viewing only, not for grading
+        $hodScores = $scores;
 
-        foreach ($allScoreKeys as $key) {
-            $staffScore = isset($staffScores[$key]) ? $staffScores[$key] : 0;
-            $hodScore = isset($scores[$key]) ? $scores[$key] : 0;
-
-            // If either has a score, use the average; otherwise 0
-            if ($staffScore > 0 || $hodScore > 0) {
-                $combinedScores[$key] = ($staffScore + $hodScore) / 2;
-            } else {
-                $combinedScores[$key] = 0;
-            }
-        }
-
-        // Calculate combined total and grade
-        $totalScore = array_sum(array_filter($combinedScores, function($v) { return $v > 0; }));
-        $questionsAnswered = count(array_filter($combinedScores, function($v) { return $v > 0; }));
+        // Calculate HOD total and grade (HOD alone determines the final grade)
+        $totalScore = array_sum(array_filter($hodScores, function($v) { return $v > 0; }));
+        $questionsAnswered = count(array_filter($hodScores, function($v) { return $v > 0; }));
         $averageScore = $questionsAnswered > 0 ? round($totalScore / $questionsAnswered, 2) : 0;
-        $maxPossible = 23 * 5;
+        $maxPossible = count($hodScores) * 5;
+        if ($maxPossible == 0) $maxPossible = 23 * 5;
         $percentage = $maxPossible > 0 ? round(($totalScore / $maxPossible) * 100, 1) : 0;
         $gradeInfo = calculateGrade($percentage);
 
-        // Build update data
+        // Build update data - use HOD scores for grading
         $updateData = [
             'total_score' => $totalScore,
             'average_score' => $averageScore,
@@ -404,6 +468,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
             'performance_grade' => $gradeInfo[0],
             'performance_status' => $gradeInfo[1],
             'evaluated_by' => $adminId,
+            // Store HOD-specific scores
+            'hod_total_score' => $totalScore,
+            'hod_percentage' => $percentage,
+            'hod_performance_grade' => $gradeInfo[0],
+            'hod_performance_status' => $gradeInfo[1],
         ];
 
         // Add stage-specific fields
@@ -603,6 +672,18 @@ $sessions = $stmt->fetchAll();
                     <?php echo ucfirst($adminRole); ?> Evaluation Portal
                     <span class="badge bg-warning ms-2"><?php echo count($pendingEvals); ?> Pending</span>
                 </h2>
+
+                <!-- Bulk Approval for Registrar -->
+                <?php if ($adminRole === 'registrar' && count($pendingEvals) > 0): ?>
+                <div class="alert alert-success mb-4">
+                    <form method="POST" onsubmit="return confirm('Are you sure you want to approve all <?php echo count($pendingEvals); ?> evaluations at once?');">
+                        <button type="submit" name="bulk_approve_all" class="btn btn-success">
+                            <i class="fas fa-check-double me-2"></i>Approve All (<?php echo count($pendingEvals); ?>)
+                        </button>
+                        <small class="ms-2 text-muted">This will approve all pending evaluations at once.</small>
+                    </form>
+                </div>
+                <?php endif; ?>
 
                 <!-- Stage Info -->
                 <div class="alert alert-info mb-4">
@@ -1011,13 +1092,20 @@ $sessions = $stmt->fetchAll();
                                 <div class="card mb-4">
                                     <div class="card-body">
                                         <div class="d-flex gap-2 flex-wrap">
-                                            <button type="submit" name="save_evaluation" class="btn btn-primary">
-                                                <i class="fas fa-save me-2"></i>Save
+                                            <?php if ($adminRole === 'registrar'): ?>
+                                            <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
+                                                <i class="fas fa-check-circle me-2"></i>Final Approval
                                             </button>
-                                            <button type="submit" name="save_and_next" class="btn btn-success">
-                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to <?php echo $adminRole === 'registrar' ? 'Complete' : ($adminRole === 'dean' ? 'Registrar' : 'Dean'); ?>)
+                                            <?php elseif ($adminRole === 'dean'): ?>
+                                            <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
+                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to Registrar)
                                             </button>
-                                            <a href="evaluate-supervisor.php" class="btn btn-secondary">
+                                            <?php else: ?>
+                                            <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
+                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to Dean)
+                                            </button>
+                                            <?php endif; ?>
+                                            <a href="evaluate-supervisor.php" class="btn btn-secondary btn-lg">
                                                 <i class="fas fa-times me-2"></i>Cancel
                                             </a>
                                         </div>

@@ -79,3 +79,16 @@ ALTER TABLE evaluations ADD COLUMN dean_date DATE NULL;
 -- Add foreign key for hod_id and dean_id
 ALTER TABLE evaluations ADD FOREIGN KEY (hod_id) REFERENCES admins(id) ON DELETE SET NULL;
 ALTER TABLE evaluations ADD FOREIGN KEY (dean_id) REFERENCES admins(id) ON DELETE SET NULL;
+
+-- 11. Add HOD category to evaluation_questions
+-- First modify the column to include 'hod'
+ALTER TABLE evaluation_questions MODIFY COLUMN target_staff_category ENUM('academic', 'non-teaching', 'both', 'hod') DEFAULT 'both';
+
+-- 12. Add evaluator_category to identify who should answer questions (staff self-eval vs HOD vs Dean)
+ALTER TABLE evaluation_questions ADD COLUMN evaluator_category ENUM('staff', 'hod', 'dean', 'all') DEFAULT 'all';
+
+-- 13. Add hod_total_score and hod_percentage columns to track HOD-only grading
+ALTER TABLE evaluations ADD COLUMN hod_total_score INT DEFAULT 0;
+ALTER TABLE evaluations ADD COLUMN hod_percentage DECIMAL(5,2) DEFAULT 0;
+ALTER TABLE evaluations ADD COLUMN hod_performance_grade VARCHAR(50) DEFAULT NULL;
+ALTER TABLE evaluations ADD COLUMN hod_performance_status VARCHAR(100) DEFAULT NULL;
