@@ -283,7 +283,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
 
         // Collect scores from form
         $scores = [];
-        $allQuestions = array_merge($teaching, $research, $admin, $community, $professional);
+        // Ensure all arrays are arrays
+        $teachingArr = is_array($teaching) ? $teaching : [];
+        $researchArr = is_array($research) ? $research : [];
+        $adminArr = is_array($adminQuestions) ? $adminQuestions : [];
+        $communityArr = is_array($community) ? $community : [];
+        $professionalArr = is_array($professional) ? $professional : [];
+
+        $allQuestions = array_merge($teachingArr, $researchArr, $adminArr, $communityArr, $professionalArr);
         foreach ($allQuestions as $q) {
             $scores[$q['name']] = intval($_POST[$q['name']] ?? 0);
         }
