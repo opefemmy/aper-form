@@ -60,3 +60,22 @@ ALTER TABLE admins ADD COLUMN designated_evaluator TINYINT(1) DEFAULT 0;
 
 -- 9. Add staff_category to evaluation_questions if not exists
 ALTER TABLE evaluation_questions ADD COLUMN staff_category ENUM('academic', 'non-teaching', 'both') DEFAULT 'both';
+
+-- 10. Add evaluation workflow columns (HOD and Dean stages)
+ALTER TABLE evaluations ADD COLUMN evaluation_stage VARCHAR(50) DEFAULT 'pending';
+
+-- HOD Assessment columns
+ALTER TABLE evaluations ADD COLUMN hod_id INT NULL;
+ALTER TABLE evaluations ADD COLUMN hod_name VARCHAR(100) NULL;
+ALTER TABLE evaluations ADD COLUMN hod_remarks TEXT NULL;
+ALTER TABLE evaluations ADD COLUMN hod_date DATE NULL;
+
+-- Dean Assessment columns
+ALTER TABLE evaluations ADD COLUMN dean_id INT NULL;
+ALTER TABLE evaluations ADD COLUMN dean_name VARCHAR(100) NULL;
+ALTER TABLE evaluations ADD COLUMN dean_remarks TEXT NULL;
+ALTER TABLE evaluations ADD COLUMN dean_date DATE NULL;
+
+-- Add foreign key for hod_id and dean_id
+ALTER TABLE evaluations ADD FOREIGN KEY (hod_id) REFERENCES admins(id) ON DELETE SET NULL;
+ALTER TABLE evaluations ADD FOREIGN KEY (dean_id) REFERENCES admins(id) ON DELETE SET NULL;

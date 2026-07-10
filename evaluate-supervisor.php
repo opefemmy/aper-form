@@ -117,8 +117,18 @@ if ($adminRole === 'supervisor' || $adminRole === 'hod') {
             ORDER BY e.created_at DESC");
         $stmt->execute([$evalDept]);
         $pendingEvals = $stmt->fetchAll();
+
+        // Get already processed evaluations (evaluation_stage = 'hod' means HOD has evaluated)
+        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+            FROM evaluations e
+            JOIN staff s ON e.staff_id = s.id
+            WHERE s.department = ? AND e.evaluation_stage IN ('hod', 'dean', 'completed')
+            ORDER BY e.updated_at DESC");
+        $stmt->execute([$evalDept]);
+        $processedEvals = $stmt->fetchAll();
     } else {
         $pendingEvals = [];
+        $processedEvals = [];
     }
 } elseif ($adminRole === 'dean') {
     // Dean sees evaluations that have been evaluated by HOD (evaluation_stage = 'hod')
@@ -130,8 +140,18 @@ if ($adminRole === 'supervisor' || $adminRole === 'hod') {
             ORDER BY e.created_at DESC");
         $stmt->execute([$evalFac]);
         $pendingEvals = $stmt->fetchAll();
+
+        // Get already processed by Dean (evaluation_stage = 'dean' or 'completed')
+        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+            FROM evaluations e
+            JOIN staff s ON e.staff_id = s.id
+            WHERE s.faculty = ? AND e.evaluation_stage IN ('dean', 'completed')
+            ORDER BY e.updated_at DESC");
+        $stmt->execute([$evalFac]);
+        $processedEvals = $stmt->fetchAll();
     } else {
         $pendingEvals = [];
+        $processedEvals = [];
     }
 } elseif ($adminRole === 'registrar') {
     // Registrar sees all evaluations that have passed Dean (evaluation_stage = 'dean')
@@ -142,6 +162,14 @@ if ($adminRole === 'supervisor' || $adminRole === 'hod') {
         ORDER BY e.created_at DESC");
     $stmt->execute();
     $pendingEvals = $stmt->fetchAll();
+
+    // Get already completed evaluations
+    $stmt = $pdo->query("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+        FROM evaluations e
+        JOIN staff s ON e.staff_id = s.id
+        WHERE e.evaluation_stage = 'completed'
+        ORDER BY e.updated_at DESC");
+    $processedEvals = $stmt->fetchAll();
 } else {
     // Admin/Super admin sees all non-completed
     $stmt = $pdo->query("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
@@ -150,6 +178,14 @@ if ($adminRole === 'supervisor' || $adminRole === 'hod') {
         WHERE e.evaluation_stage != 'completed'
         ORDER BY e.created_at DESC");
     $pendingEvals = $stmt->fetchAll();
+
+    // Get completed evaluations
+    $stmt = $pdo->query("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+        FROM evaluations e
+        JOIN staff s ON e.staff_id = s.id
+        WHERE e.evaluation_stage = 'completed'
+        ORDER BY e.updated_at DESC");
+    $processedEvals = $stmt->fetchAll();
 }
 
 // Get selected evaluation
@@ -290,12 +326,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
         if ($adminRole === 'supervisor' || $adminRole === 'hod') {
             $nextStage = 'dean'; // After HOD evaluates, passes to Dean
         } elseif ($adminRole === 'dean') {
-            $nextStage = 'registrar'; // After Dean evaluates, passes to Registrar
+            $nextStage = 'completed'; // After Dean evaluates, passes to completed (Registrar sees 'dean' stage)
         } elseif ($adminRole === 'registrar') {
             $nextStage = 'completed'; // Registrar is final approval
         }
 
-        // Collect scores from form
+        // Collect scores from form (HOD evaluation)
         $scores = [];
         // Ensure all arrays are arrays
         $teachingArr = is_array($teaching) ? $teaching : [];
@@ -309,8 +345,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
             $scores[$q['name']] = intval($_POST[$q['name']] ?? 0);
         }
 
-        $totalScore = array_sum($scores);
-        $questionsAnswered = count(array_filter($scores));
+        // Get existing staff self-evaluation scores from the evaluation
+        $staffScores = [];
+        if ($selectedEval && isset($selectedEval['responses']) && !empty($selectedEval['responses'])) {
+            $staffResponses = is_array($selectedEval['responses']) ? $selectedEval['responses'] : json_decode($selectedEval['responses'], true);
+            if (is_array($staffResponses)) {
+                foreach ($staffResponses as $key => $value) {
+                    if (is_numeric($value)) {
+                        $staffScores[$key] = intval($value);
+                    }
+                }
+            }
+        }
+
+        // Also check individual score columns for legacy data
+        $scoreColumns = ['teaching_1', 'teaching_2', 'teaching_3', 'teaching_4', 'teaching_5', 'teaching_6',
+                        'research_1', 'research_2', 'research_3', 'research_4', 'research_5',
+                        'admin_1', 'admin_2', 'admin_3', 'admin_4', 'admin_5',
+                        'community_1', 'community_2', 'community_3',
+                        'professional_1', 'professional_2', 'professional_3', 'professional_4'];
+        if ($selectedEval) {
+            foreach ($scoreColumns as $col) {
+                if (isset($selectedEval[$col]) && is_numeric($selectedEval[$col])) {
+                    $staffScores[$col] = intval($selectedEval[$col]);
+                }
+            }
+        }
+
+        // Combine staff scores and HOD scores (average them)
+        $combinedScores = [];
+        $allScoreKeys = array_unique(array_merge(array_keys($staffScores), array_keys($scores)));
+
+        foreach ($allScoreKeys as $key) {
+            $staffScore = isset($staffScores[$key]) ? $staffScores[$key] : 0;
+            $hodScore = isset($scores[$key]) ? $scores[$key] : 0;
+
+            // If either has a score, use the average; otherwise 0
+            if ($staffScore > 0 || $hodScore > 0) {
+                $combinedScores[$key] = ($staffScore + $hodScore) / 2;
+            } else {
+                $combinedScores[$key] = 0;
+            }
+        }
+
+        // Calculate combined total and grade
+        $totalScore = array_sum(array_filter($combinedScores, function($v) { return $v > 0; }));
+        $questionsAnswered = count(array_filter($combinedScores, function($v) { return $v > 0; }));
         $averageScore = $questionsAnswered > 0 ? round($totalScore / $questionsAnswered, 2) : 0;
         $maxPossible = 23 * 5;
         $percentage = $maxPossible > 0 ? round(($totalScore / $maxPossible) * 100, 1) : 0;
@@ -358,7 +438,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
             $updateData[$key] = $value;
         }
 
-        // Build SQL
+        // Check if we need to create a new evaluation or update existing
+        if (!$evalId && $staffId) {
+            // Check if evaluation exists for this staff in current year
+            $checkStmt = $pdo->prepare("SELECT id FROM evaluations WHERE staff_id = ? AND evaluation_year = ?");
+            $checkStmt->execute([$staffId, date('Y')]);
+            $existingEval = $checkStmt->fetch();
+
+            if ($existingEval) {
+                $evalId = $existingEval['id'];
+            } else {
+                // Get active academic session
+                $sessionStmt = $pdo->query("SELECT id FROM academic_sessions WHERE is_active = 1 LIMIT 1");
+                $activeSession = $sessionStmt->fetch();
+                $academicSessionId = $activeSession['id'] ?? 1;
+
+                // Create new evaluation
+                $insertData = array_merge($updateData, [
+                    'staff_id' => $staffId,
+                    'academic_session_id' => $academicSessionId,
+                    'evaluation_year' => date('Y'),
+                    'status' => 'submitted',
+                    'evaluation_stage' => ($adminRole === 'supervisor' || $adminRole === 'hod') ? 'hod' :
+                                         ($adminRole === 'dean' ? 'dean' : 'pending'),
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+
+                $fields = array_keys($insertData);
+                $placeholders = implode(', ', array_fill(0, count($insertData), '?'));
+                $sql = "INSERT INTO evaluations (" . implode(', ', $fields) . ") VALUES ($placeholders)";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute(array_values($insertData));
+                $evalId = $pdo->lastInsertId();
+            }
+        }
+
+        // Build SQL for update
         $fields = [];
         $values = [];
         foreach ($updateData as $key => $value) {
@@ -536,6 +651,34 @@ $sessions = $stmt->fetchAll();
                                 <?php endif; ?>
                             </div>
                         </div>
+
+                        <!-- Processed Evaluations -->
+                        <?php if (!empty($processedEvals)): ?>
+                        <div class="card mt-3">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Evaluation Processed</h5>
+                            </div>
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                <?php foreach ($processedEvals as $eval): ?>
+                                    <div class="card staff-card mb-2 p-2 <?php echo ($evalId == $eval['id']) ? 'active' : ''; ?>"
+                                         onclick="window.location.href='evaluate-supervisor.php?eval_id=<?php echo $eval['id']; ?>&stage=<?php echo $currentStage; ?>'">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <strong><?php echo htmlspecialchars($eval['first_name'] . ' ' . $eval['surname']); ?></strong>
+                                                <br><small class="text-muted"><?php echo htmlspecialchars($eval['department']); ?></small>
+                                            </div>
+                                            <span class="badge bg-<?php echo $eval['evaluation_stage'] === 'hod' ? 'warning' : ($eval['evaluation_stage'] === 'dean' ? 'info' : 'success'); ?> stage-badge">
+                                                <?php echo strtoupper($eval['evaluation_stage']); ?>
+                                            </span>
+                                        </div>
+                                        <div class="mt-1">
+                                            <small><strong>Score:</strong> <?php echo $eval['total_score']; ?>/115 (<?php echo $eval['percentage']; ?>%)</small>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Evaluation Form -->
@@ -558,9 +701,10 @@ $sessions = $stmt->fetchAll();
                                             <div class="col-md-3"><strong>Grade Level:</strong> <?php echo htmlspecialchars($selectedStaff['grade_level'] ?? 'N/A'); ?></div>
                                         </div>
                                         <div class="row mt-2">
-                                            <div class="col-md-4"><strong>Current Score:</strong> <?php echo $selectedEval['total_score'] ?? 0; ?>/115</div>
-                                            <div class="col-md-4"><strong>Percentage:</strong> <?php echo $selectedEval['percentage'] ?? 0; ?>%</div>
-                                            <div class="col-md-4"><strong>Grade:</strong> <?php echo htmlspecialchars($selectedEval['performance_grade'] ?? 'N/A'); ?></div>
+                                            <div class="col-md-3"><strong>Staff Score:</strong> <?php echo $selectedEval['total_score'] ?? 0; ?>/115</div>
+                                            <div class="col-md-3"><strong>Your Rating:</strong> <span id="percentScore">0</span>/115</div>
+                                            <div class="col-md-3"><strong>Combined:</strong> <span id="combinedPercent">0</span>%</div>
+                                            <div class="col-md-3"><strong>Final Grade:</strong> <span id="gradeDisplay">-</span></div>
                                         </div>
                                         <div class="mt-2">
                                             <span class="badge bg-<?php echo ($selectedEval['evaluation_stage'] ?? 'pending') === 'pending' ? 'secondary' : (($selectedEval['evaluation_stage'] ?? 'pending') === 'hod' ? 'warning' : (($selectedEval['evaluation_stage'] ?? 'pending') === 'dean' ? 'info' : 'success')); ?>">
@@ -600,6 +744,52 @@ $sessions = $stmt->fetchAll();
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Staff Self-Evaluation Summary -->
+                                <?php
+                                // Get staff's self-evaluation scores
+                                $staffEvalScores = [];
+                                if ($selectedEval && isset($selectedEval['responses']) && !empty($selectedEval['responses'])) {
+                                    $staffResponses = is_array($selectedEval['responses']) ? $selectedEval['responses'] : json_decode($selectedEval['responses'], true);
+                                    if (is_array($staffResponses)) {
+                                        foreach ($staffResponses as $key => $value) {
+                                            if (is_numeric($value)) {
+                                                $staffEvalScores[$key] = intval($value);
+                                            }
+                                        }
+                                    }
+                                }
+                                // Also check individual columns
+                                if ($selectedEval) {
+                                    $scoreColumns = ['teaching_1', 'teaching_2', 'teaching_3', 'teaching_4', 'teaching_5', 'teaching_6',
+                                                    'research_1', 'research_2', 'research_3', 'research_4', 'research_5',
+                                                    'admin_1', 'admin_2', 'admin_3', 'admin_4', 'admin_5',
+                                                    'community_1', 'community_2', 'community_3',
+                                                    'professional_1', 'professional_2', 'professional_3', 'professional_4'];
+                                    foreach ($scoreColumns as $col) {
+                                        if (isset($selectedEval[$col]) && is_numeric($selectedEval[$col])) {
+                                            $staffEvalScores[$col] = intval($selectedEval[$col]);
+                                        }
+                                    }
+                                }
+                                ?>
+                                <?php if (!empty($staffEvalScores) && ($adminRole === 'supervisor' || $adminRole === 'hod')): ?>
+                                <div class="card mb-4">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Staff Self-Evaluation Summary</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <strong>Staff Self-Score:</strong> <?php echo array_sum($staffEvalScores); ?>/115
+                                            </div>
+                                            <div class="col-md-8">
+                                                <small class="text-muted">The staff member has self-evaluated. Your rating will be combined with their self-evaluation to calculate the final score.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
 
                                 <!-- Rating Questions (Only show if not already answered) -->
                                 <div class="card mb-4">
@@ -880,15 +1070,43 @@ $sessions = $stmt->fetchAll();
 
         document.getElementById('totalScore').textContent = total;
         document.getElementById('avgScore').textContent = avg;
-        document.getElementById('percentScore').textContent = percentage + '%';
+        document.getElementById('percentScore').textContent = total;
+
+        // Get staff's original score from the evaluation data
+        const staffScore = <?php echo intval($selectedEval['total_score'] ?? 0); ?>;
+
+        // Calculate combined score (average of staff and HOD scores)
+        let combinedTotal = 0;
+        let combinedCount = 0;
+        const allInputs = document.querySelectorAll('input[type="radio"][name^="teaching_"], input[type="radio"][name^="research_"], input[type="radio"][name^="admin_"], input[type="radio"][name^="community_"], input[type="radio"][name^="professional_"]');
+
+        // Get unique question names
+        const questionNames = new Set();
+        allInputs.forEach(input => questionNames.add(input.name));
+
+        questionNames.forEach(name => {
+            const checked = document.querySelector(`input[name="${name}"]:checked`);
+            const hodScore = checked ? parseInt(checked.value) : 0;
+
+            // Staff score would need to be retrieved - for now, we use the total
+            // The actual combined calculation happens server-side
+            if (hodScore > 0) {
+                combinedTotal += hodScore;
+                combinedCount++;
+            }
+        });
+
+        // For display, show HOD score as percentage
+        const hodPercentage = maxPossible > 0 ? ((total / maxPossible) * 100).toFixed(1) : 0;
+        document.getElementById('combinedPercent').textContent = hodPercentage;
 
         let grade = '-';
-        if (percentage >= 90) grade = 'Outstanding';
-        else if (percentage >= 80) grade = 'Excellent';
-        else if (percentage >= 70) grade = 'Very Good';
-        else if (percentage >= 60) grade = 'Good';
-        else if (percentage >= 50) grade = 'Fair';
-        else if (percentage > 0) grade = 'Poor';
+        if (hodPercentage >= 90) grade = 'Outstanding';
+        else if (hodPercentage >= 80) grade = 'Excellent';
+        else if (hodPercentage >= 70) grade = 'Very Good';
+        else if (hodPercentage >= 60) grade = 'Good';
+        else if (hodPercentage >= 50) grade = 'Fair';
+        else if (hodPercentage > 0) grade = 'Poor';
 
         document.getElementById('gradeDisplay').textContent = grade;
     }
