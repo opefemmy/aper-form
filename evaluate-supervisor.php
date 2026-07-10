@@ -63,6 +63,7 @@ $evaluatorProfile = $stmt->fetch();
 // Get staff list based on role
 $evaluatorDept = '';
 $evaluatorFac = '';
+$evaluatorId = $_SESSION['staff_id'] ?? 0;
 
 // Get evaluator's department/faculty from session or database
 if (isset($_SESSION['is_evaluator']) && $_SESSION['is_evaluator']) {
@@ -74,19 +75,19 @@ if (isset($_SESSION['is_evaluator']) && $_SESSION['is_evaluator']) {
 }
 
 if ($adminRole === 'supervisor' || $adminRole === 'hod') {
-    // HOD sees only staff in their department
+    // HOD sees only staff in their department (NOT themselves)
     if (!empty($evaluatorDept)) {
-        $stmt = $pdo->prepare("SELECT * FROM staff WHERE status = 'active' AND department = ? ORDER BY first_name, surname");
-        $stmt->execute([$evaluatorDept]);
+        $stmt = $pdo->prepare("SELECT * FROM staff WHERE status = 'active' AND department = ? AND id != ? ORDER BY first_name, surname");
+        $stmt->execute([$evaluatorDept, $evaluatorId]);
         $staffList = $stmt->fetchAll();
     } else {
         $staffList = [];
     }
 } elseif ($adminRole === 'dean') {
-    // Dean sees only staff in their faculty
+    // Dean sees only staff in their faculty (NOT themselves)
     if (!empty($evaluatorFac)) {
-        $stmt = $pdo->prepare("SELECT * FROM staff WHERE status = 'active' AND faculty = ? ORDER BY first_name, surname");
-        $stmt->execute([$evaluatorFac]);
+        $stmt = $pdo->prepare("SELECT * FROM staff WHERE status = 'active' AND faculty = ? AND id != ? ORDER BY first_name, surname");
+        $stmt->execute([$evaluatorFac, $evaluatorId]);
         $staffList = $stmt->fetchAll();
     } else {
         $staffList = [];
@@ -140,6 +141,8 @@ if ($adminRole === 'supervisor' || $adminRole === 'hod') {
 // Get selected evaluation
 $selectedEval = null;
 $selectedStaff = null;
+
+// First priority: get by eval_id
 if ($evalId) {
     $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
         FROM evaluations e
@@ -153,6 +156,22 @@ if ($evalId) {
         $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ?");
         $stmt->execute([$staffId]);
         $selectedStaff = $stmt->fetch();
+    }
+} elseif ($staffId) {
+    // Second priority: get by staff_id directly
+    $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ?");
+    $stmt->execute([$staffId]);
+    $selectedStaff = $stmt->fetch();
+
+    // Get latest evaluation for this staff
+    if ($selectedStaff) {
+        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
+            FROM evaluations e
+            JOIN staff s ON e.staff_id = s.id
+            WHERE e.staff_id = ? AND e.evaluation_year = ?
+            ORDER BY e.created_at DESC LIMIT 1");
+        $stmt->execute([$staffId, date('Y')]);
+        $selectedEval = $stmt->fetch();
     }
 }
 
