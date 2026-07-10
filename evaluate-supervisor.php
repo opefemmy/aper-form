@@ -37,6 +37,35 @@ $settings = [];
 while ($row = $stmt->fetch()) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
+
+// Get configured HOD questions from settings
+$hodQuestions = json_decode($settings['hod_questions'] ?? '', true);
+if (!$hodQuestions) {
+    // Default HOD questions
+    $hodQuestions = [
+        'teaching' => [
+            ['name' => 'teaching_1', 'label' => 'Teaching Quality'],
+            ['name' => 'teaching_2', 'label' => 'Class Control & Attendance'],
+            ['name' => 'teaching_3', 'label' => 'Course Material Preparation'],
+        ],
+        'research' => [
+            ['name' => 'research_1', 'label' => 'Research Output'],
+            ['name' => 'research_2', 'label' => 'Academic Publications'],
+        ],
+        'admin' => [
+            ['name' => 'admin_1', 'label' => 'Punctuality & Attendance'],
+            ['name' => 'admin_2', 'label' => 'Administrative Duties'],
+            ['name' => 'admin_3', 'label' => 'Teamwork & Cooperation'],
+        ],
+        'community' => [
+            ['name' => 'community_1', 'label' => 'Community Service'],
+        ],
+        'professional' => [
+            ['name' => 'professional_1', 'label' => 'Professional Development'],
+        ],
+    ];
+}
+
 $institutionName = $settings['institution_name'] ?? 'Institution';
 $institutionAddress = $settings['institution_address'] ?? '';
 $institutionLogo = $settings['institution_logo'] ?? '';
@@ -184,36 +213,22 @@ $evaluatorRole = $adminRole;
 // Registrar approves/rejects
 
 if ($staffCategory === 'non-teaching') {
-    // Non-teaching questions
+    // Non-teaching questions - Use configured HOD questions
     if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod') {
-        $teaching = [
-            ['name' => 'teaching_1', 'label' => 'Job Knowledge & Expertise'],
-            ['name' => 'teaching_2', 'label' => 'Quality of Work'],
-            ['name' => 'teaching_3', 'label' => 'Productivity'],
-            ['name' => 'teaching_4', 'label' => 'Initiative'],
-            ['name' => 'teaching_5', 'label' => 'Adaptability'],
-            ['name' => 'teaching_6', 'label' => 'Technical Skills'],
-        ];
-        // Use only simplified questions for HOD
-        $research = [];
+        // Use configured questions from settings for non-teaching too
+        $teaching = $hodQuestions['teaching'] ?? [];
+        $research = $hodQuestions['research'] ?? [];
     } else {
         // Dean and Registrar see summary only - no new questions
         $teaching = [];
         $research = [];
     }
 } else {
-    // Academic staff questions - Simplified for HOD
+    // Academic staff questions - Use configured HOD questions
     if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod') {
-        // HOD-specific simplified evaluation questions
-        $teaching = [
-            ['name' => 'teaching_1', 'label' => 'Teaching Quality'],
-            ['name' => 'teaching_2', 'label' => 'Class Control & Attendance'],
-            ['name' => 'teaching_3', 'label' => 'Course Material Preparation'],
-        ];
-        $research = [
-            ['name' => 'research_1', 'label' => 'Research Output'],
-            ['name' => 'research_2', 'label' => 'Academic Publications'],
-        ];
+        // Use configured questions from settings
+        $teaching = $hodQuestions['teaching'] ?? [];
+        $research = $hodQuestions['research'] ?? [];
     } else {
         // Dean and Registrar see summary only
         $teaching = [];
@@ -221,18 +236,11 @@ if ($staffCategory === 'non-teaching') {
     }
 }
 
-// Only show admin/community/professional questions to HOD, simplified
+// Only show admin/community/professional questions to HOD using configured questions
 if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod') {
-    $adminQuestions = [
-        ['name' => 'admin_1', 'label' => 'Punctuality & Attendance'],
-        ['name' => 'admin_2', 'label' => 'Administrative Duties'],
-        ['name' => 'admin_3', 'label' => 'Teamwork & Cooperation'],
-    ];
-    $community = [
-        ['name' => 'community_1', 'label' => 'Community Service'],
-    ];
-    $professional = [
-        ['name' => 'professional_1', 'label' => 'Professional Development'],
+    $adminQuestions = $hodQuestions['admin'] ?? [];
+    $community = $hodQuestions['community'] ?? [];
+    $professional = $hodQuestions['professional'] ?? [];
     ];
 } else {
     $adminQuestions = [];
