@@ -13,27 +13,28 @@ $admin = getCurrentAdmin();
 // Get statistics
 $pdo = getDBConnection();
 
-// Total staff
+// Total active staff
 $stmt = $pdo->query("SELECT COUNT(*) as total FROM staff WHERE status = 'active'");
 $staffCount = $stmt->fetch()['total'];
 
-// Total evaluations
-$stmt = $pdo->query("SELECT COUNT(*) as total FROM evaluations");
+// Total evaluations - only count submitted evaluations (valid evaluations)
+$stmt = $pdo->query("SELECT COUNT(*) as total FROM evaluations WHERE status = 'submitted' OR status = 'approved' OR evaluation_stage != 'pending'");
 $evalCount = $stmt->fetch()['total'];
 
-// Pending evaluations
-$stmt = $pdo->query("SELECT COUNT(*) as total FROM evaluations WHERE status = 'draft'");
+// Pending evaluations - staff submitted but awaiting HOD evaluation
+$stmt = $pdo->query("SELECT COUNT(*) as total FROM evaluations WHERE evaluation_stage = 'pending' AND status = 'submitted'");
 $pendingCount = $stmt->fetch()['total'];
 
-// Completed evaluations
-$stmt = $pdo->query("SELECT COUNT(*) as total FROM evaluations WHERE status = 'submitted' OR status = 'approved'");
+// Completed evaluations - fully approved (stage = completed)
+$stmt = $pdo->query("SELECT COUNT(*) as total FROM evaluations WHERE evaluation_stage = 'completed'");
 $completedCount = $stmt->fetch()['total'];
 
-// Recent evaluations
+// Recent evaluations - only show valid evaluations that have been submitted
 $stmt = $pdo->query("
     SELECT e.*, CONCAT(s.first_name, ' ', s.surname) as full_name, s.staff_id, s.department
     FROM evaluations e
     JOIN staff s ON e.staff_id = s.id
+    WHERE e.status = 'submitted' OR e.status = 'approved'
     ORDER BY e.created_at DESC
     LIMIT 5
 ");

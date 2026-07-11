@@ -71,13 +71,13 @@ $evaluations = $stmt->fetchAll();
 $stmt = $pdo->query("SELECT DISTINCT faculty FROM staff WHERE faculty IS NOT NULL AND faculty != '' ORDER BY faculty");
 $faculties = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Get stats - FIXED: Use evaluation_stage for accurate counting
+// Get stats - FIXED: Use evaluation_stage for accurate counting (only valid evaluations)
 $stmt = $pdo->query("SELECT
     COUNT(*) as total,
     SUM(CASE WHEN evaluation_stage = 'completed' THEN 1 ELSE 0 END) as approved,
     SUM(CASE WHEN evaluation_stage IN ('dean', 'registrar') THEN 1 ELSE 0 END) as processed,
     SUM(CASE WHEN evaluation_stage = 'pending' THEN 1 ELSE 0 END) as pending
-    FROM evaluations WHERE evaluation_year = $filterYear");
+    FROM evaluations WHERE evaluation_year = $filterYear AND (status = 'submitted' OR status = 'approved' OR evaluation_stage != 'pending')");
 $stats = $stmt->fetch();
 
 $userName = $_SESSION['staff_name'] ?? $_SESSION['admin_name'] ?? 'Registrar';
