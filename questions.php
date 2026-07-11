@@ -79,8 +79,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('questions.php');
 }
 
-// Get all questions grouped by category
-$stmt = $pdo->query("SELECT * FROM evaluation_questions ORDER BY category, id");
+// Get filter category
+$filterCategory = $_GET['filter'] ?? 'all';
+
+// Build query based on filter
+if ($filterCategory === 'hod') {
+    // Filter HOD evaluation questions (questions HOD uses to evaluate staff)
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'hod' ORDER BY category, id");
+} elseif ($filterCategory === 'academic') {
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'academic' ORDER BY category, id");
+} elseif ($filterCategory === 'non-teaching') {
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'non-teaching' ORDER BY category, id");
+} else {
+    // All questions
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions ORDER BY category, id");
+}
 $questions = $stmt->fetchAll();
 
 $questionsByCategory = [];
@@ -150,10 +163,36 @@ foreach ($questions as $q) {
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="fas fa-question-circle me-2"></i>Evaluation Questions</h2>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
-                        <i class="fas fa-plus me-2"></i>Add Question
-                    </button>
+                    <div class="d-flex gap-2">
+                        <!-- Filter Dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-filter me-2"></i>
+                                <?php echo $filterCategory === 'all' ? 'All Questions' :
+                                    ($filterCategory === 'hod' ? 'HOD Evaluation Questions' :
+                                    ($filterCategory === 'academic' ? 'Academic Staff' : 'Non-Teaching Staff')); ?>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'all' ? 'active' : ''; ?>" href="questions.php?filter=all"><i class="fas fa-list me-2"></i>All Questions</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'hod' ? 'active' : ''; ?>" href="questions.php?filter=hod"><i class="fas fa-user-tie me-2"></i>HOD Evaluation (Questions HOD uses to evaluate staff)</a></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'academic' ? 'active' : ''; ?>" href="questions.php?filter=academic"><i class="fas fa-graduation-cap me-2"></i>Academic Staff Questions</a></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'non-teaching' ? 'active' : ''; ?>" href="questions.php?filter=non-teaching"><i class="fas fa-briefcase me-2"></i>Non-Teaching Staff Questions</a></li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
+                            <i class="fas fa-plus me-2"></i>Add Question
+                        </button>
+                    </div>
                 </div>
+
+                <?php if ($filterCategory === 'hod'): ?>
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>HOD Evaluation Questions:</strong> These are the questions that HODs will use to evaluate their staff.
+                    You can add, edit, or delete these questions. The questions are grouped by category for easy management.
+                </div>
+                <?php endif; ?>
 
                 <p class="text-muted mb-4">
                     Customize the questions that staff will answer in their self-evaluation form.
@@ -262,7 +301,7 @@ foreach ($questions as $q) {
                                                                 <option value="both" <?php echo ($q['target_staff_category'] ?? 'both') == 'both' ? 'selected' : ''; ?>>All Staff</option>
                                                                 <option value="academic" <?php echo ($q['target_staff_category'] ?? '') == 'academic' ? 'selected' : ''; ?>>Academic Staff Only</option>
                                                                 <option value="non-teaching" <?php echo ($q['target_staff_category'] ?? '') == 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching Staff Only</option>
-                                                                <option value="hod" <?php echo ($q['target_staff_category'] ?? '') == 'hod' ? 'selected' : ''; ?>>HOD Only</option>
+                                                                <option value="hod" <?php echo ($q['target_staff_category'] ?? '') == 'hod' ? 'selected' : ''; ?>>HOD Evaluation Question</option>
                                                             </select>
                                                         </div>
                                                     </div>
@@ -347,10 +386,10 @@ foreach ($questions as $q) {
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Staff Category</label>
                                 <select class="form-select" name="target_staff_category" required>
-                                    <option value="both">All Staff</option>
-                                    <option value="academic">Academic Staff Only</option>
-                                    <option value="non-teaching">Non-Teaching Staff Only</option>
-                                    <option value="hod">HOD Only</option>
+                                    <option value="both" <?php echo $filterCategory === 'all' ? 'selected' : ''; ?>>All Staff</option>
+                                    <option value="academic" <?php echo $filterCategory === 'academic' ? 'selected' : ''; ?>>Academic Staff Only</option>
+                                    <option value="non-teaching" <?php echo $filterCategory === 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching Staff Only</option>
+                                    <option value="hod" <?php echo $filterCategory === 'hod' ? 'selected' : ''; ?>>HOD Evaluation Question</option>
                                 </select>
                                 <small class="text-muted">Which staff type sees this question</small>
                             </div>
