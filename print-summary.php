@@ -34,6 +34,12 @@ if (isStaffLoggedIn() && $_SESSION['staff_id'] != $eval['staff_id']) {
 // Check if this is staff viewing their own evaluation (show self-assessment only)
 $isStaffOwnPrint = isStaffLoggedIn() && $_SESSION['staff_id'] == $eval['staff_id'];
 
+// Get staff's actual responses (self-evaluation answers)
+$staffResponses = [];
+if (isset($eval['responses']) && !empty($eval['responses'])) {
+    $staffResponses = is_array($eval['responses']) ? $eval['responses'] : json_decode($eval['responses'], true);
+}
+
 // Get settings
 $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
 $settings = [];
@@ -87,6 +93,31 @@ $professional = [
 function getScoreLabel($score) {
     $labels = [1 => 'Poor', 2 => 'Fair', 3 => 'Good', 4 => 'Very Good', 5 => 'Excellent'];
     return $labels[$score] ?? 'N/A';
+}
+
+// Helper function to get answered questions only
+function getAnsweredQuestions($questions, $responses) {
+    $answered = [];
+    $totalScore = 0;
+    $maxScore = 0;
+    foreach ($questions as $q) {
+        $key = $q['key'];
+        // Check if answer exists in responses (could be in JSON or direct column)
+        $value = $responses[$key] ?? null;
+        if ($value === null && isset($eval[$key])) {
+            $value = $eval[$key];
+        }
+        if ($value !== null && $value !== '' && $value !== 0) {
+            $answered[] = [
+                'key' => $key,
+                'label' => $q['label'],
+                'score' => $value
+            ];
+            $totalScore += intval($value);
+            $maxScore += 5;
+        }
+    }
+    return ['questions' => $answered, 'total' => $totalScore, 'max' => $maxScore];
 }
 ?>
 <!DOCTYPE html>
@@ -225,75 +256,95 @@ function getScoreLabel($score) {
             </div>
         </div>
 
+        <?php
+        // Get only answered questions for each category
+        $teachingData = getAnsweredQuestions($teaching, $staffResponses);
+        $researchData = getAnsweredQuestions($research, $staffResponses);
+        $adminData = getAnsweredQuestions($admin, $staffResponses);
+        $communityData = getAnsweredQuestions($community, $staffResponses);
+        $professionalData = getAnsweredQuestions($professional, $staffResponses);
+
+        // Only show sections that have answered questions
+        if (!empty($teachingData['questions'])):
+        ?>
         <div class="question-section">
-            <h5>Teaching Performance (6 questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
-            <?php foreach ($teaching as $q): ?>
+            <h5>Teaching Performance (<?php echo count($teachingData['questions']); ?> questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
+            <?php foreach ($teachingData['questions'] as $q): ?>
             <div class="question-item">
                 <span class="question-label"><?php echo $q['label']; ?></span>
-                <span class="question-score"><?php echo $eval[$q['key']]; ?>/5 (<?php echo getScoreLabel($eval[$q['key']]); ?>)</span>
+                <span class="question-score"><?php echo $q['score']; ?>/5 (<?php echo getScoreLabel($q['score']); ?>)</span>
             </div>
             <?php endforeach; ?>
             <div class="question-item" style="font-weight: bold;">
                 <span>Teaching Subtotal</span>
-                <span><?php echo $eval['teaching_1'] + $eval['teaching_2'] + $eval['teaching_3'] + $eval['teaching_4'] + $eval['teaching_5'] + $eval['teaching_6']; ?>/30</span>
+                <span><?php echo $teachingData['total']; ?>/<?php echo $teachingData['max']; ?></span>
             </div>
         </div>
+        <?php endif; ?>
 
+        <?php if (!empty($researchData['questions'])): ?>
         <div class="question-section">
-            <h5>Research Performance (5 questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
-            <?php foreach ($research as $q): ?>
+            <h5>Research Performance (<?php echo count($researchData['questions']); ?> questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
+            <?php foreach ($researchData['questions'] as $q): ?>
             <div class="question-item">
                 <span class="question-label"><?php echo $q['label']; ?></span>
-                <span class="question-score"><?php echo $eval[$q['key']]; ?>/5 (<?php echo getScoreLabel($eval[$q['key']]); ?>)</span>
+                <span class="question-score"><?php echo $q['score']; ?>/5 (<?php echo getScoreLabel($q['score']); ?>)</span>
             </div>
             <?php endforeach; ?>
             <div class="question-item" style="font-weight: bold;">
                 <span>Research Subtotal</span>
-                <span><?php echo $eval['research_1'] + $eval['research_2'] + $eval['research_3'] + $eval['research_4'] + $eval['research_5']; ?>/25</span>
+                <span><?php echo $researchData['total']; ?>/<?php echo $researchData['max']; ?></span>
             </div>
         </div>
+        <?php endif; ?>
 
+        <?php if (!empty($adminData['questions'])): ?>
         <div class="question-section">
-            <h5>Administrative Duties (5 questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
-            <?php foreach ($admin as $q): ?>
+            <h5>Administrative Duties (<?php echo count($adminData['questions']); ?> questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
+            <?php foreach ($adminData['questions'] as $q): ?>
             <div class="question-item">
                 <span class="question-label"><?php echo $q['label']; ?></span>
-                <span class="question-score"><?php echo $eval[$q['key']]; ?>/5 (<?php echo getScoreLabel($eval[$q['key']]); ?>)</span>
+                <span class="question-score"><?php echo $q['score']; ?>/5 (<?php echo getScoreLabel($q['score']); ?>)</span>
             </div>
             <?php endforeach; ?>
             <div class="question-item" style="font-weight: bold;">
                 <span>Administrative Subtotal</span>
-                <span><?php echo $eval['admin_1'] + $eval['admin_2'] + $eval['admin_3'] + $eval['admin_4'] + $eval['admin_5']; ?>/25</span>
+                <span><?php echo $adminData['total']; ?>/<?php echo $adminData['max']; ?></span>
             </div>
         </div>
+        <?php endif; ?>
 
+        <?php if (!empty($communityData['questions'])): ?>
         <div class="question-section">
-            <h5>Community Service (3 questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
-            <?php foreach ($community as $q): ?>
+            <h5>Community Service (<?php echo count($communityData['questions']); ?> questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
+            <?php foreach ($communityData['questions'] as $q): ?>
             <div class="question-item">
                 <span class="question-label"><?php echo $q['label']; ?></span>
-                <span class="question-score"><?php echo $eval[$q['key']]; ?>/5 (<?php echo getScoreLabel($eval[$q['key']]); ?>)</span>
+                <span class="question-score"><?php echo $q['score']; ?>/5 (<?php echo getScoreLabel($q['score']); ?>)</span>
             </div>
             <?php endforeach; ?>
             <div class="question-item" style="font-weight: bold;">
                 <span>Community Subtotal</span>
-                <span><?php echo $eval['community_1'] + $eval['community_2'] + $eval['community_3']; ?>/15</span>
+                <span><?php echo $communityData['total']; ?>/<?php echo $communityData['max']; ?></span>
             </div>
         </div>
+        <?php endif; ?>
 
+        <?php if (!empty($professionalData['questions'])): ?>
         <div class="question-section">
-            <h5>Professional Development (4 questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
-            <?php foreach ($professional as $q): ?>
+            <h5>Professional Development (<?php echo count($professionalData['questions']); ?> questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
+            <?php foreach ($professionalData['questions'] as $q): ?>
             <div class="question-item">
                 <span class="question-label"><?php echo $q['label']; ?></span>
-                <span class="question-score"><?php echo $eval[$q['key']]; ?>/5 (<?php echo getScoreLabel($eval[$q['key']]); ?>)</span>
+                <span class="question-score"><?php echo $q['score']; ?>/5 (<?php echo getScoreLabel($q['score']); ?>)</span>
             </div>
             <?php endforeach; ?>
             <div class="question-item" style="font-weight: bold;">
                 <span>Professional Subtotal</span>
-                <span><?php echo $eval['professional_1'] + $eval['professional_2'] + $eval['professional_3'] + $eval['professional_4']; ?>/20</span>
+                <span><?php echo $professionalData['total']; ?>/<?php echo $professionalData['max']; ?></span>
             </div>
         </div>
+        <?php endif; ?>
 
         <div class="footer">
             <div class="row">
