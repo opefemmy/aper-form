@@ -391,18 +391,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_approve_all']) &
     redirect('evaluate-supervisor.php');
 }
 
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_evaluation'])) {
+// Handle form submission - FIXED: Handle both save_evaluation and save_and_next
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) || isset($_POST['save_and_next']))) {
+
+    // Check if this is a Save & Next action
+    $isSaveAndNext = isset($_POST['save_and_next']);
     try {
         $pdo->beginTransaction();
 
-        // Determine next stage
-        // Determine next stage - after HOD, goes to Dean; after Dean, goes to Registrar; after Registrar, completed
+        // Determine next stage - FIXED: Properly advance through workflow
         $nextStage = 'completed';
         if ($adminRole === 'supervisor' || $adminRole === 'hod') {
             $nextStage = 'dean'; // After HOD evaluates, passes to Dean
         } elseif ($adminRole === 'dean') {
-            $nextStage = 'completed'; // After Dean evaluates, passes to completed (Registrar sees 'dean' stage)
+            $nextStage = 'registrar'; // After Dean evaluates, passes to Registrar
         } elseif ($adminRole === 'registrar') {
             $nextStage = 'completed'; // Registrar is final approval
         }

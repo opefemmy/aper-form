@@ -31,6 +31,9 @@ if (isStaffLoggedIn() && $_SESSION['staff_id'] != $eval['staff_id']) {
     die('Access denied: You can only print your own evaluation');
 }
 
+// Check if this is staff viewing their own evaluation (show self-assessment only)
+$isStaffOwnPrint = isStaffLoggedIn() && $_SESSION['staff_id'] == $eval['staff_id'];
+
 // Get settings
 $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
 $settings = [];
@@ -223,7 +226,7 @@ function getScoreLabel($score) {
         </div>
 
         <div class="question-section">
-            <h5>Teaching Performance (6 questions)</h5>
+            <h5>Teaching Performance (6 questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
             <?php foreach ($teaching as $q): ?>
             <div class="question-item">
                 <span class="question-label"><?php echo $q['label']; ?></span>
@@ -237,7 +240,7 @@ function getScoreLabel($score) {
         </div>
 
         <div class="question-section">
-            <h5>Research Performance (5 questions)</h5>
+            <h5>Research Performance (5 questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
             <?php foreach ($research as $q): ?>
             <div class="question-item">
                 <span class="question-label"><?php echo $q['label']; ?></span>
@@ -251,7 +254,7 @@ function getScoreLabel($score) {
         </div>
 
         <div class="question-section">
-            <h5>Administrative Duties (5 questions)</h5>
+            <h5>Administrative Duties (5 questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
             <?php foreach ($admin as $q): ?>
             <div class="question-item">
                 <span class="question-label"><?php echo $q['label']; ?></span>
@@ -265,7 +268,7 @@ function getScoreLabel($score) {
         </div>
 
         <div class="question-section">
-            <h5>Community Service (3 questions)</h5>
+            <h5>Community Service (3 questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
             <?php foreach ($community as $q): ?>
             <div class="question-item">
                 <span class="question-label"><?php echo $q['label']; ?></span>
@@ -279,7 +282,7 @@ function getScoreLabel($score) {
         </div>
 
         <div class="question-section">
-            <h5>Professional Development (4 questions)</h5>
+            <h5>Professional Development (4 questions) <?php echo $isStaffOwnPrint ? '(Self-Assessment)' : ''; ?></h5>
             <?php foreach ($professional as $q): ?>
             <div class="question-item">
                 <span class="question-label"><?php echo $q['label']; ?></span>
