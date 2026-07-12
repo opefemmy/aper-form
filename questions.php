@@ -337,10 +337,18 @@ foreach ($questions as $q) {
                 </div>
                 <?php endforeach; ?>
 
+                <?php
+                $activeCount = 0;
+                foreach ($questions as $q) {
+                    if (isset($q['is_active']) && $q['is_active'] == 1) {
+                        $activeCount++;
+                    }
+                }
+                ?>
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
                     <strong>Note:</strong> The total max score will automatically adjust based on the number of active questions.
-                    Currently: <strong><?php echo count(array_filter($questions, fn($q) => $q['is_active'])); ?></strong> active questions.
+                    Currently: <strong><?php echo $activeCount; ?></strong> active questions.
                 </div>
             </div>
         </div>
