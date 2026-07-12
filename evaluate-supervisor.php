@@ -245,16 +245,14 @@ $community = [];
 $professional = [];
 
 if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod' || $evaluatorRole === 'dean') {
-    // Try to get questions from database
+    // Try to get HOD evaluation questions from database
     try {
-        // Get questions filtered by evaluator category (hod, dean, or all)
-        $questionCategory = ($evaluatorRole === 'dean') ? 'dean' : 'hod';
+        // Get questions where target_staff_category = 'hod' (questions HOD uses to evaluate staff)
         $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
             WHERE is_active = 1
-            AND (evaluator_category = ? OR evaluator_category = 'all' OR evaluator_category IS NULL OR evaluator_category = '')
-            AND (target_staff_category = ? OR target_staff_category = 'both' OR target_staff_category IS NULL)
+            AND (target_staff_category = 'hod' OR target_staff_category = 'both')
             ORDER BY category, question_order");
-        $stmt->execute([$questionCategory, $staffCategory]);
+        $stmt->execute();
         $dbQuestions = $stmt->fetchAll();
 
         if (!empty($dbQuestions)) {
@@ -262,9 +260,9 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod' || $evaluatorRol
             foreach ($dbQuestions as $q) {
                 $qName = 'q_' . $q['id'];
                 $qLabel = $q['question_text'];
-                $qCat = $q['category'] ?? 'teaching';
+                $qCat = strtolower($q['category'] ?? 'teaching');
 
-                if (strpos($qCat, 'teaching') !== false || strpos($qCat, 'job') !== false) {
+                if (strpos($qCat, 'teaching') !== false || strpos($qCat, 'job') !== false || strpos($qCat, 'punctuality') !== false) {
                     $teaching[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
                 } elseif (strpos($qCat, 'research') !== false) {
                     $research[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
@@ -280,7 +278,7 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod' || $evaluatorRol
             }
         }
     } catch (Exception $e) {
-        // If table doesn't have evaluator_category column, use default questions
+        // If database query fails, use default questions
     }
 }
 
