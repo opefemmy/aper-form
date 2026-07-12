@@ -246,11 +246,12 @@ $professional = [];
 
 if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod' || $evaluatorRole === 'dean') {
     // Try to get HOD evaluation questions from database
+    // FIXED: Only show questions specifically marked for HOD (not mixed with general questions)
     try {
-        // Get questions where target_staff_category = 'hod' (questions HOD uses to evaluate staff)
+        // Get ONLY questions where target_staff_category = 'hod' (questions specifically for HOD to evaluate staff)
         $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
             WHERE is_active = 1
-            AND (target_staff_category = 'hod' OR target_staff_category = 'both')
+            AND target_staff_category = 'hod'
             ORDER BY category, question_order");
         $stmt->execute();
         $dbQuestions = $stmt->fetchAll();
