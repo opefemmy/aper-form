@@ -731,7 +731,7 @@ $sessions = $stmt->fetchAll();
                                                 </span>
                                             </div>
                                             <div class="mt-1">
-                                                <small><strong>Score:</strong> <?php echo $eval['total_score']; ?>/115 (<?php echo $eval['percentage']; ?>%)</small>
+                                                <small><strong>Score:</strong> <?php echo $eval['percentage']; ?>%</small>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
@@ -759,7 +759,7 @@ $sessions = $stmt->fetchAll();
                                             </span>
                                         </div>
                                         <div class="mt-1">
-                                            <small><strong>Score:</strong> <?php echo $eval['total_score']; ?>/115 (<?php echo $eval['percentage']; ?>%)</small>
+                                            <small><strong>Score:</strong> <?php echo $eval['percentage']; ?>%</small>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -866,11 +866,9 @@ $sessions = $stmt->fetchAll();
                                     </div>
                                     <div class="card-body">
                                         <div class="row">
-                                            <div class="col-md-4">
-                                                <strong>Staff Self-Score:</strong> <?php echo array_sum($staffEvalScores); ?>/115
-                                            </div>
-                                            <div class="col-md-8">
-                                                <small class="text-muted">The staff member has self-evaluated. Your rating will be combined with their self-evaluation to calculate the final score.</small>
+                                            <div class="col-md-12">
+                                                <strong>Note:</strong> Only your HOD evaluation determines the final score and grade.
+                                                <small class="text-muted">The staff's self-evaluation is shown for reference only.</small>
                                             </div>
                                         </div>
                                     </div>

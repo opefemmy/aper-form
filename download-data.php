@@ -308,7 +308,7 @@ $avgScore = $stmt->fetch()['avg'] ?? 0;
                                         <td><?php echo htmlspecialchars($eval['staff_id']); ?></td>
                                         <td><?php echo htmlspecialchars($eval['first_name'] . ' ' . $eval['surname']); ?></td>
                                         <td><?php echo htmlspecialchars($eval['department'] ?? 'N/A'); ?></td>
-                                        <td><?php echo $eval['total_score']; ?>/115</td>
+                                        <td><?php echo $eval['percentage']; ?>%</td>
                                         <td><?php echo $eval['percentage']; ?>%</td>
                                         <td><span class="badge bg-primary"><?php echo htmlspecialchars($eval['performance_grade']); ?></span></td>
                                         <td><span class="badge bg-<?php echo $eval['status'] == 'submitted' ? 'success' : 'secondary'; ?>"><?php echo ucfirst($eval['status']); ?></span></td>

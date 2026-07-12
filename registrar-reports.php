@@ -272,7 +272,7 @@ $userRole = getEvaluatorType() ?? getAdminRole();
                                         <td><?php echo htmlspecialchars($eval['first_name'] . ' ' . $eval['surname']); ?></td>
                                         <td><?php echo htmlspecialchars($eval['department'] ?? 'N/A'); ?></td>
                                         <td><?php echo htmlspecialchars($eval['faculty'] ?? 'N/A'); ?></td>
-                                        <td><?php echo $eval['total_score']; ?>/115 (<?php echo $eval['percentage']; ?>%)</td>
+                                        <td><?php echo $eval['percentage']; ?>%</td>
                                         <td><span class="badge bg-<?php echo $eval['performance_grade'] == 'A' ? 'success' : ($eval['performance_grade'] == 'B' ? 'primary' : ($eval['performance_grade'] == 'C' ? 'warning' : 'danger')); ?>"><?php echo $eval['performance_grade']; ?></span></td>
                                         <td>
                                             <span class="badge bg-<?php echo $eval['approval_status'] == 'Approved' ? 'success' : ($eval['approval_status'] == 'Rejected' ? 'danger' : 'warning'); ?>">

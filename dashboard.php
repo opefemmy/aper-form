@@ -434,7 +434,7 @@ $instAddress = $settings['institution_address'] ?? '';
                                             <td><?php echo htmlspecialchars($eval['staff_id']); ?></td>
                                             <td><?php echo htmlspecialchars($eval['full_name']); ?></td>
                                             <td><?php echo htmlspecialchars($eval['department']); ?></td>
-                                            <td><?php echo $eval['total_score']; ?>/115</td>
+                                            <td><?php echo $eval['percentage']; ?>%</td>
                                             <td>
                                                 <span class="badge bg-<?php
                                                     echo $eval['performance_grade'] == 'Outstanding' ? 'success' :

@@ -391,7 +391,7 @@ if (isset($_GET['single_pdf']) && $_GET['single_pdf'] && hasPermission('reports_
 
     <table>
         <tr class="total-row">
-            <td colspan="6" style="text-align: right; padding: 15px;">TOTAL SCORE: <?php echo $eval['total_score']; ?>/115</td>
+            <td colspan="6" style="text-align: right; padding: 15px;">TOTAL SCORE: <?php echo $eval['percentage']; ?>%</td>
         </tr>
         <tr style="background: #f0f9ff;">
             <td colspan="6" style="text-align: right; padding: 15px; font-size: 16px;">PERCENTAGE: <?php echo $eval['percentage']; ?>%</td>
@@ -801,7 +801,7 @@ if (isset($_GET['individual_pdf']) && $_GET['individual_pdf'] && hasPermission('
         <!-- Summary Box -->
         <div class="summary-box">
             <div class="summary-item">
-                <div class="value"><?php echo $eval['total_score']; ?>/115</div>
+                <div class="value"><?php echo $eval['percentage']; ?>%</div>
                 <div class="label">TOTAL SCORE</div>
             </div>
             <div class="summary-item">
@@ -1008,7 +1008,7 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
                 <td><?php echo htmlspecialchars($eval['employment_status'] ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($eval['years_of_service'] ?? '0'); ?></td>
                 <td><?php echo $eval['evaluation_year']; ?></td>
-                <td><strong><?php echo $eval['total_score']; ?>/115</strong></td>
+                <td><strong><?php echo $eval['percentage']; ?>%</strong></td>
                 <td><?php echo $eval['percentage']; ?>%</td>
                 <td class="<?php echo $gradeClass; ?>"><?php echo $eval['performance_grade']; ?></td>
                 <td><?php echo ucfirst($eval['status']); ?></td>
@@ -1126,7 +1126,7 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
                 </tr>
                 <tr style="background: #e8f4fd;">
                     <td colspan="6" style="text-align: right;"><strong>TOTAL SCORE:</strong></td>
-                    <td style="background: #308a1e; color: white;"><strong><?php echo $eval['total_score']; ?>/115</strong></td>
+                    <td style="background: #308a1e; color: white;"><strong><?php echo $eval['percentage']; ?>%</strong></td>
                 </tr>
                 <tr style="background: #e8f4fd;">
                     <td colspan="6" style="text-align: right;"><strong>PERCENTAGE:</strong></td>
@@ -1415,7 +1415,7 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
                                             <td><?php echo htmlspecialchars($eval['department']); ?></td>
                                             <td><?php echo htmlspecialchars($eval['grade_level']); ?></td>
                                             <td><?php echo $eval['evaluation_year']; ?></td>
-                                            <td><?php echo $eval['total_score']; ?>/115</td>
+                                            <td><?php echo $eval['percentage']; ?>%</td>
                                             <td><?php echo $eval['percentage']; ?>%</td>
                                             <td>
                                                 <span class="badge bg-<?php

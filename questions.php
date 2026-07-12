@@ -84,8 +84,9 @@ $filterCategory = $_GET['filter'] ?? 'all';
 
 // Build query based on filter
 if ($filterCategory === 'hod') {
-    // Filter HOD evaluation questions (questions HOD uses to evaluate staff)
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'hod' ORDER BY category, id");
+    // Filter HOD evaluation questions - show all questions that can be used for HOD evaluation
+    // Also include 'both' category questions that can be used
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category IN ('hod', 'both') OR target_staff_category IS NULL OR target_staff_category = '' ORDER BY category, id");
 } elseif ($filterCategory === 'academic') {
     $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'academic' ORDER BY category, id");
 } elseif ($filterCategory === 'non-teaching') {
