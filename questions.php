@@ -200,6 +200,14 @@ foreach ($questions as $q) {
                 </p>
 
                 <!-- Questions by Category -->
+                <?php if (empty($questionsByCategory)): ?>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No questions found for the selected filter.
+                    <a href="questions.php?filter=all">View all questions</a> or
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#addQuestionModal">add a new question</a>.
+                </div>
+                <?php else: ?>
                 <?php foreach ($questionsByCategory as $category => $categoryQuestions): ?>
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">
@@ -336,6 +344,7 @@ foreach ($questions as $q) {
                     </div>
                 </div>
                 <?php endforeach; ?>
+                <?php endif; ?>
 
                 <?php
                 $activeCount = 0;
