@@ -787,10 +787,9 @@ $sessions = $stmt->fetchAll();
                                             <div class="col-md-3"><strong>Grade Level:</strong> <?php echo htmlspecialchars($selectedStaff['grade_level'] ?? 'N/A'); ?></div>
                                         </div>
                                         <div class="row mt-2">
-                                            <div class="col-md-3"><strong>Staff Score:</strong> <?php echo $selectedEval['total_score'] ?? 0; ?>/115</div>
-                                            <div class="col-md-3"><strong>Your Rating:</strong> <span id="percentScore">0</span>/115</div>
-                                            <div class="col-md-3"><strong>Combined:</strong> <span id="combinedPercent">0</span>%</div>
-                                            <div class="col-md-3"><strong>Final Grade:</strong> <span id="gradeDisplay">-</span></div>
+                                            <div class="col-md-3"><strong>Your Rating:</strong> <span id="percentScore">0</span>%</div>
+                                            <div class="col-md-3"><strong>Grade:</strong> <span id="gradeDisplay"><?php echo $selectedEval['performance_grade'] ?? '-'; ?></span></div>
+                                            <div class="col-md-3"><strong>Status:</strong> <span id="statusDisplay"><?php echo $selectedEval['performance_status'] ?? '-'; ?></span></div>
                                         </div>
                                         <div class="mt-2">
                                             <span class="badge bg-<?php echo ($selectedEval['evaluation_stage'] ?? 'pending') === 'pending' ? 'secondary' : (($selectedEval['evaluation_stage'] ?? 'pending') === 'hod' ? 'warning' : (($selectedEval['evaluation_stage'] ?? 'pending') === 'dean' ? 'info' : 'success')); ?>">
@@ -807,14 +806,14 @@ $sessions = $stmt->fetchAll();
                                 <div class="row mb-4">
                                     <div class="col-md-3">
                                         <div class="score-display">
-                                            <div class="value" id="totalScore"><?php echo $selectedEval['total_score']; ?></div>
-                                            <div>Total Score</div>
+                                            <div class="value" id="totalScore"><?php echo $selectedEval['percentage']; ?>%</div>
+                                            <div>Score (%)</div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
                                         <div class="score-display">
-                                            <div class="value" id="avgScore"><?php echo $selectedEval['average_score']; ?></div>
-                                            <div>Average</div>
+                                            <div class="value" id="avgScore"><?php echo $selectedEval['performance_grade']; ?></div>
+                                            <div>Grade</div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
@@ -1157,51 +1156,28 @@ $sessions = $stmt->fetchAll();
             total += parseInt(radio.value);
             count++;
         });
-        const avg = count > 0 ? (total / count).toFixed(2) : 0;
-        const maxPossible = 23 * 5;
+
+        // Calculate percentage based on actual questions answered (each question is max 5 points)
+        const maxPossible = count * 5;
         const percentage = maxPossible > 0 ? ((total / maxPossible) * 100).toFixed(1) : 0;
 
-        document.getElementById('totalScore').textContent = total;
-        document.getElementById('avgScore').textContent = avg;
-        document.getElementById('percentScore').textContent = total;
+        // Update displays to show percentage
+        document.getElementById('totalScore').textContent = percentage + '%';
+        document.getElementById('avgScore').textContent = count > 0 ? (total / count).toFixed(1) : '0';
+        document.getElementById('percentScore').textContent = percentage;
 
-        // Get staff's original score from the evaluation data
-        const staffScore = <?php echo intval($selectedEval['total_score'] ?? 0); ?>;
-
-        // Calculate combined score (average of staff and HOD scores)
-        let combinedTotal = 0;
-        let combinedCount = 0;
-        const allInputs = document.querySelectorAll('input[type="radio"][name^="teaching_"], input[type="radio"][name^="research_"], input[type="radio"][name^="admin_"], input[type="radio"][name^="community_"], input[type="radio"][name^="professional_"]');
-
-        // Get unique question names
-        const questionNames = new Set();
-        allInputs.forEach(input => questionNames.add(input.name));
-
-        questionNames.forEach(name => {
-            const checked = document.querySelector(`input[name="${name}"]:checked`);
-            const hodScore = checked ? parseInt(checked.value) : 0;
-
-            // Staff score would need to be retrieved - for now, we use the total
-            // The actual combined calculation happens server-side
-            if (hodScore > 0) {
-                combinedTotal += hodScore;
-                combinedCount++;
-            }
-        });
-
-        // For display, show HOD score as percentage
-        const hodPercentage = maxPossible > 0 ? ((total / maxPossible) * 100).toFixed(1) : 0;
-        document.getElementById('combinedPercent').textContent = hodPercentage;
-
+        // Calculate grade based on HOD percentage only (not combined)
         let grade = '-';
-        if (hodPercentage >= 90) grade = 'Outstanding';
-        else if (hodPercentage >= 80) grade = 'Excellent';
-        else if (hodPercentage >= 70) grade = 'Very Good';
-        else if (hodPercentage >= 60) grade = 'Good';
-        else if (hodPercentage >= 50) grade = 'Fair';
-        else if (hodPercentage > 0) grade = 'Poor';
+        let status = '-';
+        if (percentage >= 90) { grade = 'Outstanding'; status = 'Excellent Performance'; }
+        else if (percentage >= 80) { grade = 'Excellent'; status = 'Very Good Performance'; }
+        else if (percentage >= 70) { grade = 'Very Good'; status = 'Good Performance'; }
+        else if (percentage >= 60) { grade = 'Good'; status = 'Satisfactory'; }
+        else if (percentage >= 50) { grade = 'Fair'; status = 'Needs Improvement'; }
+        else if (percentage > 0) { grade = 'Poor'; status = 'Unsatisfactory'; }
 
         document.getElementById('gradeDisplay').textContent = grade;
+        document.getElementById('statusDisplay').textContent = status;
     }
     </script>
 

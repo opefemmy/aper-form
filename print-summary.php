@@ -238,16 +238,19 @@ function getAnsweredQuestions($questions, $responses) {
         </div>
 
         <div class="row score-summary">
-            <div class="col-md-3">
-                <div class="score-box"><?php echo $eval['total_score']; ?>/115</div>
-                <div>Total Score</div>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="score-box"><?php echo $eval['percentage']; ?>%</div>
-                <div>Percentage</div>
+                <div>Score (%)</div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="score-box"><?php echo htmlspecialchars($eval['performance_grade']); ?></div>
+                <div>Grade</div>
+            </div>
+            <div class="col-md-4">
+                <div class="score-box"><?php echo htmlspecialchars($eval['performance_status']); ?></div>
+                <div>Status</div>
+            </div>
+        </div>
                 <div>Grade</div>
             </div>
             <div class="col-md-3">
