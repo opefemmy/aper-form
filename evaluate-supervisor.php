@@ -245,101 +245,51 @@ $community = [];
 $professional = [];
 
 if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod' || $evaluatorRole === 'dean') {
-    // Try to get HOD evaluation questions from database
-    // FIXED: Only show questions specifically marked for HOD (not mixed with general questions)
+    // Get HOD evaluation questions from database - include both 'hod' and 'both' categories
     try {
-        // Get ONLY questions where target_staff_category = 'hod' (questions specifically for HOD to evaluate staff)
         $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
             WHERE is_active = 1
-            AND target_staff_category = 'hod'
-            ORDER BY category, question_order");
+            AND (target_staff_category = 'hod' OR target_staff_category = 'both' OR target_staff_category IS NULL OR target_staff_category = '')
+            ORDER BY category, id");
         $stmt->execute();
         $dbQuestions = $stmt->fetchAll();
 
-        if (!empty($dbQuestions)) {
-            // Group questions by category
-            foreach ($dbQuestions as $q) {
-                $qName = 'q_' . $q['id'];
-                $qLabel = $q['question_text'];
-                $qCat = strtolower($q['category'] ?? 'teaching');
+        // Group questions by category
+        foreach ($dbQuestions as $q) {
+            $qName = 'q_' . $q['id'];
+            $qLabel = $q['question_text'];
+            $qCat = strtolower($q['category'] ?? 'teaching');
 
-                if (strpos($qCat, 'teaching') !== false || strpos($qCat, 'job') !== false || strpos($qCat, 'punctuality') !== false) {
-                    $teaching[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-                } elseif (strpos($qCat, 'research') !== false) {
-                    $research[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-                } elseif (strpos($qCat, 'admin') !== false) {
-                    $adminQuestions[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-                } elseif (strpos($qCat, 'community') !== false) {
-                    $community[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-                } elseif (strpos($qCat, 'professional') !== false) {
-                    $professional[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-                } else {
-                    $teaching[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-                }
+            if (strpos($qCat, 'teaching') !== false || strpos($qCat, 'job') !== false || strpos($qCat, 'punctuality') !== false) {
+                $teaching[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+            } elseif (strpos($qCat, 'research') !== false) {
+                $research[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+            } elseif (strpos($qCat, 'admin') !== false) {
+                $adminQuestions[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+            } elseif (strpos($qCat, 'community') !== false) {
+                $community[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+            } elseif (strpos($qCat, 'professional') !== false) {
+                $professional[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+            } else {
+                $teaching[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
             }
         }
     } catch (Exception $e) {
-        // If database query fails, use default questions
+        // Log error but continue with empty arrays
+        error_log("Error loading HOD questions: " . $e->getMessage());
     }
 }
 
-// If no database questions found, use default HOD questions
+// If still no questions, use a minimal set
 if (empty($teaching) && empty($research) && empty($adminQuestions)) {
-    if ($staffCategory === 'non-teaching') {
-        // Non-teaching HOD questions
-        $teaching = [
-            ['name' => 'teaching_1', 'label' => 'Job Knowledge & Expertise'],
-            ['name' => 'teaching_2', 'label' => 'Quality of Work'],
-            ['name' => 'teaching_3', 'label' => 'Productivity'],
-            ['name' => 'teaching_4', 'label' => 'Initiative'],
-            ['name' => 'teaching_5', 'label' => 'Adaptability'],
-            ['name' => 'teaching_6', 'label' => 'Technical Skills'],
-        ];
-        $research = [
-            ['name' => 'research_1', 'label' => 'Process Improvement'],
-            ['name' => 'research_2', 'label' => 'Innovation'],
-            ['name' => 'research_3', 'label' => 'Documentation'],
-            ['name' => 'research_4', 'label' => 'Knowledge Sharing'],
-            ['name' => 'research_5', 'label' => 'Problem Solving'],
-        ];
-    } else {
-        // Academic staff HOD questions
-        $teaching = [
-            ['name' => 'teaching_1', 'label' => 'Lecture Delivery'],
-            ['name' => 'teaching_2', 'label' => 'Class Attendance'],
-            ['name' => 'teaching_3', 'label' => 'Student Engagement'],
-            ['name' => 'teaching_4', 'label' => 'Course Preparation'],
-            ['name' => 'teaching_5', 'label' => 'Course Coverage'],
-            ['name' => 'teaching_6', 'label' => 'Time Management'],
-        ];
-        $research = [
-            ['name' => 'research_1', 'label' => 'Publications'],
-            ['name' => 'research_2', 'label' => 'Conferences'],
-            ['name' => 'research_3', 'label' => 'Research Grants'],
-            ['name' => 'research_4', 'label' => 'Journal Articles'],
-            ['name' => 'research_5', 'label' => 'Innovations'],
-        ];
-    }
-
+    $teaching = [
+        ['name' => 'q_teach1', 'label' => 'Teaching Performance'],
+        ['name' => 'q_teach2', 'label' => 'Class Management'],
+        ['name' => 'q_teach3', 'label' => 'Course Delivery'],
+    ];
     $adminQuestions = [
-        ['name' => 'admin_1', 'label' => 'Attendance'],
-        ['name' => 'admin_2', 'label' => 'Punctuality'],
-        ['name' => 'admin_3', 'label' => 'Leadership'],
-        ['name' => 'admin_4', 'label' => 'Teamwork'],
-        ['name' => 'admin_5', 'label' => 'Record Keeping'],
-    ];
-
-    $community = [
-        ['name' => 'community_1', 'label' => 'Community Development'],
-        ['name' => 'community_2', 'label' => 'Committee Participation'],
-        ['name' => 'community_3', 'label' => 'Institutional Representation'],
-    ];
-
-    $professional = [
-        ['name' => 'professional_1', 'label' => 'Workshops'],
-        ['name' => 'professional_2', 'label' => 'Training'],
-        ['name' => 'professional_3', 'label' => 'Certifications'],
-        ['name' => 'professional_4', 'label' => 'Seminars'],
+        ['name' => 'q_admin1', 'label' => 'Punctuality'],
+        ['name' => 'q_admin2', 'label' => 'Attendance'],
     ];
 }
 
