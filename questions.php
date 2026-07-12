@@ -357,7 +357,7 @@ foreach ($questions as $q) {
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
                     <strong>Note:</strong> The total max score will automatically adjust based on the number of active questions.
-                    Currently: <strong><?php echo $activeCount; ?></strong> active questions.
+                    Currently: <strong><?php echo $activeCount; ?></strong> active questions (out of <?php echo count($questions); ?> total).
                 </div>
             </div>
         </div>
