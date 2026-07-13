@@ -826,29 +826,29 @@ $sessions = $stmt->fetchAll();
                                 <?php endif; ?>
 
                                 <!-- HOD Evaluation Results (shown to Dean and Registrar) -->
-                                <?php if (($adminRole === 'dean' || $adminRole === 'registrar') && !empty($selectedEval['supervisor_remarks'])): ?>
+                                <?php if (($adminRole === 'dean' || $adminRole === 'registrar') && !empty($selectedEval['percentage'])): ?>
                                 <div class="card mb-4 border-warning">
                                     <div class="card-header bg-warning text-dark">
-                                        <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>HOD Evaluation Results</h5>
+                                        <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>FINAL GRADE (From HOD Evaluation)</h5>
                                     </div>
                                     <div class="card-body">
                                         <div class="row mb-3">
                                             <div class="col-md-3">
                                                 <div class="score-display">
                                                     <div class="value"><?php echo $selectedEval['percentage']; ?>%</div>
-                                                    <div>HOD Score</div>
+                                                    <div>Final Score</div>
                                                 </div>
                                             </div>
                                             <div class="col-md-3">
                                                 <div class="score-display" style="background: linear-gradient(135deg, #10b981, #059669);">
                                                     <div class="value"><?php echo $selectedEval['performance_grade']; ?></div>
-                                                    <div>Grade</div>
+                                                    <div>Final Grade</div>
                                                 </div>
                                             </div>
                                             <div class="col-md-3">
                                                 <div class="score-display">
                                                     <div class="value"><?php echo $selectedEval['performance_status']; ?></div>
-                                                    <div>Status</div>
+                                                    <div>Performance Status</div>
                                                 </div>
                                             </div>
                                             <div class="col-md-3">
@@ -864,8 +864,8 @@ $sessions = $stmt->fetchAll();
                                             <?php echo nl2br(htmlspecialchars($selectedEval['supervisor_remarks'])); ?>
                                         </div>
                                         <?php endif; ?>
-                                        <div class="text-muted">
-                                            <small><i class="fas fa-info-circle me-1"></i>This is the final score and grade. Only HOD evaluation determines the staff's performance rating.</small>
+                                        <div class="alert alert-success mt-3">
+                                            <i class="fas fa-star me-2"></i><strong>This is the final grade.</strong> The HOD evaluation score and grade shown above will be the final grade for this staff member. Your approval confirms this grade.
                                         </div>
                                     </div>
                                 </div>

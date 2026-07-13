@@ -259,9 +259,9 @@ $userRole = getEvaluatorType() ?? getAdminRole();
                                         <th>Name</th>
                                         <th>Department</th>
                                         <th>Faculty</th>
-                                        <th>Score</th>
-                                        <th>Grade</th>
-                                        <th>Status</th>
+                                        <th>Final Score (HOD)</th>
+                                        <th>Final Grade</th>
+                                        <th>Approval Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
