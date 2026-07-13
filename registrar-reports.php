@@ -76,9 +76,17 @@ $stmt = $pdo->query("SELECT
     COUNT(*) as total,
     SUM(CASE WHEN evaluation_stage = 'completed' THEN 1 ELSE 0 END) as approved,
     SUM(CASE WHEN evaluation_stage IN ('dean', 'registrar') THEN 1 ELSE 0 END) as processed,
-    SUM(CASE WHEN evaluation_stage = 'pending' THEN 1 ELSE 0 END) as pending
+    SUM(CASE WHEN evaluation_stage = 'pending' THEN 1 ELSE 0 END) as pending,
+    SUM(CASE WHEN approval_status = 'Rejected' THEN 1 ELSE 0 END) as rejected
     FROM evaluations WHERE evaluation_year = $filterYear AND (status = 'submitted' OR status = 'approved' OR evaluation_stage != 'pending')");
 $stats = $stmt->fetch();
+
+// Set default values for missing keys
+$stats['total'] = $stats['total'] ?? 0;
+$stats['approved'] = $stats['approved'] ?? 0;
+$stats['pending'] = $stats['pending'] ?? 0;
+$stats['rejected'] = $stats['rejected'] ?? 0;
+$stats['processed'] = $stats['processed'] ?? 0;
 
 $userName = $_SESSION['staff_name'] ?? $_SESSION['admin_name'] ?? 'Registrar';
 $userRole = getEvaluatorType() ?? getAdminRole();

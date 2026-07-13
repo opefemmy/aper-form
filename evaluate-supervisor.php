@@ -308,8 +308,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_approve_all']) &
     try {
         $pdo->beginTransaction();
 
-        // Get all evaluations at 'dean' stage
-        $stmt = $pdo->query("SELECT id FROM evaluations WHERE evaluation_stage = 'dean'");
+        // Get all evaluations at 'registrar' stage (ready for final approval)
+        $stmt = $pdo->query("SELECT id FROM evaluations WHERE evaluation_stage = 'registrar'");
         $evalsToApprove = $stmt->fetchAll();
 
         $adminId = $_SESSION['admin_id'] ?? 0;
