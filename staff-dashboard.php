@@ -342,11 +342,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         <?php if ($existingEval['status'] === 'approved'): ?>
         <div class="alert alert-success">
             <i class="fas fa-check-circle me-2"></i>
-            <strong>Congratulations!</strong> Your evaluation has been fully approved. You can now print your official evaluation report.
+            <strong>Congratulations!</strong> Your evaluation has been fully approved. You can now download your official evaluation report.
         </div>
         <div class="text-center mb-4">
-            <a href="print-summary.php?id=<?php echo $existingEval['id']; ?>" target="_blank" class="btn btn-success btn-lg">
-                <i class="fas fa-print me-2"></i>Print Official Report
+            <a href="pdf-report.php?id=<?php echo $existingEval['id']; ?>" target="_blank" class="btn btn-success btn-lg">
+                <i class="fas fa-file-pdf me-2"></i>Download Official Report
             </a>
         </div>
         <?php endif; ?>

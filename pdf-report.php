@@ -2,12 +2,10 @@
 require_once 'config.php';
 startSession();
 
-// Check if evaluator (Registrar) is logged in
-if (!isEvaluatorLoggedIn() || getEvaluatorType() !== 'Registrar') {
-    if (!isAdminLoggedIn() || getAdminRole() !== 'registrar') {
-        redirect(SITE_URL . '/unified-login.php');
-    }
-}
+// Check access: Registrar/Admin OR Staff viewing their own approved evaluation
+$isRegistrar = (isEvaluatorLoggedIn() && getEvaluatorType() === 'Registrar') || (isAdminLoggedIn() && getAdminRole() === 'registrar');
+$isAdmin = isAdminLoggedIn();
+$isStaff = isStaffLoggedIn();
 
 // Check if evaluation ID is provided
 $evalId = $_GET['id'] ?? 0;
@@ -27,6 +25,22 @@ $eval = $stmt->fetch();
 
 if (!$eval) {
     die('Evaluation not found');
+}
+
+// Access control
+$staffId = $_SESSION['staff_id'] ?? 0;
+
+// Registrar or Admin can view any evaluation
+if (!$isRegistrar && !$isAdmin) {
+    // Staff can only view their own evaluation AND only if approved
+    if (!$isStaff || $eval['staff_id'] != $staffId) {
+        die('Access denied: You can only view your own evaluation');
+    }
+
+    // Staff can only view if evaluation is approved
+    if ($eval['status'] !== 'approved') {
+        die('Access denied: Your evaluation is not yet approved. You can only view approved evaluations.');
+    }
 }
 
 // Get settings
