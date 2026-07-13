@@ -195,17 +195,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="theme-overrides.css" rel="stylesheet">
     <style>
-        :root { --primary-blue: #1e3a8a; --secondary-blue: #3b82f6; }
+        :root { --primary-blue: <?php echo $primaryColor; ?>; --secondary-blue: <?php echo $secondaryColor; ?>; }
         body { background: #f3f4f6; }
-        .top-bar { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; padding: 1rem 0; }
+        .top-bar { background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%); color: white; padding: 1rem 0; }
         .staff-info-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .score-card { background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 1.5rem; border-radius: 16px; text-align: center; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3); }
+        .score-card { background: linear-gradient(135deg, <?php echo $primaryColor; ?>, <?php echo $secondaryColor; ?>); color: white; padding: 1.5rem; border-radius: 16px; text-align: center; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3); }
         .score-card .value { font-size: 2.5rem; font-weight: 700; }
         .question-item { background: white; padding: 1.25rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid #e5e7eb; transition: all 0.3s ease; }
-        .question-item:hover { border-color: #3b82f6; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .question-item:hover { border-color: <?php echo $secondaryColor; ?>; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .rating-label { padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 20px; cursor: pointer; margin-right: 0.25rem; display: inline-block; text-align: center; min-width: 45px; }
         .rating-label:hover { background: #dbeafe; }
-        .rating-label input:checked + span { background: var(--primary-blue); color: white; border-radius: 15px; padding: 2px 8px; }
+        .rating-label input:checked + span { background: <?php echo $primaryColor; ?>; color: white; border-radius: 15px; padding: 2px 8px; }
 
         /* Mobile responsive */
         @media (max-width: 768px) {

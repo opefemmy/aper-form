@@ -4,6 +4,16 @@
    ========================================== */
 
 /* ==========================================
+   CSS VARIABLES FOR DYNAMIC THEMING
+   ========================================== */
+:root {
+    --primary-color: #308a1e;
+    --secondary-color: #269c16;
+    --primary-hover: #256f17;
+    --primary-light: #e8f5e9;
+}
+
+/* ==========================================
    FONTS
    ========================================== */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
@@ -21,6 +31,14 @@ body {
 h1, h2, h3, h4, h5, h6 {
     font-family: 'Poppins', sans-serif;
     font-weight: 600;
+}
+
+/* ==========================================
+   INSTITUTION TOP BAR
+   ========================================== */
+.institution-topbar {
+    padding: 10px 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
 }
 
 /* ==========================================
