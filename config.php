@@ -140,7 +140,7 @@ function hasPermission($permission) {
         'super_admin' => ['settings', 'staff_add', 'staff_edit', 'staff_delete', 'evaluate', 'reports_view', 'reports_export', 'reports_pdf', 'sessions', 'users_manage', 'delete_evaluation', 'staff_upload', 'supervisor_assess', 'registrar_approve', 'download_all_data'],
         'admin' => ['settings', 'staff_add', 'staff_edit', 'staff_delete', 'evaluate', 'reports_view', 'reports_export', 'reports_pdf', 'sessions', 'delete_evaluation', 'staff_upload', 'supervisor_assess', 'registrar_approve', 'download_all_data'],
         'supervisor' => ['supervisor_assess', 'reports_view'],
-        'registrar' => ['registrar_approve', 'reports_view', 'reports_export', 'download_all_data'],
+        'registrar' => ['registrar_approve', 'reports_view', 'reports_export', 'reports_pdf', 'download_all_data'],
         'evaluator' => ['evaluate', 'reports_view'],
         'viewer' => ['reports_view'],
     ];
