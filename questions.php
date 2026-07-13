@@ -15,6 +15,18 @@ $instName = $settings['institution_name'] ?? 'Institution';
 $instAddress = $settings['institution_address'] ?? '';
 $logo = $settings['institution_logo'] ?? '';
 
+// Check if new columns exist
+$hasSubCategory = false;
+$hasFileUpload = false;
+try {
+    $pdo->query("SELECT sub_category FROM evaluation_questions LIMIT 1");
+    $hasSubCategory = true;
+} catch (Exception $e) {}
+try {
+    $pdo->query("SELECT allowed_file_types FROM evaluation_questions LIMIT 1");
+    $hasFileUpload = true;
+} catch (Exception $e) {}
+
 // Handle add/edit/delete question
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_question'])) {
@@ -32,10 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $category = sanitize($_POST['custom_category']);
         }
 
-        // Handle sub-category
+        // Handle sub-category (custom sub-category)
         $subCategory = null;
         if (!empty($_POST['sub_category']) && $_POST['sub_category'] !== '') {
-            $subCategory = sanitize($_POST['sub_category']);
+            if ($_POST['sub_category'] === 'custom' && !empty($_POST['custom_sub_category'])) {
+                $subCategory = sanitize($_POST['custom_sub_category']);
+            } elseif ($_POST['sub_category'] !== 'custom') {
+                $subCategory = sanitize($_POST['sub_category']);
+            }
         }
 
         // Handle file upload settings
@@ -46,17 +62,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $maxFileSize = intval($_POST['max_file_size'] ?? 5);
         }
 
-        $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category, allowed_file_types, max_file_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([
-            $category,
-            $subCategory,
-            sanitize($_POST['question_text']),
-            $questionType,
-            $options,
-            sanitize($_POST['target_staff_category'] ?? 'both'),
-            $allowedFileTypes,
-            $maxFileSize
-        ]);
+        // Build query based on available columns
+        if ($hasSubCategory && $hasFileUpload) {
+            $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category, allowed_file_types, max_file_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $category,
+                $subCategory,
+                sanitize($_POST['question_text']),
+                $questionType,
+                $options,
+                sanitize($_POST['target_staff_category'] ?? 'both'),
+                $allowedFileTypes,
+                $maxFileSize
+            ]);
+        } elseif ($hasSubCategory) {
+            $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $category,
+                $subCategory,
+                sanitize($_POST['question_text']),
+                $questionType,
+                $options,
+                sanitize($_POST['target_staff_category'] ?? 'both')
+            ]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_type, options, target_staff_category) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $category,
+                sanitize($_POST['question_text']),
+                $questionType,
+                $options,
+                sanitize($_POST['target_staff_category'] ?? 'both')
+            ]);
+        }
         showMessage('Question added successfully!', 'success');
     }
 
@@ -74,10 +112,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $category = sanitize($_POST['custom_category']);
         }
 
-        // Handle sub-category
+        // Handle sub-category (custom sub-category)
         $subCategory = null;
         if (!empty($_POST['sub_category']) && $_POST['sub_category'] !== '') {
-            $subCategory = sanitize($_POST['sub_category']);
+            if ($_POST['sub_category'] === 'custom' && !empty($_POST['custom_sub_category'])) {
+                $subCategory = sanitize($_POST['custom_sub_category']);
+            } elseif ($_POST['sub_category'] !== 'custom') {
+                $subCategory = sanitize($_POST['sub_category']);
+            }
         }
 
         // Handle file upload settings
@@ -88,19 +130,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $maxFileSize = intval($_POST['max_file_size'] ?? 5);
         }
 
-        $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, sub_category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ?, allowed_file_types = ?, max_file_size = ? WHERE id = ?");
-        $stmt->execute([
-            $category,
-            $subCategory,
-            sanitize($_POST['question_text']),
-            $questionType,
-            $options,
-            isset($_POST['is_active']) ? 1 : 0,
-            sanitize($_POST['target_staff_category'] ?? 'both'),
-            $allowedFileTypes,
-            $maxFileSize,
-            intval($_POST['question_id'])
-        ]);
+        // Build query based on available columns
+        if ($hasSubCategory && $hasFileUpload) {
+            $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, sub_category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ?, allowed_file_types = ?, max_file_size = ? WHERE id = ?");
+            $stmt->execute([
+                $category,
+                $subCategory,
+                sanitize($_POST['question_text']),
+                $questionType,
+                $options,
+                isset($_POST['is_active']) ? 1 : 0,
+                sanitize($_POST['target_staff_category'] ?? 'both'),
+                $allowedFileTypes,
+                $maxFileSize,
+                intval($_POST['question_id'])
+            ]);
+        } elseif ($hasSubCategory) {
+            $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, sub_category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ? WHERE id = ?");
+            $stmt->execute([
+                $category,
+                $subCategory,
+                sanitize($_POST['question_text']),
+                $questionType,
+                $options,
+                isset($_POST['is_active']) ? 1 : 0,
+                sanitize($_POST['target_staff_category'] ?? 'both'),
+                intval($_POST['question_id'])
+            ]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ? WHERE id = ?");
+            $stmt->execute([
+                $category,
+                sanitize($_POST['question_text']),
+                $questionType,
+                $options,
+                isset($_POST['is_active']) ? 1 : 0,
+                sanitize($_POST['target_staff_category'] ?? 'both'),
+                intval($_POST['question_id'])
+            ]);
+        }
         showMessage('Question updated successfully!', 'success');
     }
 
@@ -467,7 +535,7 @@ foreach ($questions as $q) {
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Sub-Category</label>
-                                <select class="form-select" name="sub_category" id="add_sub_category">
+                                <select class="form-select" name="sub_category" id="add_sub_category" onchange="toggleCustomSubCategory(this)">
                                     <option value="">None</option>
                                     <optgroup label="Teaching">
                                         <option value="Lecture Delivery">Lecture Delivery</option>
@@ -502,7 +570,9 @@ foreach ($questions as $q) {
                                         <option value="Certifications">Certifications</option>
                                         <option value="Seminars">Seminars</option>
                                     </optgroup>
+                                    <option value="custom">+ Add Custom Sub-Category</option>
                                 </select>
+                                <input type="text" class="form-control mt-2" name="custom_sub_category" id="add_custom_sub_category" placeholder="Enter custom sub-category name" style="display:none;">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Question Type</label>
@@ -590,6 +660,21 @@ foreach ($questions as $q) {
             customField.value = '';
         }
     }
+    function toggleCustomSubCategory(selectElem) {
+        var customField = document.getElementById('add_custom_sub_category');
+        if (selectElem.value === 'custom') {
+            customField.style.display = 'block';
+            customField.required = true;
+        } else {
+            customField.style.display = 'none';
+            customField.required = false;
+            customField.value = '';
+        }
+    }
+    // Add event listener for sub-category dropdown
+    document.getElementById('add_sub_category')?.addEventListener('change', function() {
+        toggleCustomSubCategory(this);
+    });
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
