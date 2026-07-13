@@ -338,6 +338,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             <i class="fas fa-check-circle me-2"></i>
             Your evaluation has been submitted. You can still update and resubmit at any time.
         </div>
+
+        <!-- Print Summary - Available immediately after submission (evidence of participation) -->
+        <div class="text-center mb-3">
+            <a href="print-summary.php?id=<?php echo $existingEval['id']; ?>" target="_blank" class="btn btn-primary btn-lg">
+                <i class="fas fa-print me-2"></i>Print Summary (Evidence of Participation)
+            </a>
+            <p class="text-muted mt-2"><small>Print this as evidence that you have completed your evaluation</small></p>
+        </div>
         <?php endif; ?>
 
         <?php if ($existingEval && is_array($existingEval) && ($existingEval['status'] ?? '') === 'approved'): ?>
@@ -347,7 +355,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         </div>
         <div class="text-center mb-4">
             <a href="pdf-report.php?id=<?php echo $existingEval['id']; ?>" target="_blank" class="btn btn-success btn-lg">
-                <i class="fas fa-file-pdf me-2"></i>Download Official Report
+                <i class="fas fa-file-pdf me-2"></i>Download Official Report (Final Grade)
             </a>
         </div>
         <?php endif; ?>
