@@ -62,6 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
     $responses = [];
     $numericScore = 0;
     $ratingQuestionCount = 0;
+    $uploadDir = 'uploads/question_documents/';
+
+    // Create upload directory if it doesn't exist
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
 
     foreach ($dbQuestions as $q) {
         $fieldName = 'q_' . $q['id'];
@@ -69,6 +75,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         if ($q['question_type'] === 'multiple_choice') {
             // Multiple choice - checkbox array
             $responses[$q['id']] = $_POST[$fieldName] ?? [];
+        } elseif ($q['question_type'] === 'file_upload') {
+            // Handle file upload
+            $existingFile = $_POST[$fieldName . '_existing'] ?? '';
+            $newFile = $_FILES[$fieldName] ?? ['name' => '', 'tmp_name' => '', 'error' => UPLOAD_ERR_NO_FILE];
+
+            if ($newFile['error'] === UPLOAD_ERR_OK && !empty($newFile['name'])) {
+                // Process new file upload
+                $allowedTypes = explode(',', str_replace(' ', '', $q['allowed_file_types'] ?? 'pdf,doc,docx'));
+                $fileExt = strtolower(pathinfo($newFile['name'], PATHINFO_EXTENSION));
+                $maxSize = ($q['max_file_size'] ?? 5) * 1024 * 1024;
+
+                if (in_array($fileExt, $allowedTypes) && $newFile['size'] <= $maxSize) {
+                    $newFileName = 'staff_' . $staff['id'] . '_question_' . $q['id'] . '_' . time() . '.' . $fileExt;
+                    $targetPath = $uploadDir . $newFileName;
+
+                    if (move_uploaded_file($newFile['tmp_name'], $targetPath)) {
+                        // Delete old file if exists
+                        if (!empty($existingFile) && file_exists($existingFile)) {
+                            @unlink($existingFile);
+                        }
+                        $responses[$q['id']] = $targetPath;
+                    } else {
+                        $responses[$q['id']] = $existingFile;
+                    }
+                } else {
+                    $responses[$q['id']] = $existingFile;
+                }
+            } else {
+                // Keep existing file
+                $responses[$q['id']] = $existingFile;
+            }
         } else {
             // All other types
             $responses[$q['id']] = $_POST[$fieldName] ?? '';
@@ -397,6 +434,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             </a>
             <p class="text-muted mt-2"><small>Print this as evidence that you have completed your evaluation</small></p>
         </div>
+
+        <!-- Uploaded Files Display -->
+        <?php
+        $uploadedFiles = [];
+        if (!empty($existingEval['responses'])) {
+            $responses = is_array($existingEval['responses']) ? $existingEval['responses'] : json_decode($existingEval['responses'], true);
+            if (is_array($responses)) {
+                foreach ($responses as $qId => $response) {
+                    if (!empty($response) && is_string($response) && file_exists($response)) {
+                        $uploadedFiles[$qId] = $response;
+                    }
+                }
+            }
+        }
+        ?>
+        <?php if (!empty($uploadedFiles)): ?>
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-paperclip me-2"></i>Uploaded Documents</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <?php foreach ($uploadedFiles as $qId => $filePath): ?>
+                    <?php
+                    $questionText = '';
+                    foreach ($dbQuestions as $q) {
+                        if ($q['id'] == $qId) {
+                            $questionText = $q['question_text'];
+                            break;
+                        }
+                    }
+                    $fileName = basename($filePath);
+                    $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                    $icon = 'fa-file';
+                    if ($fileExt === 'pdf') $icon = 'fa-file-pdf';
+                    elseif (in_array($fileExt, ['doc', 'docx'])) $icon = 'fa-file-word';
+                    elseif (in_array($fileExt, ['jpg', 'jpeg', 'png'])) $icon = 'fa-file-image';
+                    ?>
+                    <div class="col-md-6 mb-3">
+                        <div class="border rounded p-3">
+                            <h6><?php echo htmlspecialchars($questionText); ?></h6>
+                            <a href="<?php echo htmlspecialchars($filePath); ?>" target="_blank" class="btn btn-outline-primary">
+                                <i class="fas <?php echo $icon; ?> me-2"></i>Download <?php echo htmlspecialchars($fileName); ?>
+                            </a>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
         <?php endif; ?>
 
         <?php if ($existingEval && is_array($existingEval) && ($existingEval['status'] ?? '') === 'approved'): ?>
@@ -412,7 +500,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         <?php endif; ?>
 
         <!-- Self Evaluation Form - Always show for editing -->
-        <form method="POST" id="evalForm">
+        <form method="POST" id="evalForm" enctype="multipart/form-data">
             <input type="hidden" name="staff_id" value="<?php echo $staff['id']; ?>">
             <input type="hidden" name="academic_session_id" value="<?php echo $activeSession['id'] ?? 0; ?>">
             <input type="hidden" name="evaluation_year" value="<?php echo $settings['evaluation_year'] ?? date('Y'); ?>">
@@ -579,9 +667,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                                     <?php elseif ($q['question_type'] === 'long_answer'): ?>
                                     <textarea class="form-control" name="<?php echo $fieldName; ?>" rows="3" placeholder="Enter your answer"><?php echo htmlspecialchars($existingValue ?? ''); ?></textarea>
                                     <?php elseif ($q['question_type'] === 'file_upload'): ?>
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-paperclip me-2"></i>
-                                        File upload questions will be available soon. Please skip for now.
+                                    <div class="file-upload-area">
+                                        <?php
+                                        $allowedTypes = $q['allowed_file_types'] ?? 'pdf,doc,docx';
+                                        $maxSize = ($q['max_file_size'] ?? 5) * 1024 * 1024; // Convert MB to bytes
+                                        $existingFile = $existingValue ?? '';
+                                        ?>
+                                        <input type="hidden" name="<?php echo $fieldName; ?>_existing" value="<?php echo htmlspecialchars($existingFile); ?>">
+                                        <input type="file" class="form-control" name="<?php echo $fieldName; ?>"
+                                               accept="<?php echo str_replace(',', ',', $allowedTypes); ?>"
+                                               data-max-size="<?php echo $maxSize; ?>">
+                                        <small class="text-muted">
+                                            Allowed: <?php echo htmlspecialchars($allowedTypes); ?> | Max size: <?php echo $q['max_file_size'] ?? 5; ?>MB
+                                        </small>
+                                        <?php if (!empty($existingFile)): ?>
+                                        <div class="mt-2 p-2 bg-light rounded">
+                                            <i class="fas fa-file-alt me-2"></i>
+                                            <strong>Previously uploaded:</strong> <?php echo htmlspecialchars(basename($existingFile)); ?>
+                                            <input type="hidden" name="<?php echo $fieldName; ?>_existing" value="<?php echo htmlspecialchars($existingFile); ?>">
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
                                     <?php else: ?>
                                     <?php
