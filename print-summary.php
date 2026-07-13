@@ -240,24 +240,44 @@ function getAnsweredQuestions($questions, $responses) {
         <div class="row score-summary">
             <div class="col-md-4">
                 <div class="score-box"><?php echo $eval['percentage']; ?>%</div>
-                <div>Score (%)</div>
+                <div>Final Score (%)</div>
             </div>
             <div class="col-md-4">
                 <div class="score-box"><?php echo htmlspecialchars($eval['performance_grade']); ?></div>
-                <div>Grade</div>
+                <div>Final Grade</div>
             </div>
             <div class="col-md-4">
                 <div class="score-box"><?php echo htmlspecialchars($eval['performance_status']); ?></div>
-                <div>Status</div>
+                <div>Performance Status</div>
             </div>
         </div>
-                <div>Grade</div>
+
+        <?php
+        // Show HOD evaluation details if evaluation is approved
+        if ($eval['status'] === 'approved' && !empty($eval['supervisor_name'])): ?>
+        <div class="question-section" style="background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #308a1e;">
+            <h5 style="color: #308a1e;"><i class="fas fa-clipboard-check me-2"></i>HOD Evaluation Details (Final Result)</h5>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <p><strong>Evaluated By:</strong> <?php echo htmlspecialchars($eval['supervisor_name']); ?></p>
+                    <p><strong>Designation:</strong> <?php echo htmlspecialchars($eval['supervisor_designation'] ?? 'HOD'); ?></p>
+                    <p><strong>Evaluation Date:</strong> <?php echo !empty($eval['supervisor_date']) ? date('F j, Y', strtotime($eval['supervisor_date'])) : 'N/A'; ?></p>
+                </div>
+                <div class="col-md-6">
+                    <?php if (!empty($eval['supervisor_remarks'])): ?>
+                    <p><strong>HOD Remarks:</strong></p>
+                    <p style="font-style: italic;"><?php echo nl2br(htmlspecialchars($eval['supervisor_remarks'])); ?></p>
+                    <?php endif; ?>
+                </div>
             </div>
-            <div class="col-md-3">
-                <div class="score-box"><?php echo ucfirst($eval['status']); ?></div>
-                <div>Status</div>
-            </div>
+            <?php if (!empty($eval['overall_rating'])): ?>
+            <p><strong>Overall Rating:</strong> <?php echo htmlspecialchars($eval['overall_rating']); ?></p>
+            <?php endif; ?>
+            <?php if (!empty($eval['recommendation'])): ?>
+            <p><strong>Recommendation:</strong> <?php echo htmlspecialchars($eval['recommendation']); ?></p>
+            <?php endif; ?>
         </div>
+        <?php endif; ?>
 
         <?php
         // Get only answered questions for each category
@@ -350,6 +370,35 @@ function getAnsweredQuestions($questions, $responses) {
         <?php endif; ?>
 
         <div class="footer">
+            <?php if ($eval['status'] === 'approved'): ?>
+            <!-- Approval Chain -->
+            <div class="approval-section" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <h6 style="border-bottom: 2px solid #308a1e; padding-bottom: 5px; margin-bottom: 10px;">Evaluation Approval Chain</h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <p class="mb-1"><strong>HOD Approval</strong></p>
+                        <p class="mb-0 text-muted"><?php echo !empty($eval['supervisor_name']) ? htmlspecialchars($eval['supervisor_name']) : 'N/A'; ?></p>
+                        <p class="mb-0 text-muted" style="font-size: 0.8rem;"><?php echo !empty($eval['supervisor_date']) ? date('F j, Y', strtotime($eval['supervisor_date'])) : ''; ?></p>
+                    </div>
+                    <div class="col-md-4">
+                        <p class="mb-1"><strong>Dean Review</strong></p>
+                        <p class="mb-0 text-muted"><?php echo !empty($eval['dean_name']) ? htmlspecialchars($eval['dean_name']) : 'N/A'; ?></p>
+                        <p class="mb-0 text-muted" style="font-size: 0.8rem;"><?php echo !empty($eval['dean_date']) ? date('F j, Y', strtotime($eval['dean_date'])) : ''; ?></p>
+                    </div>
+                    <div class="col-md-4">
+                        <p class="mb-1"><strong>Registrar Approval</strong></p>
+                        <p class="mb-0 text-muted"><?php echo !empty($eval['registrar_name']) ? htmlspecialchars($eval['registrar_name']) : 'N/A'; ?></p>
+                        <p class="mb-0 text-muted" style="font-size: 0.8rem;"><?php echo !empty($eval['registrar_date']) ? date('F j, Y', strtotime($eval['registrar_date'])) : ''; ?></p>
+                    </div>
+                </div>
+                <?php if (!empty($eval['approval_status'])): ?>
+                <div class="text-center mt-2">
+                    <span class="badge bg-success" style="font-size: 1rem;"><?php echo htmlspecialchars($eval['approval_status']); ?></span>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
             <div class="row">
                 <div class="col-md-6">
                     <p><strong>Submitted on:</strong> <?php echo date('F j, Y, g:i A', strtotime($eval['created_at'])); ?></p>
