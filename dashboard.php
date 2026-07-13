@@ -282,6 +282,7 @@ $instAddress = $settings['institution_address'] ?? '';
                     <a href="roles.php"><i class="fas fa-user-tag"></i> Staff Roles</a>
                     <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>
                     <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
+                    <a href="view-uploaded-files.php"><i class="fas fa-folder-open"></i> Uploaded Files</a>
                     <?php if (hasPermission('download_all_data')): ?>
                     <a href="download-data.php"><i class="fas fa-download"></i> Download Data</a>
                     <?php endif; ?>

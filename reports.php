@@ -1165,6 +1165,55 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
             </div>
             <?php endif; ?>
 
+            <!-- Uploaded Documents Section -->
+            <?php
+            $uploadedFiles = [];
+            if (!empty($eval['responses'])) {
+                $responses = is_array($eval['responses']) ? $eval['responses'] : json_decode($eval['responses'], true);
+                if (is_array($responses)) {
+                    foreach ($responses as $qId => $response) {
+                        if (!empty($response) && is_string($response) && file_exists($response)) {
+                            $uploadedFiles[$qId] = $response;
+                        }
+                    }
+                }
+            }
+            ?>
+            <?php if (!empty($uploadedFiles)): ?>
+            <div class="supervisor-section" style="background: #eff6ff;">
+                <div class="supervisor-title" style="color: #1e40af;"><i class="fas fa-paperclip"></i> Uploaded Documents</div>
+                <div class="detail-row">
+                    <span class="detail-label">Files Submitted:</span>
+                    <span class="detail-value">
+                        <?php foreach ($uploadedFiles as $qId => $filePath): ?>
+                            <?php
+                            // Get question text
+                            $questionText = '';
+                            $q = $pdo->prepare("SELECT question_text FROM evaluation_questions WHERE id = ?");
+                            $q->execute([$qId]);
+                            $qRow = $q->fetch();
+                            $questionText = $qRow['question_text'] ?? 'Question #' . $qId;
+                            $fileName = basename($filePath);
+                            $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                            $icon = 'fa-file';
+                            if ($fileExt === 'pdf') $icon = 'fa-file-pdf text-danger';
+                            elseif (in_array($fileExt, ['doc', 'docx'])) $icon = 'fa-file-word text-primary';
+                            elseif (in_array($fileExt, ['jpg', 'jpeg', 'png', 'gif'])) $icon = 'fa-file-image text-success';
+                            ?>
+                            <div class="mb-2">
+                                <i class="fas <?php echo $icon; ?>"></i>
+                                <strong><?php echo htmlspecialchars($questionText); ?></strong><br>
+                                <span class="text-muted"><?php echo htmlspecialchars($fileName); ?></span>
+                                <a href="<?php echo htmlspecialchars($filePath); ?>" target="_blank" class="btn btn-sm btn-primary ms-2">
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                            </div>
+                        <?php endforeach; ?>
+                    </span>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- Management Approval -->
             <?php if ($eval['registrar_name'] || $eval['approval_status']): ?>
             <div class="supervisor-section" style="background: #f0fdf4;">
