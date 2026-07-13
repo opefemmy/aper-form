@@ -283,6 +283,9 @@ $userRole = getEvaluatorType() ?? getAdminRole();
                                             <a href="print-summary.php?id=<?php echo $eval['id']; ?>" target="_blank" class="btn btn-sm btn-primary">
                                                 <i class="fas fa-print"></i> Print
                                             </a>
+                                            <a href="pdf-report.php?id=<?php echo $eval['id']; ?>" target="_blank" class="btn btn-sm btn-success">
+                                                <i class="fas fa-file-pdf"></i> PDF
+                                            </a>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
