@@ -518,7 +518,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                                 $existingValue = $existingResponses[$q['id']] ?? '';
                             ?>
                             <div class="question-item">
-                                <label class="form-label fw-bold"><?php echo htmlspecialchars($q['question_text']); ?></label>
+                                <label class="form-label fw-bold">
+                                    <?php if (!empty($q['question_label'])): ?>
+                                        <span class="text-primary">(<?php echo htmlspecialchars($q['question_label']); ?>)</span>
+                                    <?php endif; ?>
+                                    <?php echo htmlspecialchars($q['question_text']); ?>
+                                </label>
                                 <div>
                                     <?php
                                     // Render based on question type

@@ -62,9 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $maxFileSize = intval($_POST['max_file_size'] ?? 5);
         }
 
+        // Handle question group and label
+        $questionGroup = !empty($_POST['question_group']) ? sanitize($_POST['question_group']) : null;
+        $questionLabel = !empty($_POST['question_label']) ? sanitize($_POST['question_label']) : null;
+
         // Build query based on available columns
         if ($hasSubCategory && $hasFileUpload) {
-            $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category, allowed_file_types, max_file_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category, allowed_file_types, max_file_size, question_group, question_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $category,
                 $subCategory,
@@ -73,7 +77,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $options,
                 sanitize($_POST['target_staff_category'] ?? 'both'),
                 $allowedFileTypes,
-                $maxFileSize
+                $maxFileSize,
+                $questionGroup,
+                $questionLabel
             ]);
         } elseif ($hasSubCategory) {
             $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category) VALUES (?, ?, ?, ?, ?, ?)");
@@ -336,6 +342,7 @@ foreach ($questions as $q) {
                             <thead>
                                 <tr>
                                     <th>Question Type</th>
+                                    <th>Group/Label</th>
                                     <th>Sub-Category</th>
                                     <th>Question</th>
                                     <th>Target Staff</th>
@@ -359,6 +366,18 @@ foreach ($questions as $q) {
                                 ?>
                                 <tr>
                                     <td><span class="badge bg-info"><?php echo $typeLabels[$q['question_type']] ?? $q['question_type']; ?></span></td>
+                                    <td>
+                                        <?php if (!empty($q['question_group']) || !empty($q['question_label'])): ?>
+                                            <?php if (!empty($q['question_group'])): ?>
+                                                <span class="badge bg-primary"><?php echo htmlspecialchars($q['question_group']); ?></span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($q['question_label'])): ?>
+                                                <span class="badge bg-warning text-dark">(<?php echo htmlspecialchars($q['question_label']); ?>)</span>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?php echo !empty($q['sub_category']) ? '<span class="badge bg-secondary">' . htmlspecialchars($q['sub_category']) . '</span>' : '<span class="text-muted">-</span>'; ?></td>
                                     <td><?php echo htmlspecialchars($q['question_text']); ?></td>
                                     <td>
@@ -597,6 +616,18 @@ foreach ($questions as $q) {
                                     <option value="hod" <?php echo $filterCategory === 'hod' ? 'selected' : ''; ?>>HOD Evaluation Question</option>
                                 </select>
                                 <small class="text-muted">Which staff type sees this question</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Question Group (Optional)</label>
+                                <input type="text" class="form-control" name="question_group" placeholder="e.g., Publications (groups related questions)">
+                                <small class="text-muted">Group related questions together</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Question Label (Optional)</label>
+                                <input type="text" class="form-control" name="question_label" placeholder="e.g., a, b, c, I, II, III">
+                                <small class="text-muted">Add label like (a), (b), I, II for sub-parts</small>
                             </div>
                         </div>
                         <div class="mb-3">

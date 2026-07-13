@@ -128,6 +128,24 @@ try {
         echo "<p style='color:orange;'>ℹ️  " . $e->getMessage() . "</p>\n";
     }
 
+    // 8. Add question_group column for grouping related questions
+    echo "<p>8. Adding question_group column...</p>\n";
+    try {
+        $pdo->exec("ALTER TABLE evaluation_questions ADD COLUMN question_group VARCHAR(100) DEFAULT NULL");
+        echo "<p style='color:green;'>✅ question_group column added</p>\n";
+    } catch (Exception $e) {
+        echo "<p style='color:orange;'>ℹ️  " . $e->getMessage() . "</p>\n";
+    }
+
+    // 9. Add question_label column for sub-parts (a, b, c, etc.)
+    echo "<p>9. Adding question_label column...</p>\n";
+    try {
+        $pdo->exec("ALTER TABLE evaluation_questions ADD COLUMN question_label VARCHAR(10) DEFAULT NULL");
+        echo "<p style='color:green;'>✅ question_label column added</p>\n";
+    } catch (Exception $e) {
+        echo "<p style='color:orange;'>ℹ️  " . $e->getMessage() . "</p>\n";
+    }
+
     echo "<h2 style='color:green;'>✅ All database updates completed!</h2>\n";
     echo "<p><a href='questions.php'>Go to Questions Page</a></p>\n";
 
