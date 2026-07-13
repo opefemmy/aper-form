@@ -17,64 +17,82 @@ $logo = $settings['institution_logo'] ?? '';
 
 // Handle add/edit/delete sub-category
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['add_sub_category'])) {
-        $category = sanitize($_POST['category']);
-        $subCategoryName = sanitize($_POST['sub_category_name']);
-
-        // Handle custom category
-        if ($category === 'custom' && !empty($_POST['custom_category'])) {
-            $category = sanitize($_POST['custom_category']);
-        }
-
-        try {
-            $stmt = $pdo->prepare("INSERT INTO question_sub_categories (category, sub_category_name, sub_category_order) VALUES (?, ?, ?)");
-            $stmt->execute([$category, $subCategoryName, intval($_POST['sub_category_order'] ?? 0)]);
-            showMessage('Sub-category added successfully!', 'success');
-        } catch (Exception $e) {
-            showMessage('Error adding sub-category. It may already exist.', 'danger');
-        }
+    // Check if table exists
+    $tableExists = false;
+    try {
+        $pdo->query("SELECT 1 FROM question_sub_categories LIMIT 1");
+        $tableExists = true;
+    } catch (Exception $e) {
+        $tableExists = false;
     }
 
-    if (isset($_POST['update_sub_category'])) {
-        $category = sanitize($_POST['category']);
-        $subCategoryName = sanitize($_POST['sub_category_name']);
+    if (!$tableExists) {
+        showMessage('Please run the database update first. Go to run_db_update.php', 'danger');
+    } else {
+        if (isset($_POST['add_sub_category'])) {
+            $category = sanitize($_POST['category']);
+            $subCategoryName = sanitize($_POST['sub_category_name']);
 
-        // Handle custom category
-        if ($category === 'custom' && !empty($_POST['custom_category'])) {
-            $category = sanitize($_POST['custom_category']);
+            // Handle custom category
+            if ($category === 'custom' && !empty($_POST['custom_category'])) {
+                $category = sanitize($_POST['custom_category']);
+            }
+
+            try {
+                $stmt = $pdo->prepare("INSERT INTO question_sub_categories (category, sub_category_name, sub_category_order) VALUES (?, ?, ?)");
+                $stmt->execute([$category, $subCategoryName, intval($_POST['sub_category_order'] ?? 0)]);
+                showMessage('Sub-category added successfully!', 'success');
+            } catch (Exception $e) {
+                showMessage('Error adding sub-category. It may already exist.', 'danger');
+            }
         }
 
-        try {
-            $stmt = $pdo->prepare("UPDATE question_sub_categories SET category = ?, sub_category_name = ?, sub_category_order = ?, is_active = ? WHERE id = ?");
-            $stmt->execute([
-                $category,
-                $subCategoryName,
-                intval($_POST['sub_category_order'] ?? 0),
-                isset($_POST['is_active']) ? 1 : 0,
-                intval($_POST['sub_category_id'])
-            ]);
-            showMessage('Sub-category updated successfully!', 'success');
-        } catch (Exception $e) {
-            showMessage('Error updating sub-category: ' . $e->getMessage(), 'danger');
+        if (isset($_POST['update_sub_category'])) {
+            $category = sanitize($_POST['category']);
+            $subCategoryName = sanitize($_POST['sub_category_name']);
+
+            // Handle custom category
+            if ($category === 'custom' && !empty($_POST['custom_category'])) {
+                $category = sanitize($_POST['custom_category']);
+            }
+
+            try {
+                $stmt = $pdo->prepare("UPDATE question_sub_categories SET category = ?, sub_category_name = ?, sub_category_order = ?, is_active = ? WHERE id = ?");
+                $stmt->execute([
+                    $category,
+                    $subCategoryName,
+                    intval($_POST['sub_category_order'] ?? 0),
+                    isset($_POST['is_active']) ? 1 : 0,
+                    intval($_POST['sub_category_id'])
+                ]);
+                showMessage('Sub-category updated successfully!', 'success');
+            } catch (Exception $e) {
+                showMessage('Error updating sub-category: ' . $e->getMessage(), 'danger');
+            }
         }
-    }
 
-    if (isset($_POST['delete_sub_category'])) {
-        $stmt = $pdo->prepare("DELETE FROM question_sub_categories WHERE id = ?");
-        $stmt->execute([intval($_POST['sub_category_id'])]);
-        showMessage('Sub-category deleted successfully!', 'success');
-    }
+        if (isset($_POST['delete_sub_category'])) {
+            $stmt = $pdo->prepare("DELETE FROM question_sub_categories WHERE id = ?");
+            $stmt->execute([intval($_POST['sub_category_id'])]);
+            showMessage('Sub-category deleted successfully!', 'success');
+        }
 
-    redirect('question-sub-categories.php');
+        redirect('question-sub-categories.php');
+    }
 }
 
 // Get all sub-categories grouped by category
-$stmt = $pdo->query("SELECT * FROM question_sub_categories ORDER BY category, sub_category_order");
-$subCategories = $stmt->fetchAll();
-
+$subCategories = [];
 $subCategoriesByCategory = [];
-foreach ($subCategories as $sc) {
-    $subCategoriesByCategory[$sc['category']][] = $sc;
+try {
+    $stmt = $pdo->query("SELECT * FROM question_sub_categories ORDER BY category, sub_category_order");
+    $subCategories = $stmt->fetchAll();
+
+    foreach ($subCategories as $sc) {
+        $subCategoriesByCategory[$sc['category']][] = $sc;
+    }
+} catch (Exception $e) {
+    // Table doesn't exist yet - sub-categories will be empty
 }
 ?>
 <!DOCTYPE html>
