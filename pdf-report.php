@@ -2,6 +2,9 @@
 require_once 'config.php';
 startSession();
 
+// Define the Appointment and Promotion Committee name (renamed from Dean)
+define('APC_COMMITTEE_NAME', 'Appointment and Promotion Committee');
+
 // Check access: Registrar/Admin OR Staff viewing their own approved evaluation
 $isRegistrar = (isEvaluatorLoggedIn() && getEvaluatorType() === 'Registrar') || (isAdminLoggedIn() && getAdminRole() === 'registrar');
 $isAdmin = isAdminLoggedIn();
@@ -245,7 +248,7 @@ if ($useTcpdf) {
             $pdf->Cell(0, 6, date('F j, Y', strtotime($eval['dean_date'])), 0, 1, 'L');
         }
 
-        $pdf->Cell(0, 6, 'Dean Comments:', 0, 1, 'L');
+        $pdf->Cell(0, 6, APC_COMMITTEE_NAME . ' Comments:', 0, 1, 'L');
         $pdf->MultiCell(0, 6, $eval['dean_remarks'], 0, 'L');
 
         $pdf->Ln(10);
@@ -376,12 +379,12 @@ if ($useTcpdf) {
 
     if (!empty($eval['dean_remarks'])) {
         echo '
-        <h3>Dean Review</h3>
+        <h3><?php echo APC_COMMITTEE_NAME; ?> Review</h3>
         <div class="info-grid">
             <div class="info-label">Reviewed By:</div><div>' . htmlspecialchars($eval['dean_name'] ?? 'N/A') . '</div>
             <div class="info-label">Date:</div><div>' . (!empty($eval['dean_date']) ? date('F j, Y', strtotime($eval['dean_date'])) : 'N/A') . '</div>
         </div>
-        <div class="remarks-box"><strong>Dean Comments:</strong><br>' . nl2br(htmlspecialchars($eval['dean_remarks'])) . '</div>';
+        <div class="remarks-box"><strong><?php echo APC_COMMITTEE_NAME; ?> Comments:</strong><br>' . nl2br(htmlspecialchars($eval['dean_remarks'])) . '</div>';
     }
 
     if ($eval['evaluation_stage'] === 'completed' || $eval['evaluation_stage'] === 'registrar') {

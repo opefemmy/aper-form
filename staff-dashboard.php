@@ -435,7 +435,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             <p class="text-muted mt-2"><small>Print this as evidence that you have completed your evaluation</small></p>
         </div>
 
-        <!-- Uploaded Files Display -->
+        <!-- Uploaded Files Display - View Only (No Download for Staff) -->
         <?php
         $uploadedFiles = [];
         if (!empty($existingEval['responses'])) {
@@ -451,10 +451,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         ?>
         <?php if (!empty($uploadedFiles)): ?>
         <div class="card mb-4">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-paperclip me-2"></i>Uploaded Documents</h5>
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-paperclip me-2"></i>My Uploaded Documents</h5>
             </div>
             <div class="card-body">
+                <p class="text-muted"><small>Your uploaded files are saved. Contact the administrator to access them.</small></p>
                 <div class="row">
                     <?php foreach ($uploadedFiles as $qId => $filePath): ?>
                     <?php
@@ -466,18 +467,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                         }
                     }
                     $fileName = basename($filePath);
-                    $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-                    $icon = 'fa-file';
-                    if ($fileExt === 'pdf') $icon = 'fa-file-pdf';
-                    elseif (in_array($fileExt, ['doc', 'docx'])) $icon = 'fa-file-word';
-                    elseif (in_array($fileExt, ['jpg', 'jpeg', 'png'])) $icon = 'fa-file-image';
                     ?>
-                    <div class="col-md-6 mb-3">
-                        <div class="border rounded p-3">
-                            <h6><?php echo htmlspecialchars($questionText); ?></h6>
-                            <a href="<?php echo htmlspecialchars($filePath); ?>" target="_blank" class="btn btn-outline-primary">
-                                <i class="fas <?php echo $icon; ?> me-2"></i>Download <?php echo htmlspecialchars($fileName); ?>
-                            </a>
+                    <div class="col-md-6 mb-2">
+                        <div class="border rounded p-2 bg-light">
+                            <i class="fas fa-file me-2"></i>
+                            <strong><?php echo htmlspecialchars($questionText); ?></strong><br>
+                            <small class="text-muted"><?php echo htmlspecialchars($fileName); ?></small>
                         </div>
                     </div>
                     <?php endforeach; ?>

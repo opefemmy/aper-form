@@ -1,6 +1,9 @@
 <?php
 require_once 'config.php';
 
+// Define the Appointment and Promotion Committee name (renamed from Dean)
+define('APC_COMMITTEE_NAME', 'Appointment and Promotion Committee');
+
 // Check if evaluator (HOD/Dean/Registrar) is logged in
 if (isEvaluatorLoggedIn()) {
     // Evaluator is logged in - set up the page for them
@@ -647,7 +650,7 @@ $sessions = $stmt->fetchAll();
                     <i class="fas fa-info-circle me-2"></i>
                     Currently viewing: <strong><?php echo strtoupper($currentStage); ?></strong> stage evaluations.
                     <?php if ($adminRole === 'supervisor'): ?>
-                        Staff will move to Dean after your evaluation.
+                        Staff will move to <?php echo APC_COMMITTEE_NAME; ?> after your evaluation.
                     <?php elseif ($adminRole === 'dean'): ?>
                         Staff will move to Registrar for final approval after your evaluation.
                     <?php elseif ($adminRole === 'registrar'): ?>
@@ -1044,12 +1047,12 @@ $sessions = $stmt->fetchAll();
                                         <?php elseif ($adminRole === 'dean'): ?>
                                         <div class="row">
                                             <div class="col-md-12 mb-3">
-                                                <label class="form-label"><strong>Dean Comments/Observations</strong></label>
+                                                <label class="form-label"><strong><?php echo APC_COMMITTEE_NAME; ?> Comments/Observations</strong></label>
                                                 <textarea class="form-control" name="dean_remarks" rows="4" placeholder="Enter your evaluation comments, observations, and recommendations..."><?php echo htmlspecialchars($selectedEval['dean_remarks'] ?? ''); ?></textarea>
                                                 <small class="text-muted">Provide detailed comments on the staff performance before forwarding to Registrar</small>
                                             </div>
                                             <div class="col-md-6 mb-3">
-                                                <label class="form-label">Dean Name</label>
+                                                <label class="form-label"><?php echo APC_COMMITTEE_NAME; ?> Name</label>
                                                 <input type="text" class="form-control" name="dean_name" value="<?php echo htmlspecialchars($selectedEval['dean_name'] ?? $adminName); ?>">
                                             </div>
                                             <div class="col-md-6 mb-3">
@@ -1102,7 +1105,7 @@ $sessions = $stmt->fetchAll();
                                             </button>
                                             <?php else: ?>
                                             <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
-                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to Dean)
+                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to <?php echo APC_COMMITTEE_NAME; ?>)
                                             </button>
                                             <?php endif; ?>
                                             <a href="evaluate-supervisor.php" class="btn btn-secondary btn-lg">

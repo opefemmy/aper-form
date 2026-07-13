@@ -2,6 +2,9 @@
 require_once 'config.php';
 startSession();
 
+// Define the Appointment and Promotion Committee name (renamed from Dean)
+define('APC_COMMITTEE_NAME', 'Appointment and Promotion Committee');
+
 // Check if evaluation ID is provided
 $evalId = $_GET['id'] ?? 0;
 if (!$evalId) {
@@ -381,7 +384,7 @@ function getAnsweredQuestions($questions, $responses) {
                         <p class="mb-0 text-muted" style="font-size: 0.8rem;"><?php echo !empty($eval['supervisor_date']) ? date('F j, Y', strtotime($eval['supervisor_date'])) : ''; ?></p>
                     </div>
                     <div class="col-md-4">
-                        <p class="mb-1"><strong>Dean Review</strong></p>
+                        <p class="mb-1"><strong><?php echo APC_COMMITTEE_NAME; ?> Review</strong></p>
                         <p class="mb-0 text-muted"><?php echo !empty($eval['dean_name']) ? htmlspecialchars($eval['dean_name']) : 'N/A'; ?></p>
                         <p class="mb-0 text-muted" style="font-size: 0.8rem;"><?php echo !empty($eval['dean_date']) ? date('F j, Y', strtotime($eval['dean_date'])) : ''; ?></p>
                     </div>

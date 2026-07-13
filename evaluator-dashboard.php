@@ -1,6 +1,9 @@
 <?php
 require_once 'config.php';
 
+// Define the Appointment and Promotion Committee name (renamed from Dean)
+define('APC_COMMITTEE_NAME', 'Appointment and Promotion Committee');
+
 // Check if evaluator (HOD/Dean/Registrar) is logged in
 if (!isEvaluatorLoggedIn()) {
     // Also check for admin login
@@ -111,7 +114,7 @@ if ($evaluatorType === 'HOD') {
                         <h2><i class="fas fa-tachometer-alt"></i> Welcome, <?php echo htmlspecialchars($evaluatorName); ?></h2>
                         <p class="text-muted mb-0">
                             <span class="badge bg-<?php echo $evaluatorType === 'HOD' ? 'warning' : ($evaluatorType === 'Dean' ? 'primary' : 'info'); ?>">
-                                <?php echo $evaluatorType; ?>
+                                <?php echo $evaluatorType === 'Dean' ? APC_COMMITTEE_NAME : $evaluatorType; ?>
                             </span>
                             <?php if ($evaluatorType === 'HOD'): ?>
                             Department: <?php echo htmlspecialchars($evaluatorDept); ?>
