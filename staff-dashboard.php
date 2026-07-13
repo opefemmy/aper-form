@@ -333,14 +333,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         </div>
         <?php endif; ?>
 
-        <?php if ($existingEval['status'] !== 'draft'): ?>
+        <?php if ($existingEval && is_array($existingEval) && ($existingEval['status'] ?? '') !== 'draft'): ?>
         <div class="alert alert-info">
             <i class="fas fa-check-circle me-2"></i>
             Your evaluation has been submitted. You can still update and resubmit at any time.
         </div>
         <?php endif; ?>
 
-        <?php if ($existingEval['status'] === 'approved'): ?>
+        <?php if ($existingEval && is_array($existingEval) && ($existingEval['status'] ?? '') === 'approved'): ?>
         <div class="alert alert-success">
             <i class="fas fa-check-circle me-2"></i>
             <strong>Congratulations!</strong> Your evaluation has been fully approved. You can now download your official evaluation report.
