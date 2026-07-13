@@ -88,9 +88,30 @@ $designation = $eval['designation'];
 $gradeLevel = $eval['grade_level'];
 
 if ($useTcpdf) {
-    // Header
-    $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, $instName, 0, true, 'C');
+    // Add watermark logo in background
+    if (!empty($logo)) {
+        // Get image dimensions
+        $imgInfo = getimagesize($logo);
+        if ($imgInfo) {
+            $imgWidth = 80; // Set watermark width
+            $imgHeight = ($imgInfo[1] / $imgInfo[0]) * $imgWidth;
+            // Place watermark in center of page
+            $pdf->Image($logo, 65, 120, $imgWidth, $imgHeight, '', '', '', true, 150);
+        }
+    }
+
+    // Header with logo
+    if (!empty($logo)) {
+        // Logo on the left, text on the right
+        $pdf->Image($logo, 15, 10, 25, 25, '', '', '', true, 150);
+        $pdf->SetFont('helvetica', 'B', 16);
+        $pdf->Cell(0, 10, $instName, 0, true, 'C');
+    } else {
+        // No logo - just text
+        $pdf->SetFont('helvetica', 'B', 16);
+        $pdf->Cell(0, 10, $instName, 0, true, 'C');
+    }
+
     $pdf->SetFont('helvetica', '', 10);
     if (!empty($instAddress)) {
         $pdf->Cell(0, 5, $instAddress, 0, true, 'C');
