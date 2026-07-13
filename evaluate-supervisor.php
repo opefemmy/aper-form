@@ -460,10 +460,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
         }
 
         // Update individual score fields ONLY for HOD (Dean/Registrar don't rate)
+        // Save to JSON field instead of individual columns (which may not exist for new question format)
         if ($adminRole === 'supervisor' || $adminRole === 'hod' || $adminRole === 'admin' || $adminRole === 'super_admin') {
-            foreach ($scores as $key => $value) {
-                $updateData[$key] = $value;
-            }
+            // Save HOD responses to JSON field
+            $updateData['hod_responses'] = json_encode($scores);
         }
 
         // Check if we need to create a new evaluation or update existing
