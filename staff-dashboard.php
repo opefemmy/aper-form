@@ -31,7 +31,7 @@ $stmt = $pdo->query("SELECT * FROM academic_sessions WHERE is_active = 1 LIMIT 1
 $activeSession = $stmt->fetch();
 
 // Get questions from database based on staff category (include HOD category for HOD staff)
-$stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both' OR target_staff_category = 'hod') ORDER BY category, question_order, id");
+$stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both' OR target_staff_category = 'hod') ORDER BY COALESCE(question_order, 99999), category, id");
 $stmt->execute([$staffCategory]);
 $dbQuestions = $stmt->fetchAll();
 

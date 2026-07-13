@@ -629,7 +629,7 @@ $sessions = $stmt->fetchAll();
 
                 <h2 class="mb-4">
                     <i class="fas fa-user-check me-2"></i>
-                    <?php echo ucfirst($adminRole); ?> Evaluation Portal
+                    <?php echo $adminRole === 'dean' ? APC_COMMITTEE_NAME : ucfirst($adminRole); ?> Evaluation Portal
                     <span class="badge bg-warning ms-2"><?php echo count($pendingEvals); ?> Pending</span>
                 </h2>
 

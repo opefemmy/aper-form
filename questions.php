@@ -70,11 +70,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle question group and label
         $questionGroup = !empty($_POST['question_group']) ? sanitize($_POST['question_group']) : null;
         $questionLabel = !empty($_POST['question_label']) ? sanitize($_POST['question_label']) : null;
+        $questionOrder = intval($_POST['question_order'] ?? 0);
 
         // Build query based on available columns
         if ($hasQuestionLabel) {
             // Full query with all new columns
-            $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category, allowed_file_types, max_file_size, question_group, question_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category, allowed_file_types, max_file_size, question_group, question_label, question_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $category,
                 $subCategory,
@@ -85,7 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $allowedFileTypes,
                 $maxFileSize,
                 $questionGroup,
-                $questionLabel
+                $questionLabel,
+                $questionOrder
             ]);
         } elseif ($hasSubCategory) {
             $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category) VALUES (?, ?, ?, ?, ?, ?)");
@@ -144,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Build query based on available columns
         if ($hasQuestionLabel) {
-            $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, sub_category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ?, allowed_file_types = ?, max_file_size = ?, question_group = ?, question_label = ? WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, sub_category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ?, allowed_file_types = ?, max_file_size = ?, question_group = ?, question_label = ?, question_order = ? WHERE id = ?");
             $stmt->execute([
                 $category,
                 $subCategory,
@@ -157,6 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $maxFileSize,
                 $questionGroup,
                 $questionLabel,
+                $questionOrder,
                 intval($_POST['question_id'])
             ]);
         } elseif ($hasSubCategory) {
@@ -481,6 +484,13 @@ foreach ($questions as $q) {
                                                         <label class="form-label">Question Text</label>
                                                         <input type="text" class="form-control" name="question_text" value="<?php echo htmlspecialchars($q['question_text']); ?>" required>
                                                     </div>
+                                                    <div class="row">
+                                                        <div class="col-md-4 mb-3">
+                                                            <label class="form-label">Display Order</label>
+                                                            <input type="number" class="form-control" name="question_order" value="<?php echo $q['question_order'] ?? 0; ?>" min="0">
+                                                            <small class="text-muted">Questions with lower numbers appear first</small>
+                                                        </div>
+                                                    </div>
                                                     <div class="mb-3" id="edit_<?php echo $q['id']; ?>_options_field" <?php echo ($q['question_type'] != 'single_choice' && $q['question_type'] != 'multiple_choice') ? 'style="display:none;"' : ''; ?>>
                                                         <label class="form-label">Options (one per line)</label>
                                                         <textarea class="form-control" name="options" rows="4"><?php echo htmlspecialchars($q['options'] ?? ''); ?></textarea>
@@ -641,6 +651,13 @@ foreach ($questions as $q) {
                         <div class="mb-3">
                             <label class="form-label">Question Text</label>
                             <input type="text" class="form-control" name="question_text" placeholder="e.g., How would you rate your teaching performance?" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Display Order</label>
+                                <input type="number" class="form-control" name="question_order" value="0" min="0" placeholder="Order number">
+                                <small class="text-muted">Questions with lower numbers appear first</small>
+                            </div>
                         </div>
                         <div class="mb-3" id="add_options_field" style="display:none;">
                             <label class="form-label">Options (one per line)</label>
