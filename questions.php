@@ -18,6 +18,7 @@ $logo = $settings['institution_logo'] ?? '';
 // Check if new columns exist
 $hasSubCategory = false;
 $hasFileUpload = false;
+$hasQuestionLabel = false;
 try {
     $pdo->query("SELECT sub_category FROM evaluation_questions LIMIT 1");
     $hasSubCategory = true;
@@ -25,6 +26,10 @@ try {
 try {
     $pdo->query("SELECT allowed_file_types FROM evaluation_questions LIMIT 1");
     $hasFileUpload = true;
+} catch (Exception $e) {}
+try {
+    $pdo->query("SELECT question_label FROM evaluation_questions LIMIT 1");
+    $hasQuestionLabel = true;
 } catch (Exception $e) {}
 
 // Handle add/edit/delete question
@@ -67,7 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $questionLabel = !empty($_POST['question_label']) ? sanitize($_POST['question_label']) : null;
 
         // Build query based on available columns
-        if ($hasSubCategory && $hasFileUpload) {
+        if ($hasQuestionLabel) {
+            // Full query with all new columns
             $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category, allowed_file_types, max_file_size, question_group, question_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $category,
@@ -137,8 +143,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Build query based on available columns
-        if ($hasSubCategory && $hasFileUpload) {
-            $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, sub_category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ?, allowed_file_types = ?, max_file_size = ? WHERE id = ?");
+        if ($hasQuestionLabel) {
+            $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, sub_category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ?, allowed_file_types = ?, max_file_size = ?, question_group = ?, question_label = ? WHERE id = ?");
             $stmt->execute([
                 $category,
                 $subCategory,
@@ -149,6 +155,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 sanitize($_POST['target_staff_category'] ?? 'both'),
                 $allowedFileTypes,
                 $maxFileSize,
+                $questionGroup,
+                $questionLabel,
                 intval($_POST['question_id'])
             ]);
         } elseif ($hasSubCategory) {
