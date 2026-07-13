@@ -399,35 +399,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
             }
         }
 
-        // HOD scores only - staff scores are for viewing only, not for grading
-        $hodScores = $scores;
+        // Initialize update data
+        $updateData = [];
 
-        // Calculate HOD total and grade (HOD alone determines the final grade)
-        $totalScore = array_sum(array_filter($hodScores, function($v) { return $v > 0; }));
-        $questionsAnswered = count(array_filter($hodScores, function($v) { return $v > 0; }));
-        $averageScore = $questionsAnswered > 0 ? round($totalScore / $questionsAnswered, 2) : 0;
-        $maxPossible = count($hodScores) * 5;
-        if ($maxPossible == 0) $maxPossible = 23 * 5;
-        $percentage = $maxPossible > 0 ? round(($totalScore / $maxPossible) * 100, 1) : 0;
-        $gradeInfo = calculateGrade($percentage);
-
-        // Build update data - use HOD scores for grading
-        $updateData = [
-            'total_score' => $totalScore,
-            'average_score' => $averageScore,
-            'percentage' => $percentage,
-            'performance_grade' => $gradeInfo[0],
-            'performance_status' => $gradeInfo[1],
-            'evaluated_by' => $adminId,
-            // Store HOD-specific scores
-            'hod_total_score' => $totalScore,
-            'hod_percentage' => $percentage,
-            'hod_performance_grade' => $gradeInfo[0],
-            'hod_performance_status' => $gradeInfo[1],
-        ];
-
-        // Add stage-specific fields - FIXED: Save & Now properly advances to next stage
+        // Only calculate scores when HOD is saving - preserve HOD's score for Dean and Registrar
         if ($adminRole === 'supervisor' || $adminRole === 'hod' || $adminRole === 'admin' || $adminRole === 'super_admin') {
+            // HOD scores only - staff scores are for viewing only, not for grading
+            $hodScores = $scores;
+
+            // Calculate HOD total and grade (HOD alone determines the final grade)
+            $totalScore = array_sum(array_filter($hodScores, function($v) { return $v > 0; }));
+            $questionsAnswered = count(array_filter($hodScores, function($v) { return $v > 0; }));
+            $averageScore = $questionsAnswered > 0 ? round($totalScore / $questionsAnswered, 2) : 0;
+            $maxPossible = count($hodScores) * 5;
+            if ($maxPossible == 0) $maxPossible = 23 * 5;
+            $percentage = $maxPossible > 0 ? round(($totalScore / $maxPossible) * 100, 1) : 0;
+            $gradeInfo = calculateGrade($percentage);
+
+            // Build update data - use HOD scores for grading
+            $updateData = [
+                'total_score' => $totalScore,
+                'average_score' => $averageScore,
+                'percentage' => $percentage,
+                'performance_grade' => $gradeInfo[0],
+                'performance_status' => $gradeInfo[1],
+                'evaluated_by' => $adminId,
+                // Store HOD-specific scores
+                'hod_total_score' => $totalScore,
+                'hod_percentage' => $percentage,
+                'hod_performance_grade' => $gradeInfo[0],
+                'hod_performance_status' => $gradeInfo[1],
+            ];
+
             // HOD evaluation - advance to Dean stage
             $updateData['evaluation_stage'] = 'dean';
             $updateData['hod_id'] = $adminId;
@@ -439,14 +442,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
             $updateData['overall_rating'] = sanitize($_POST['overall_rating'] ?? '');
             $updateData['recommendation'] = sanitize($_POST['recommendation'] ?? '');
         } elseif ($adminRole === 'dean') {
-            // Dean evaluation - advance to Registrar stage
+            // Dean adds comments only - PRESERVE HOD's score (don't recalculate)
             $updateData['evaluation_stage'] = 'registrar';
             $updateData['dean_id'] = $adminId;
             $updateData['dean_remarks'] = sanitize($_POST['dean_remarks'] ?? '');
             $updateData['dean_name'] = sanitize($_POST['dean_name'] ?? $adminName);
             $updateData['dean_date'] = sanitize($_POST['dean_date'] ?? date('Y-m-d'));
         } elseif ($adminRole === 'registrar') {
-            // Registrar final approval - complete the evaluation
+            // Registrar final approval - PRESERVE HOD's score (don't recalculate)
             $updateData['evaluation_stage'] = 'completed';
             $updateData['registrar_name'] = sanitize($_POST['registrar_name'] ?? $adminName);
             $updateData['registrar_remarks'] = sanitize($_POST['registrar_remarks'] ?? '');
@@ -456,9 +459,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
             $updateData['status'] = 'approved';
         }
 
-        // Update scores
-        foreach ($scores as $key => $value) {
-            $updateData[$key] = $value;
+        // Update individual score fields ONLY for HOD (Dean/Registrar don't rate)
+        if ($adminRole === 'supervisor' || $adminRole === 'hod' || $adminRole === 'admin' || $adminRole === 'super_admin') {
+            foreach ($scores as $key => $value) {
+                $updateData[$key] = $value;
+            }
         }
 
         // Check if we need to create a new evaluation or update existing
