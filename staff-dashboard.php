@@ -331,6 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <?php if ($existingEval['status'] !== 'draft'): ?>
         <div class="alert alert-info">
