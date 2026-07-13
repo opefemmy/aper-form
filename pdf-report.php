@@ -51,6 +51,7 @@ while ($row = $stmt->fetch()) {
 }
 $instName = $settings['institution_name'] ?? 'Institution';
 $instAddress = $settings['institution_address'] ?? '';
+$logo = $settings['institution_logo'] ?? '';
 
 // Check if TCPDF is available, otherwise use browser print
 $pdf = null;
@@ -296,15 +297,18 @@ if ($useTcpdf) {
     // Output PDF
     $pdf->Output('Evaluation_Report_' . $staffId . '_' . date('Y') . '.pdf', 'D');
 } else {
-    // HTML Fallback
+    // HTML Fallback with Logo and Watermark
     echo '<!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
         <title>Evaluation Report - ' . htmlspecialchars($staffName) . '</title>
         <style>
-            body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+            body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; position: relative; }
             h1 { text-align: center; color: #308a1e; }
+            .header-logo { position: absolute; top: 10px; left: 20px; max-height: 60px; }
+            .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; opacity: 0.1; z-index: -1; pointer-events: none; }
+            .watermark img { width: 100%; height: auto; }
             h2 { border-bottom: 2px solid #308a1e; padding-bottom: 5px; }
             .info-grid { display: grid; grid-template-columns: 150px 1fr; gap: 10px; margin: 20px 0; }
             .info-label { font-weight: bold; }
@@ -315,8 +319,18 @@ if ($useTcpdf) {
             @media print { body { padding: 0; } }
         </style>
     </head>
-    <body>
-        <h1>' . htmlspecialchars($instName) . '</h1>
+    <body>';
+
+    // Watermark (background logo)
+    if (!empty($logo)) {
+        echo '<div class="watermark"><img src="' . htmlspecialchars($logo) . '" alt="Watermark"></div>';
+    }
+
+    // Header with logo
+    if (!empty($logo)) {
+        echo '<img src="' . htmlspecialchars($logo) . '" class="header-logo" alt="Institution Logo">';
+    }
+    echo '<h1 style="margin-top: 20px;">' . htmlspecialchars($instName) . '</h1>
         <p style="text-align:center">' . htmlspecialchars($instAddress) . '</p>
         <h2 style="text-align:center">STAFF PERFORMANCE EVALUATION REPORT</h2>
 
