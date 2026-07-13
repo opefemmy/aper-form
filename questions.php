@@ -32,13 +32,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $category = sanitize($_POST['custom_category']);
         }
 
-        $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_type, options, target_staff_category) VALUES (?, ?, ?, ?, ?)");
+        // Handle sub-category
+        $subCategory = null;
+        if (!empty($_POST['sub_category']) && $_POST['sub_category'] !== '') {
+            $subCategory = sanitize($_POST['sub_category']);
+        }
+
+        // Handle file upload settings
+        $allowedFileTypes = 'pdf,doc,docx';
+        $maxFileSize = 5;
+        if ($questionType === 'file_upload') {
+            $allowedFileTypes = sanitize($_POST['allowed_file_types'] ?? 'pdf,doc,docx');
+            $maxFileSize = intval($_POST['max_file_size'] ?? 5);
+        }
+
+        $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, sub_category, question_text, question_type, options, target_staff_category, allowed_file_types, max_file_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $category,
+            $subCategory,
             sanitize($_POST['question_text']),
             $questionType,
             $options,
-            sanitize($_POST['target_staff_category'] ?? 'both')
+            sanitize($_POST['target_staff_category'] ?? 'both'),
+            $allowedFileTypes,
+            $maxFileSize
         ]);
         showMessage('Question added successfully!', 'success');
     }
@@ -57,14 +74,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $category = sanitize($_POST['custom_category']);
         }
 
-        $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ? WHERE id = ?");
+        // Handle sub-category
+        $subCategory = null;
+        if (!empty($_POST['sub_category']) && $_POST['sub_category'] !== '') {
+            $subCategory = sanitize($_POST['sub_category']);
+        }
+
+        // Handle file upload settings
+        $allowedFileTypes = 'pdf,doc,docx';
+        $maxFileSize = 5;
+        if ($questionType === 'file_upload') {
+            $allowedFileTypes = sanitize($_POST['allowed_file_types'] ?? 'pdf,doc,docx');
+            $maxFileSize = intval($_POST['max_file_size'] ?? 5);
+        }
+
+        $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, sub_category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ?, allowed_file_types = ?, max_file_size = ? WHERE id = ?");
         $stmt->execute([
             $category,
+            $subCategory,
             sanitize($_POST['question_text']),
             $questionType,
             $options,
             isset($_POST['is_active']) ? 1 : 0,
             sanitize($_POST['target_staff_category'] ?? 'both'),
+            $allowedFileTypes,
+            $maxFileSize,
             intval($_POST['question_id'])
         ]);
         showMessage('Question updated successfully!', 'success');
@@ -81,6 +115,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get filter category
 $filterCategory = $_GET['filter'] ?? 'all';
+
+// Get sub-categories for dropdown (if table exists)
+$subCategories = [];
+$subCategoriesByCategory = [];
+try {
+    $stmt = $pdo->query("SELECT * FROM question_sub_categories WHERE is_active = 1 ORDER BY category, sub_category_order");
+    $subCategories = $stmt->fetchAll();
+    // Group sub-categories by category
+    foreach ($subCategories as $sc) {
+        $subCategoriesByCategory[$sc['category']][] = $sc;
+    }
+} catch (Exception $e) {
+    // Table doesn't exist yet - sub-categories will be empty
+}
 
 // Build query based on filter
 if ($filterCategory === 'hod') {
@@ -143,6 +191,7 @@ foreach ($questions as $q) {
                     <a href="staff-upload.php"><i class="fas fa-upload"></i> Upload Staff</a>
                     <a href="manage-evaluators.php"><i class="fas fa-user-tie"></i> Evaluators</a>
                     <a href="questions.php" class="active"><i class="fas fa-question-circle"></i> Questions</a>
+                    <a href="question-sub-categories.php"><i class="fas fa-folder-tree"></i> Sub-Categories</a>
                     <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>
                     <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>
                     <?php if (hasPermission('download_all_data')): ?>
@@ -219,6 +268,7 @@ foreach ($questions as $q) {
                             <thead>
                                 <tr>
                                     <th>Question Type</th>
+                                    <th>Sub-Category</th>
                                     <th>Question</th>
                                     <th>Target Staff</th>
                                     <th>Status</th>
@@ -235,11 +285,13 @@ foreach ($questions as $q) {
                                         'short_answer' => '✎ Short',
                                         'long_answer' => '📝 Essay',
                                         'yes_no' => 'Yes/No',
-                                        'scale' => '📏 Scale'
+                                        'scale' => '📏 Scale',
+                                        'file_upload' => '📎 Upload'
                                     ];
                                 ?>
                                 <tr>
                                     <td><span class="badge bg-info"><?php echo $typeLabels[$q['question_type']] ?? $q['question_type']; ?></span></td>
+                                    <td><?php echo !empty($q['sub_category']) ? '<span class="badge bg-secondary">' . htmlspecialchars($q['sub_category']) . '</span>' : '<span class="text-muted">-</span>'; ?></td>
                                     <td><?php echo htmlspecialchars($q['question_text']); ?></td>
                                     <td>
                                         <span class="badge bg-<?php echo ($q['target_staff_category'] ?? 'both') == 'both' ? 'primary' : (($q['target_staff_category'] ?? '') == 'academic' ? 'success' : 'warning'); ?>">
@@ -292,6 +344,21 @@ foreach ($questions as $q) {
                                                             <input type="text" class="form-control mt-2" name="custom_category" id="edit_<?php echo $q['id']; ?>_custom_category" placeholder="Enter custom category name" style="display:none;" value="<?php echo !in_array($q['category'], ['Teaching', 'Research', 'Administrative', 'Community', 'Professional']) ? htmlspecialchars($q['category']) : ''; ?>">
                                                         </div>
                                                         <div class="col-md-4 mb-3">
+                                                            <label class="form-label">Sub-Category</label>
+                                                            <select class="form-select" name="sub_category" id="edit_sub_category_<?php echo $q['id']; ?>">
+                                                                <option value="">None</option>
+                                                                <?php
+                                                                $currentCategory = $q['category'];
+                                                                if (isset($subCategoriesByCategory[$currentCategory])):
+                                                                    foreach ($subCategoriesByCategory[$currentCategory] as $sc): ?>
+                                                                <option value="<?php echo htmlspecialchars($sc['sub_category_name']); ?>" <?php echo ($q['sub_category'] ?? '') == $sc['sub_category_name'] ? 'selected' : ''; ?>>
+                                                                    <?php echo htmlspecialchars($sc['sub_category_name']); ?>
+                                                                </option>
+                                                                <?php endforeach; ?>
+                                                                <?php endif; ?>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-4 mb-3">
                                                             <label class="form-label">Question Type</label>
                                                             <select class="form-select" name="question_type" id="edit_type_<?php echo $q['id']; ?>" onchange="toggleOptionsField(this, 'edit_<?php echo $q['id']; ?>')">
                                                                 <option value="rating" <?php echo $q['question_type'] == 'rating' ? 'selected' : ''; ?>>⭐ Rating (1-5 Stars)</option>
@@ -302,6 +369,7 @@ foreach ($questions as $q) {
                                                                 <option value="long_answer" <?php echo $q['question_type'] == 'long_answer' ? 'selected' : ''; ?>>📝 Long Response</option>
                                                                 <option value="yes_no" <?php echo $q['question_type'] == 'yes_no' ? 'selected' : ''; ?>>Yes / No</option>
                                                                 <option value="scale" <?php echo $q['question_type'] == 'scale' ? 'selected' : ''; ?>>📏 Scale (1-10)</option>
+                                                                <option value="file_upload" <?php echo ($q['question_type'] ?? '') == 'file_upload' ? 'selected' : ''; ?>>📎 File Upload</option>
                                                             </select>
                                                         </div>
                                                         <div class="col-md-4 mb-3">
@@ -321,6 +389,15 @@ foreach ($questions as $q) {
                                                     <div class="mb-3" id="edit_<?php echo $q['id']; ?>_options_field" <?php echo ($q['question_type'] != 'single_choice' && $q['question_type'] != 'multiple_choice') ? 'style="display:none;"' : ''; ?>>
                                                         <label class="form-label">Options (one per line)</label>
                                                         <textarea class="form-control" name="options" rows="4"><?php echo htmlspecialchars($q['options'] ?? ''); ?></textarea>
+                                                    </div>
+                                                    <div class="mb-3" id="edit_<?php echo $q['id']; ?>_upload_field" <?php echo ($q['question_type'] ?? '') != 'file_upload' ? 'style="display:none;"' : ''; ?>>
+                                                        <label class="form-label">Allowed File Types</label>
+                                                        <input type="text" class="form-control" name="allowed_file_types" value="<?php echo htmlspecialchars($q['allowed_file_types'] ?? 'pdf,doc,docx'); ?>" placeholder="pdf,doc,docx">
+                                                        <small class="text-muted">Comma-separated list (e.g., pdf,doc,docx,jpg,png)</small>
+                                                    </div>
+                                                    <div class="mb-3" id="edit_<?php echo $q['id']; ?>_size_field" <?php echo ($q['question_type'] ?? '') != 'file_upload' ? 'style="display:none;"' : ''; ?>>
+                                                        <label class="form-label">Max File Size (MB)</label>
+                                                        <input type="number" class="form-control" name="max_file_size" value="<?php echo htmlspecialchars($q['max_file_size'] ?? 5); ?>" min="1" max="50">
                                                     </div>
                                                     <div class="row">
                                                         <div class="col-md-12 mb-3">
@@ -389,6 +466,45 @@ foreach ($questions as $q) {
                                 <input type="text" class="form-control mt-2" name="custom_category" id="add_custom_category" placeholder="Enter custom category name" style="display:none;">
                             </div>
                             <div class="col-md-4 mb-3">
+                                <label class="form-label">Sub-Category</label>
+                                <select class="form-select" name="sub_category" id="add_sub_category">
+                                    <option value="">None</option>
+                                    <optgroup label="Teaching">
+                                        <option value="Lecture Delivery">Lecture Delivery</option>
+                                        <option value="Student Engagement">Student Engagement</option>
+                                        <option value="Course Preparation">Course Preparation</option>
+                                        <option value="Course Coverage">Course Coverage</option>
+                                        <option value="Time Management">Time Management</option>
+                                        <option value="Assessment & Feedback">Assessment & Feedback</option>
+                                    </optgroup>
+                                    <optgroup label="Research">
+                                        <option value="Publications">Publications</option>
+                                        <option value="Conference Participation">Conference Participation</option>
+                                        <option value="Research Grants">Research Grants</option>
+                                        <option value="Innovations">Innovations</option>
+                                        <option value="Journal Articles">Journal Articles</option>
+                                    </optgroup>
+                                    <optgroup label="Administrative">
+                                        <option value="Meeting Attendance">Meeting Attendance</option>
+                                        <option value="Punctuality">Punctuality</option>
+                                        <option value="Leadership">Leadership</option>
+                                        <option value="Teamwork">Teamwork</option>
+                                        <option value="Record Keeping">Record Keeping</option>
+                                    </optgroup>
+                                    <optgroup label="Community">
+                                        <option value="Community Development">Community Development</option>
+                                        <option value="Committee Participation">Committee Participation</option>
+                                        <option value="Institutional Representation">Institutional Representation</option>
+                                    </optgroup>
+                                    <optgroup label="Professional">
+                                        <option value="Workshops">Workshops</option>
+                                        <option value="Training Programs">Training Programs</option>
+                                        <option value="Certifications">Certifications</option>
+                                        <option value="Seminars">Seminars</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label class="form-label">Question Type</label>
                                 <select class="form-select" name="question_type" id="add_question_type" onchange="toggleOptionsField(this, 'add')" required>
                                     <option value="rating">⭐ Rating (1-5 Stars)</option>
@@ -399,6 +515,7 @@ foreach ($questions as $q) {
                                     <option value="long_answer">📝 Long Response (Essay)</option>
                                     <option value="yes_no">Yes / No</option>
                                     <option value="scale">📏 Scale (1-10)</option>
+                                    <option value="file_upload">📎 File Upload</option>
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
@@ -421,6 +538,15 @@ foreach ($questions as $q) {
                             <textarea class="form-control" name="options" rows="4" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
                             <small class="text-muted">Enter each option on a new line</small>
                         </div>
+                        <div class="mb-3" id="add_upload_field" style="display:none;">
+                            <label class="form-label">Allowed File Types</label>
+                            <input type="text" class="form-control" name="allowed_file_types" value="pdf,doc,docx" placeholder="pdf,doc,docx">
+                            <small class="text-muted">Comma-separated list (e.g., pdf,doc,docx,jpg,png)</small>
+                        </div>
+                        <div class="mb-3" id="add_size_field" style="display:none;">
+                            <label class="form-label">Max File Size (MB)</label>
+                            <input type="number" class="form-control" name="max_file_size" value="5" min="1" max="50">
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -435,10 +561,22 @@ foreach ($questions as $q) {
     function toggleOptionsField(selectElem, prefix) {
         var questionType = selectElem.value;
         var optionsField = document.getElementById(prefix + '_options_field');
+        var uploadField = document.getElementById(prefix + '_upload_field');
+        var sizeField = document.getElementById(prefix + '_size_field');
+
         if (questionType === 'single_choice' || questionType === 'multiple_choice') {
             optionsField.style.display = 'block';
         } else {
             optionsField.style.display = 'none';
+        }
+
+        // Handle file upload fields
+        if (questionType === 'file_upload') {
+            if (uploadField) uploadField.style.display = 'block';
+            if (sizeField) sizeField.style.display = 'block';
+        } else {
+            if (uploadField) uploadField.style.display = 'none';
+            if (sizeField) sizeField.style.display = 'none';
         }
     }
     function toggleCustomCategory(selectElem, prefix) {

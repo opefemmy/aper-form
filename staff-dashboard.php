@@ -245,6 +245,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             transition: all 0.3s;
         }
         .dark-mode-toggle:hover { background: rgba(255,255,255,0.3); }
+
+        /* Section navigation styles */
+        .question-section { display: none; }
+        .question-section.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .section-nav {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 2px dashed #cbd5e1;
+        }
+        .section-progress {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .section-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .section-dot.active { background: <?php echo $primaryColor; ?>; transform: scale(1.3); }
+        .section-dot.completed { background: #10b981; }
+        .section-divider {
+            height: 3px;
+            background: linear-gradient(90deg, <?php echo $primaryColor; ?>, <?php echo $secondaryColor; ?>);
+            border-radius: 2px;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+        .section-divider::after {
+            content: 'Next Section';
+            position: absolute;
+            right: 0;
+            top: -10px;
+            background: white;
+            padding: 0 10px;
+            font-size: 12px;
+            color: <?php echo $primaryColor; ?>;
+            font-weight: 600;
+        }
+        body.dark-mode .section-nav { background: linear-gradient(135deg, #1e293b, #334155); border-color: #475569; }
+        body.dark-mode .section-divider::after { background: #0f172a; }
     </style>
 </head>
 <body>
@@ -421,112 +472,160 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                         }
                     }
 
-                    // Render each category
-                    foreach ($questionsByCategory as $category => $categoryQuestions):
+                    // Get all categories
+                    $allCategories = array_keys($questionsByCategory);
+                    $totalSections = count($allCategories);
                     ?>
-                    <div class="mb-4">
-                        <h6 class="text-primary border-bottom pb-2">
-                            <i class="fas fa-folder me-2"></i><?php echo htmlspecialchars($categoryNames[$category] ?? $category); ?>
-                        </h6>
-                        <?php foreach ($categoryQuestions as $index => $q):
-                            $fieldName = 'q_' . $q['id'];
-                            $existingValue = $existingResponses[$q['id']] ?? '';
-                        ?>
-                        <div class="question-item">
-                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['question_text']); ?></label>
-                            <div>
-                                <?php
-                                // Render based on question type
-                                if ($q['question_type'] === 'rating' || $q['question_type'] === 'scale'):
-                                    for ($i = 5; $i >= 1; $i--): ?>
-                                <label class="rating-label">
-                                    <input type="radio" name="<?php echo $fieldName; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" <?php echo $existingValue == $i ? 'checked' : ''; ?>>
-                                    <span><?php echo $i; ?></span>
-                                </label>
-                                    <?php endfor;
-                                elseif ($q['question_type'] === 'yes_no'): ?>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="yes" <?php echo $existingValue == 'yes' ? 'checked' : ''; ?>>
-                                    <label class="form-check-label">Yes</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="no" <?php echo $existingValue == 'no' ? 'checked' : ''; ?>>
-                                    <label class="form-check-label">No</label>
-                                </div>
-                                <?php elseif ($q['question_type'] === 'true_false'): ?>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="true" <?php echo $existingValue == 'true' ? 'checked' : ''; ?>>
-                                    <label class="form-check-label">True</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="false" <?php echo $existingValue == 'false' ? 'checked' : ''; ?>>
-                                    <label class="form-check-label">False</label>
-                                </div>
-                                <?php elseif ($q['question_type'] === 'single_choice' && !empty($q['options'])):
-                                    $options = explode("\n", $q['options']); ?>
-                                <select class="form-select" name="<?php echo $fieldName; ?>" onchange="calculateScores()">
-                                    <option value="">Select an option</option>
-                                    <?php foreach ($options as $opt): ?>
-                                    <option value="<?php echo htmlspecialchars(trim($opt)); ?>" <?php echo $existingValue == trim($opt) ? 'selected' : ''; ?>><?php echo htmlspecialchars(trim($opt)); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <?php elseif ($q['question_type'] === 'multiple_choice' && !empty($q['options'])):
-                                    $options = explode("\n", $q['options']);
-                                    // Handle both array and string (legacy) formats
-                                    if (is_array($existingValue)) {
-                                        $existingMulti = $existingValue;
-                                    } else {
-                                        $existingMulti = explode(',', $existingValue ?? '');
-                                    } ?>
-                                <?php foreach ($options as $opt): ?>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="<?php echo $fieldName; ?>[]" value="<?php echo htmlspecialchars(trim($opt)); ?>" <?php echo in_array(trim($opt), $existingMulti) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label"><?php echo htmlspecialchars(trim($opt)); ?></label>
-                                </div>
-                                <?php endforeach; ?>
-                                <?php elseif ($q['question_type'] === 'short_answer'): ?>
-                                <input type="text" class="form-control" name="<?php echo $fieldName; ?>" value="<?php echo htmlspecialchars($existingValue ?? ''); ?>" placeholder="Enter your answer">
-                                <?php elseif ($q['question_type'] === 'long_answer'): ?>
-                                <textarea class="form-control" name="<?php echo $fieldName; ?>" rows="3" placeholder="Enter your answer"><?php echo htmlspecialchars($existingValue ?? ''); ?></textarea>
-                                <?php else: ?>
-                                <?php
-                                $ratingLabels = [
-                                    5 => 'Excellent',
-                                    4 => 'Very Good',
-                                    3 => 'Good',
-                                    2 => 'Fair',
-                                    1 => 'Poor'
-                                ];
-                                for ($i = 5; $i >= 1; $i--): ?>
-                                <label class="rating-label" title="<?php echo $ratingLabels[$i]; ?>">
-                                    <input type="radio" name="<?php echo $fieldName; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" <?php echo $existingValue == $i ? 'checked' : ''; ?>>
-                                    <span><?php echo $i; ?></span>
-                                    <small class="d-block" style="font-size: 9px;"><?php echo $ratingLabels[$i]; ?></small>
-                                </label>
-                                <?php endfor; ?>
-                                <?php endif; ?>
+
+                    <!-- Section Progress Indicator -->
+                    <div class="section-nav">
+                        <div class="section-progress" id="sectionProgress">
+                            <?php foreach ($allCategories as $index => $cat): ?>
+                            <div class="section-dot <?php echo $index === 0 ? 'active' : ''; ?>"
+                                 onclick="goToSection(<?php echo $index; ?>)"
+                                 title="<?php echo htmlspecialchars($categoryNames[$cat] ?? $cat); ?>">
                             </div>
+                            <?php endforeach; ?>
                         </div>
-                        <?php endforeach; ?>
+                        <div class="text-center">
+                            <small class="text-muted">Section <span id="currentSectionNum">1</span> of <?php echo $totalSections; ?></small>
+                        </div>
+                    </div>
+
+                    <!-- Render each category as a section -->
+                    <?php foreach ($questionsByCategory as $category => $categoryQuestions):
+                        $sectionIndex = array_search($category, $allCategories);
+                        $isFirst = ($sectionIndex === 0);
+                        $isLast = ($sectionIndex === $totalSections - 1);
+                    ?>
+                    <div class="question-section <?php echo $isFirst ? 'active' : ''; ?>" id="section_<?php echo $sectionIndex; ?>">
+                        <!-- Previous Button (except first section) -->
+                        <?php if (!$isFirst): ?>
+                        <div class="d-flex justify-content-start mb-3">
+                            <button type="button" class="btn btn-outline-primary" onclick="goToSection(<?php echo $sectionIndex - 1; ?>);">
+                                <i class="fas fa-arrow-left me-2"></i>Previous Section
+                            </button>
+                        </div>
+                        <?php endif; ?>
+
+                        <div class="mb-4">
+                            <h6 class="text-primary border-bottom pb-2">
+                                <i class="fas fa-folder me-2"></i><?php echo htmlspecialchars($categoryNames[$category] ?? $category); ?>
+                                <span class="badge bg-secondary float-end"><?php echo count($categoryQuestions); ?> questions</span>
+                            </h6>
+                            <?php foreach ($categoryQuestions as $index => $q):
+                                $fieldName = 'q_' . $q['id'];
+                                $existingValue = $existingResponses[$q['id']] ?? '';
+                            ?>
+                            <div class="question-item">
+                                <label class="form-label fw-bold"><?php echo htmlspecialchars($q['question_text']); ?></label>
+                                <div>
+                                    <?php
+                                    // Render based on question type
+                                    if ($q['question_type'] === 'rating' || $q['question_type'] === 'scale'):
+                                        for ($i = 5; $i >= 1; $i--): ?>
+                                    <label class="rating-label">
+                                        <input type="radio" name="<?php echo $fieldName; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" <?php echo $existingValue == $i ? 'checked' : ''; ?>>
+                                        <span><?php echo $i; ?></span>
+                                    </label>
+                                        <?php endfor;
+                                    elseif ($q['question_type'] === 'yes_no'): ?>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="yes" <?php echo $existingValue == 'yes' ? 'checked' : ''; ?>>
+                                        <label class="form-check-label">Yes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="no" <?php echo $existingValue == 'no' ? 'checked' : ''; ?>>
+                                        <label class="form-check-label">No</label>
+                                    </div>
+                                    <?php elseif ($q['question_type'] === 'true_false'): ?>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="true" <?php echo $existingValue == 'true' ? 'checked' : ''; ?>>
+                                        <label class="form-check-label">True</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="<?php echo $fieldName; ?>" value="false" <?php echo $existingValue == 'false' ? 'checked' : ''; ?>>
+                                        <label class="form-check-label">False</label>
+                                    </div>
+                                    <?php elseif ($q['question_type'] === 'single_choice' && !empty($q['options'])):
+                                        $options = explode("\n", $q['options']); ?>
+                                    <select class="form-select" name="<?php echo $fieldName; ?>" onchange="calculateScores()">
+                                        <option value="">Select an option</option>
+                                        <?php foreach ($options as $opt): ?>
+                                        <option value="<?php echo htmlspecialchars(trim($opt)); ?>" <?php echo $existingValue == trim($opt) ? 'selected' : ''; ?>><?php echo htmlspecialchars(trim($opt)); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <?php elseif ($q['question_type'] === 'multiple_choice' && !empty($q['options'])):
+                                        $options = explode("\n", $q['options']);
+                                        // Handle both array and string (legacy) formats
+                                        if (is_array($existingValue)) {
+                                            $existingMulti = $existingValue;
+                                        } else {
+                                            $existingMulti = explode(',', $existingValue ?? '');
+                                        } ?>
+                                    <?php foreach ($options as $opt): ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="<?php echo $fieldName; ?>[]" value="<?php echo htmlspecialchars(trim($opt)); ?>" <?php echo in_array(trim($opt), $existingMulti) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label"><?php echo htmlspecialchars(trim($opt)); ?></label>
+                                    </div>
+                                    <?php endforeach; ?>
+                                    <?php elseif ($q['question_type'] === 'short_answer'): ?>
+                                    <input type="text" class="form-control" name="<?php echo $fieldName; ?>" value="<?php echo htmlspecialchars($existingValue ?? ''); ?>" placeholder="Enter your answer">
+                                    <?php elseif ($q['question_type'] === 'long_answer'): ?>
+                                    <textarea class="form-control" name="<?php echo $fieldName; ?>" rows="3" placeholder="Enter your answer"><?php echo htmlspecialchars($existingValue ?? ''); ?></textarea>
+                                    <?php elseif ($q['question_type'] === 'file_upload'): ?>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-paperclip me-2"></i>
+                                        File upload questions will be available soon. Please skip for now.
+                                    </div>
+                                    <?php else: ?>
+                                    <?php
+                                    $ratingLabels = [
+                                        5 => 'Excellent',
+                                        4 => 'Very Good',
+                                        3 => 'Good',
+                                        2 => 'Fair',
+                                        1 => 'Poor'
+                                    ];
+                                    for ($i = 5; $i >= 1; $i--): ?>
+                                    <label class="rating-label" title="<?php echo $ratingLabels[$i]; ?>">
+                                        <input type="radio" name="<?php echo $fieldName; ?>" value="<?php echo $i; ?>" onchange="calculateScores()" <?php echo $existingValue == $i ? 'checked' : ''; ?>>
+                                        <span><?php echo $i; ?></span>
+                                        <small class="d-block" style="font-size: 9px;"><?php echo $ratingLabels[$i]; ?></small>
+                                    </label>
+                                    <?php endfor; ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <!-- Next/Submit Button -->
+                        <div class="section-divider"></div>
+                        <div class="d-flex justify-content-<?php echo $isLast ? 'center' : 'end'; ?> mb-4">
+                            <?php if ($isLast): ?>
+                                <?php if ($existingEval && $existingEval['status'] === 'submitted'): ?>
+                                <div class="alert alert-info w-100">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>Already Submitted:</strong> You have already submitted your evaluation for this session. Contact the administrator to make changes.
+                                </div>
+                                <?php else: ?>
+                                <button type="submit" name="submit_evaluation" class="btn btn-success btn-lg">
+                                    <i class="fas fa-paper-plane me-2"></i>Submit Evaluation
+                                </button>
+                                <?php endif; ?>
+                            <?php else: ?>
+                            <button type="button" class="btn btn-primary btn-lg" onclick="goToSection(<?php echo $sectionIndex + 1; ?>);">
+                                Next Section<i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                            <?php endif; ?>
+                        </div>
                     </div>
                     <?php endforeach; ?>
                     <?php endif; ?>
 
                 </div>
             </div>
-
-            <?php if ($existingEval && $existingEval['status'] === 'submitted'): ?>
-            <div class="alert alert-info">
-                <i class="fas fa-check-circle me-2"></i>
-                <strong>Already Submitted:</strong> You have already submitted your evaluation for this session. Contact the administrator to make changes.
-            </div>
-            <?php else: ?>
-            <div class="d-flex gap-2">
-                <button type="submit" name="submit_evaluation" class="btn btn-primary btn-lg">
-                    <i class="fas fa-paper-plane me-2"></i>Submit Evaluation
-                </button>
-            </div>
-            <?php endif; ?>
         </form>
     </div>
 
@@ -558,6 +657,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
 
     // Set question count for dynamic score calculation
     window.questionCount = <?php echo count(array_filter($dbQuestions, fn($q) => $q['question_type'] === 'rating' || $q['question_type'] === 'scale')); ?>;
+
+    // Section navigation
+    const totalSections = <?php echo $totalSections; ?>;
+    let currentSection = 0;
+
+    function goToSection(sectionIndex) {
+        if (sectionIndex < 0 || sectionIndex >= totalSections) return;
+
+        // Hide current section
+        document.getElementById('section_' + currentSection).classList.remove('active');
+
+        // Show new section
+        currentSection = sectionIndex;
+        document.getElementById('section_' + currentSection).classList.add('active');
+
+        // Update progress dots
+        const dots = document.querySelectorAll('.section-dot');
+        dots.forEach((dot, index) => {
+            dot.classList.remove('active');
+            if (index < currentSection) {
+                dot.classList.add('completed');
+            } else {
+                dot.classList.remove('completed');
+            }
+        });
+        dots[currentSection].classList.add('active');
+
+        // Update section counter
+        document.getElementById('currentSectionNum').textContent = currentSection + 1;
+
+        // Scroll to top of form
+        document.querySelector('.question-section.active').scrollIntoView({ behavior: 'smooth' });
+    }
 
     // Dark mode toggle
     function toggleDarkMode() {
