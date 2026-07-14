@@ -58,34 +58,65 @@ $stmt = $pdo->prepare("SELECT * FROM academic_sessions WHERE id = ?");
 $stmt->execute([$eval['academic_session_id']]);
 $session = $stmt->fetch();
 
-// Get questions from database dynamically
-$questionLabels = [];
+// Get ALL questions from database to build dynamic mapping
+$allQuestions = [];
+$questionKeyMap = []; // Map question text to a standardized key
 $stmt = $pdo->query("SELECT id, question_text, category FROM evaluation_questions WHERE is_active = 1 ORDER BY COALESCE(question_order, 99999), category, id");
+$qIndex = 1;
 while ($q = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $key = 'q_' . $q['id'];
+    $allQuestions[$q['id']] = $q;
+    // Create a standardized key like teaching_1, research_1, etc.
+    $category = strtolower($q['category']);
+    if (!isset($questionKeyMap[$category])) {
+        $questionKeyMap[$category] = 1;
+    }
+    $key = $category . '_' . $questionKeyMap[$category];
+    $questionKeyMap[$category]++;
     $questionLabels[$key] = $q['question_text'];
+    // Also store by index
+    $questionLabels['q_' . $qIndex] = $q['question_text'];
+    $qIndex++;
 }
 
-// Questions mapping - use database labels
-$teaching = [
-    ['key' => 'teaching_1', 'label' => $questionLabels['q_1'] ?? 'Teaching Performance 1'],
-    ['key' => 'teaching_2', 'label' => $questionLabels['q_2'] ?? 'Teaching Performance 2'],
-    ['key' => 'teaching_3', 'label' => $questionLabels['q_3'] ?? 'Teaching Performance 3'],
-    ['key' => 'teaching_4', 'label' => $questionLabels['q_4'] ?? 'Teaching Performance 4'],
-    ['key' => 'teaching_5', 'label' => $questionLabels['q_5'] ?? 'Teaching Performance 5'],
-    ['key' => 'teaching_6', 'label' => $questionLabels['q_6'] ?? 'Teaching Performance 6']
-];
-$research = [
-    ['key' => 'research_1', 'label' => $questionLabels['q_7'] ?? 'Research Output 1'],
-    ['key' => 'research_2', 'label' => $questionLabels['q_8'] ?? 'Research Output 2'],
-    ['key' => 'research_3', 'label' => $questionLabels['q_9'] ?? 'Research Output 3'],
-    ['key' => 'research_4', 'label' => $questionLabels['q_10'] ?? 'Research Output 4'],
-    ['key' => 'research_5', 'label' => $questionLabels['q_11'] ?? 'Research Output 5']
-];
-$admin = [
-    ['key' => 'admin_1', 'label' => $questionLabels['q_12'] ?? 'Administrative Duty 1'],
-    ['key' => 'admin_2', 'label' => $questionLabels['q_13'] ?? 'Administrative Duty 2'],
-    ['key' => 'admin_3', 'label' => $questionLabels['q_14'] ?? 'Administrative Duty 3'],
+// Build question arrays dynamically based on actual categories
+$categoryQuestions = [];
+foreach ($allQuestions as $q) {
+    $cat = strtolower($q['category']);
+    if (!isset($categoryQuestions[$cat])) {
+        $categoryQuestions[$cat] = [];
+    }
+    $catIndex = count($categoryQuestions[$cat]) + 1;
+    $key = $cat . '_' . $catIndex;
+    $categoryQuestions[$cat][] = [
+        'key' => $key,
+        'label' => $q['question_text'],
+        'db_id' => $q['id']
+    ];
+}
+
+// Use the dynamic categories
+$teaching = $categoryQuestions['teaching'] ?? [];
+$research = $categoryQuestions['research'] ?? [];
+$admin = $categoryQuestions['admin'] ?? [];
+$community = $categoryQuestions['community'] ?? [];
+$professional = $categoryQuestions['professional'] ?? [];
+
+// Fallback if no questions in category
+if (empty($teaching)) {
+    $teaching = [['key' => 'teaching_1', 'label' => 'Teaching Performance 1']];
+}
+if (empty($research)) {
+    $research = [['key' => 'research_1', 'label' => 'Research Output 1']];
+}
+if (empty($admin)) {
+    $admin = [['key' => 'admin_1', 'label' => 'Administrative Duty 1']];
+}
+if (empty($community)) {
+    $community = [['key' => 'community_1', 'label' => 'Community Service 1']];
+}
+if (empty($professional)) {
+    $professional = [['key' => 'professional_1', 'label' => 'Professional Development 1']];
+}
     ['key' => 'admin_4', 'label' => $questionLabels['q_15'] ?? 'Administrative Duty 4'],
     ['key' => 'admin_5', 'label' => $questionLabels['q_16'] ?? 'Administrative Duty 5']
 ];
