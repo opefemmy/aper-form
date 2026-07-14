@@ -27,12 +27,12 @@ while ($row = $stmt->fetch()) {
 }
 $instName = $settings['institution_name'] ?? 'Institution';
 
-// Get all unique departments from staff
-$stmt = $pdo->query("SELECT DISTINCT department FROM staff WHERE department IS NOT NULL AND department != '' ORDER BY department");
+// Get all unique departments from staff (including manually added departments with staff_id like 'DEPT-%')
+$stmt = $pdo->query("SELECT DISTINCT department FROM staff WHERE department IS NOT NULL AND department != '' AND department != 'SYSTEM' ORDER BY department");
 $departments = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Get all unique faculties from staff
-$stmt = $pdo->query("SELECT DISTINCT faculty FROM staff WHERE faculty IS NOT NULL AND faculty != '' ORDER BY faculty");
+// Get all unique faculties from staff (including manually added faculties with staff_id like 'FAC-%')
+$stmt = $pdo->query("SELECT DISTINCT faculty FROM staff WHERE faculty IS NOT NULL AND faculty != '' AND faculty != 'SYSTEM' ORDER BY faculty");
 $faculties = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Handle add new department
@@ -125,6 +125,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 showMessage('Password must be at least 6 characters', 'danger');
             } elseif (empty($evaluatorType)) {
                 showMessage('Please select evaluator type', 'danger');
+            } elseif ($evaluatorType === 'Supervising Officer' && empty($department)) {
+                showMessage('Department is required for Supervising Officer', 'danger');
+            } elseif ($evaluatorType === 'Supervising Officer' && empty($faculty)) {
+                showMessage('Faculty is required for Supervising Officer', 'danger');
             } else {
                 // Check if designation already exists
                 $stmt = $pdo->prepare("SELECT id FROM staff WHERE designation = ?");
@@ -186,6 +190,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 showMessage('Designation (username) is required', 'danger');
             } elseif ($evaluatorType === 'Supervising Officer' && empty($department)) {
                 showMessage('Department is required for Supervising Officer', 'danger');
+            } elseif ($evaluatorType === 'Supervising Officer' && empty($faculty)) {
+                showMessage('Faculty is required for Supervising Officer', 'danger');
             } else {
                 $stmt = $pdo->prepare("SELECT id FROM staff WHERE designation = ? AND id != ?");
                 $stmt->execute([$designation, $editId]);
@@ -617,7 +623,7 @@ if ($editId) {
                                     <option value="<?php echo htmlspecialchars($fac); ?>">
                                     <?php endforeach; ?>
                                 </datalist>
-                                <small class="text-muted">Required for Dean - select or add new</small>
+                                <small class="text-muted">Required for Supervising Officer - select or add new</small>
                             </div>
                         </div>
 
@@ -718,18 +724,19 @@ if ($editId) {
             var facInput = document.getElementById('facultyInput');
 
             if (evaluatorType === 'Supervising Officer') {
+                // Show both department and faculty for Supervising Officer
                 if (deptField) deptField.style.display = 'block';
-                if (facField) facField.style.display = 'none';
+                if (facField) facField.style.display = 'block';
                 if (deptInput) {
                     deptInput.required = true;
                     deptInput.parentElement.style.display = 'block';
                 }
                 if (facInput) {
-                    facInput.required = false;
-                    facInput.value = '';
+                    facInput.required = true;
+                    facInput.parentElement.style.display = 'block';
                 }
             } else {
-                // Registrar - show both or hide based on what exists
+                // Registrar - show both department and faculty
                 if (deptField) deptField.style.display = 'block';
                 if (facField) facField.style.display = 'block';
                 if (deptInput) deptInput.required = false;
