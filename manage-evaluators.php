@@ -113,13 +113,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
 
         if (isset($_POST['add_evaluator'])) {
-            // Validation based on evaluator type
+            // Validation - simplified
             if (empty($designation)) {
                 showMessage('Designation (username) is required', 'danger');
             } elseif (empty($password) || strlen($password) < 6) {
                 showMessage('Password must be at least 6 characters', 'danger');
-            } elseif ($evaluatorType === 'Supervising Officer' && empty($department)) {
-                showMessage('Department is required for Supervising Officer', 'danger');
+            } elseif (empty($evaluatorType)) {
+                showMessage('Please select evaluator type', 'danger');
             } else {
                 // Check if designation already exists
                 $stmt = $pdo->prepare("SELECT id FROM staff WHERE designation = ?");
