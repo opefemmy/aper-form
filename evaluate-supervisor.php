@@ -102,7 +102,6 @@ $evalFac = $_SESSION['staff_faculty'] ?? '';
 
 if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
     // Supervising Officer sees staff in their department who have submitted (evaluation_stage = 'pending')
-    // OR staff who have reviewed and need final comments (evaluation_stage = 'staff_review')
     if (!empty($evalDept)) {
         // Pending: staff submitted but Supervising Officer hasn't evaluated yet
         $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
@@ -113,11 +112,11 @@ if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
         $stmt->execute([$evalDept]);
         $pendingEvals = $stmt->fetchAll();
 
-        // Processed: evaluations that have passed Supervising Officer and Staff Review stages
+        // Processed: evaluations that have passed Supervising Officer stage
         $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
             FROM evaluations e
             JOIN staff s ON e.staff_id = s.id
-            WHERE s.department = ? AND e.evaluation_stage IN ('supervising_officer', 'staff_review', 'supervising_officer_final', 'registrar', 'completed')
+            WHERE s.department = ? AND e.evaluation_stage IN ('registrar', 'completed')
             ORDER BY e.updated_at DESC");
         $stmt->execute([$evalDept]);
         $processedEvals = $stmt->fetchAll();
@@ -126,11 +125,11 @@ if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
         $processedEvals = [];
     }
 } elseif ($adminRole === 'registrar') {
-    // Registrar sees all evaluations that have passed Supervising Officer final review and waiting for Registrar (evaluation_stage = 'registrar')
+    // Registrar sees all evaluations that have passed Supervising Officer and waiting for Registrar
     $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
-        WHERE e.evaluation_stage IN ('registrar', 'supervising_officer_final')
+        WHERE e.evaluation_stage = 'registrar'
         ORDER BY e.created_at DESC");
     $stmt->execute();
     $pendingEvals = $stmt->fetchAll();
@@ -320,15 +319,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
     try {
         $pdo->beginTransaction();
 
-        // Determine next stage - New workflow: Staff -> Supervising Officer -> Staff Review -> Supervising Officer Final -> Registrar -> Completed
+        // Determine next stage - Simplified workflow: Staff -> Supervising Officer -> Registrar -> Completed
         $nextStage = 'completed';
         if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
-            // Check if this is first evaluation or final comments after staff review
-            if ($selectedEval && in_array($selectedEval['evaluation_stage'], ['staff_review'])) {
-                $nextStage = 'supervising_officer_final'; // After Supervising Officer adds final comments, passes to Registrar
-            } else {
-                $nextStage = 'supervising_officer'; // After Supervising Officer evaluates, passes to Staff for review
-            }
+            // After Supervising Officer evaluates, goes directly to Registrar (no staff review)
+            $nextStage = 'registrar';
         } elseif ($adminRole === 'registrar') {
             $nextStage = 'completed'; // Registrar is final approval
         }
@@ -377,10 +372,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
         // Initialize update data
         $updateData = [];
 
-        // New workflow: Staff -> Supervising Officer -> Staff Review -> Supervising Officer Final -> Registrar -> Completed
+        // Simplified workflow: Staff -> Supervising Officer -> Registrar -> Completed
         if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer' || $adminRole === 'admin' || $adminRole === 'super_admin') {
-            // Check if this is first evaluation or final comments after staff review
-            $isFirstEvaluation = !$selectedEval || !in_array($selectedEval['evaluation_stage'], ['staff_review', 'supervising_officer_final']);
+            // Supervising Officer evaluates - always first evaluation for this stage
+            $isFirstEvaluation = !$selectedEval || $selectedEval['evaluation_stage'] === 'pending';
 
             if ($isFirstEvaluation) {
                 // First Supervising Officer evaluation - calculate scores
@@ -410,8 +405,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
                     'hod_performance_status' => $gradeInfo[1],
                 ];
 
-                // First Supervising Officer evaluation - advance to staff review stage
-                $updateData['evaluation_stage'] = 'supervising_officer';
+                // Supervising Officer evaluation - advance directly to Registrar stage
+                $updateData['evaluation_stage'] = 'registrar';
                 $updateData['hod_id'] = $adminId;
                 $updateData['supervisor_name'] = sanitize($_POST['supervisor_name'] ?? $adminName);
                 $updateData['supervisor_designation'] = sanitize($_POST['supervisor_designation'] ?? 'Supervising Officer');
@@ -420,11 +415,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
                 $updateData['supervisor_date'] = date('Y-m-d');
                 $updateData['overall_rating'] = sanitize($_POST['overall_rating'] ?? '');
                 $updateData['recommendation'] = sanitize($_POST['recommendation'] ?? '');
-            } else {
-                // Supervising Officer final comments after staff review - preserve the score
-                $updateData['evaluation_stage'] = 'supervising_officer_final';
-                $updateData['supervising_officer_final_comments'] = sanitize($_POST['supervising_officer_final_comments'] ?? '');
-            }
         } elseif ($adminRole === 'registrar') {
             // Registrar final approval - PRESERVE Supervising Officer's score (don't recalculate)
             $updateData['evaluation_stage'] = 'completed';
@@ -685,8 +675,8 @@ $sessions = $stmt->fetchAll();
                                             <span class="badge bg-<?php
                                                 $stage = $eval['evaluation_stage'];
                                                 if ($stage === 'pending') echo 'secondary';
-                                                elseif (in_array($stage, ['supervising_officer', 'staff_review'])) echo 'warning';
-                                                elseif (in_array($stage, ['supervising_officer_final', 'registrar'])) echo 'info';
+                                                elseif ($stage === 'supervising_officer') echo 'warning';
+                                                elseif (in_array($stage, ['registrar'])) echo 'info';
                                                 else echo 'success';
                                             ?> stage-badge">
                                                 <?php echo strtoupper($stage); ?>
@@ -730,8 +720,8 @@ $sessions = $stmt->fetchAll();
                                             <span class="badge bg-<?php
                                                 $stage = $selectedEval['evaluation_stage'] ?? 'pending';
                                                 if ($stage === 'pending') echo 'secondary';
-                                                elseif (in_array($stage, ['supervising_officer', 'staff_review'])) echo 'warning';
-                                                elseif (in_array($stage, ['supervising_officer_final', 'registrar'])) echo 'info';
+                                                elseif ($stage === 'supervising_officer') echo 'warning';
+                                                elseif ($stage === 'registrar') echo 'info';
                                                 else echo 'success';
                                             ?>">
                                                 Stage: <?php echo strtoupper($stage); ?>
@@ -1028,27 +1018,6 @@ $sessions = $stmt->fetchAll();
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">Date</label>
                                                 <input type="date" class="form-control" name="supervisor_date" value="<?php echo $selectedEval['supervisor_date'] ?? date('Y-m-d'); ?>">
-                                            </div>
-                                        </div>
-                                        <?php elseif ($adminRole === 'supervising-officer' && $selectedEval['evaluation_stage'] === 'staff_review'): ?>
-                                        <div class="row">
-                                            <div class="col-md-12">
-                                                <div class="alert alert-warning">
-                                                    <i class="fas fa-exclamation-circle me-2"></i>
-                                                    <strong>Staff Review Response:</strong><br>
-                                                    The staff member has reviewed your evaluation and did not consent. Please review their concerns below and provide your comments.
-                                                </div>
-                                            </div>
-                                            <div class="col-md-12 mb-3">
-                                                <label class="form-label"><strong>Staff's Reason for Not Consenting:</strong></label>
-                                                <div class="alert alert-info">
-                                                    <?php echo nl2br(htmlspecialchars($selectedEval['staff_rejection_reason'] ?? 'No reason provided')); ?>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-12 mb-3">
-                                                <label class="form-label"><strong>Your Final Comments (in response to staff's concerns)</strong></label>
-                                                <textarea class="form-control" name="supervising_officer_final_comments" rows="4" placeholder="Address the staff member's concerns and provide your final comments..."><?php echo htmlspecialchars($selectedEval['supervising_officer_final_comments'] ?? ''); ?></textarea>
-                                                <small class="text-muted">Your comments will be forwarded to the Registrar along with the evaluation</small>
                                             </div>
                                         </div>
                                         <?php elseif ($adminRole === 'registrar'): ?>
