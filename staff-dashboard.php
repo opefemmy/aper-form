@@ -184,13 +184,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         }
     }
 
-    // Calculate totals - NEW LOGIC: Every answered question = 5 points (100% base)
+    // Calculate totals - MAXIMUM IS ALWAYS 100%
+    // Each question is worth 5 points, but we normalize to 100
     $totalQuestions = count($dbQuestions);
     $totalScore = $numericScore + $nonRatingScore;
     $questionCount = $totalQuestions;
     $averageScore = $questionCount > 0 ? round($totalScore / $questionCount, 2) : 0;
     $maxPossible = $questionCount * 5;
-    $percentage = $maxPossible > 0 ? round(($totalScore / $maxPossible) * 100, 2) : 0;
+
+    // Fixed max of 100 - normalize score to always be out of 100
+    // Each question answered gets points, but total is capped at 100
+    if ($totalScore > 0 && $maxPossible > 0) {
+        // Calculate percentage based on questions answered, but cap at 100
+        $rawPercentage = ($totalScore / $maxPossible) * 100;
+        $percentage = min(round($rawPercentage, 2), 100); // Cap at 100
+    } else {
+        $percentage = 0;
+    }
+
+    // Total score display - normalize to 100 scale
+    $totalScoreOutOf100 = min($totalScore, 100); // Cap at 100
 
     // Calculate grade
     $gradeResult = calculateGrade($percentage);
