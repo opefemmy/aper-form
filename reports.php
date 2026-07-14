@@ -950,7 +950,7 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
             <p>Total Evaluations</p>
         </div>
         <div class="summary-box">
-            <h3><?php echo number_format($stats['avg_percentage'], 1); ?>%</h3>
+            <h3><?php echo number_format($stats['avg_percentage'] ?? 0, 1); ?>%</h3>
             <p>Average Score</p>
         </div>
         <div class="summary-box">
@@ -1378,7 +1378,7 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
                     </div>
                     <div class="col-md-4">
                         <div class="stat-box">
-                            <div class="h2 mb-0 text-info"><?php echo number_format($stats['avg_percentage'], 1); ?>%</div>
+                            <div class="h2 mb-0 text-info"><?php echo number_format($stats['avg_percentage'] ?? 0, 1); ?>%</div>
                             <small class="text-muted">Average Score</small>
                         </div>
                     </div>
