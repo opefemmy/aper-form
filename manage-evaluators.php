@@ -596,11 +596,11 @@ if ($editId) {
 
                         <div class="row">
                             <div class="col-md-6 mb-3" id="departmentField">
-                                <label class="form-label">Department <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="text" name="department" id="departmentInput" class="form-control" list="departmentsList" value="<?php echo htmlspecialchars($editEvaluator['department'] ?? ''); ?>" autocomplete="off">
-                                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
-                                        <i class="fas fa-plus"></i>
+                                <label class="form-label fw-bold">Department <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-lg">
+                                    <input type="text" name="department" id="departmentInput" class="form-control form-control-lg" list="departmentsList" value="<?php echo htmlspecialchars($editEvaluator['department'] ?? ''); ?>" autocomplete="off" placeholder="Type or select department">
+                                    <button class="btn btn-outline-success btn-lg" type="button" data-bs-toggle="modal" data-bs-target="#addDepartmentModal" title="Add new department">
+                                        <i class="fas fa-plus-circle"></i>
                                     </button>
                                 </div>
                                 <datalist id="departmentsList">
@@ -611,11 +611,11 @@ if ($editId) {
                                 <small class="text-muted">Required for Supervising Officer - select or add new</small>
                             </div>
                             <div class="col-md-6 mb-3" id="facultyField">
-                                <label class="form-label">Faculty <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="text" name="faculty" id="facultyInput" class="form-control" list="facultiesList" value="<?php echo htmlspecialchars($editEvaluator['faculty'] ?? ''); ?>" autocomplete="off">
-                                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#addFacultyModal">
-                                        <i class="fas fa-plus"></i>
+                                <label class="form-label fw-bold">Faculty <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-lg">
+                                    <input type="text" name="faculty" id="facultyInput" class="form-control form-control-lg" list="facultiesList" value="<?php echo htmlspecialchars($editEvaluator['faculty'] ?? ''); ?>" autocomplete="off" placeholder="Type or select faculty">
+                                    <button class="btn btn-outline-success btn-lg" type="button" data-bs-toggle="modal" data-bs-target="#addFacultyModal" title="Add new faculty">
+                                        <i class="fas fa-plus-circle"></i>
                                     </button>
                                 </div>
                                 <datalist id="facultiesList">

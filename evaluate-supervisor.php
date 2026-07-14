@@ -82,14 +82,9 @@ if (isset($_SESSION['is_evaluator']) && $_SESSION['is_evaluator']) {
 }
 
 if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
-    // Supervising Officer sees only staff in their department (NOT themselves)
-    if (!empty($evaluatorDept)) {
-        $stmt = $pdo->prepare("SELECT * FROM staff WHERE status = 'active' AND department = ? AND id != ? ORDER BY first_name, surname");
-        $stmt->execute([$evaluatorDept, $evaluatorId]);
-        $staffList = $stmt->fetchAll();
-    } else {
-        $staffList = [];
-    }
+    // Supervising Officer sees ALL staff (like registrar)
+    $stmt = $pdo->query("SELECT * FROM staff WHERE status = 'active' AND evaluator_type IS NULL ORDER BY department, first_name, surname");
+    $staffList = $stmt->fetchAll();
 } elseif ($adminRole === 'registrar') {
     // Registrar sees ALL staff
     $stmt = $pdo->query("SELECT * FROM staff WHERE status = 'active' ORDER BY first_name, surname");
