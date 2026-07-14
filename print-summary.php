@@ -43,6 +43,16 @@ if (isset($eval['responses']) && !empty($eval['responses'])) {
     $staffResponses = is_array($eval['responses']) ? $eval['responses'] : json_decode($eval['responses'], true);
 }
 
+// Debug: Show what responses we have
+$responseDebug = [];
+if (!empty($staffResponses)) {
+    foreach ($staffResponses as $k => $v) {
+        if (is_numeric($v)) {
+            $responseDebug[$k] = $v;
+        }
+    }
+}
+
 // Get settings
 $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
 $settings = [];
@@ -58,20 +68,41 @@ $stmt = $pdo->prepare("SELECT * FROM academic_sessions WHERE id = ?");
 $stmt->execute([$eval['academic_session_id']]);
 $session = $stmt->fetch();
 
-// Get the staff category for this evaluation
-$evalStaffCategory = $eval['staff_category'] ?? 'academic';
-
-// Get questions specifically for this staff category from database
-$questionsByCategory = [];
-$allDbQuestions = [];
-
-if ($evalStaffCategory === 'non-teaching-junior') {
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'non-teaching-junior' ORDER BY COALESCE(question_order, 99999), category, id");
-} elseif ($evalStaffCategory === 'non-teaching') {
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'non-teaching' ORDER BY COALESCE(question_order, 99999), category, id");
-} else {
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = '$evalStaffCategory' OR target_staff_category = 'both') ORDER BY COALESCE(question_order, 99999), category, id");
+// Get ALL questions from database (not filtered by category)
+$allQuestionsList = [];
+$stmt = $pdo->query("SELECT id, question_text, category FROM evaluation_questions WHERE is_active = 1 ORDER BY COALESCE(question_order, 99999), category, id");
+while ($q = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $allQuestionsList[] = $q;
 }
+
+// Group questions by category
+$questionsByCategory = [];
+foreach ($allQuestionsList as $q) {
+    $cat = strtolower($q['category']);
+    if (!isset($questionsByCategory[$cat])) {
+        $questionsByCategory[$cat] = [];
+    }
+    $questionsByCategory[$cat][] = [
+        'key' => $q['question_text'],
+        'label' => $q['question_text'],
+        'id' => $q['id'],
+        'category' => $cat
+    ];
+}
+
+// Build arrays for display
+$teaching = $questionsByCategory['teaching'] ?? [];
+$research = $questionsByCategory['research'] ?? [];
+$admin = $questionsByCategory['admin'] ?? [];
+$community = $questionsByCategory['community'] ?? [];
+$professional = $questionsByCategory['professional'] ?? [];
+
+// Fallback arrays
+if (empty($teaching)) { $teaching = []; }
+if (empty($research)) { $research = []; }
+if (empty($admin)) { $admin = []; }
+if (empty($community)) { $community = []; }
+if (empty($professional)) { $professional = []; }
 
 while ($q = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $category = strtolower($q['category']);
@@ -108,41 +139,6 @@ if (empty($questionsByCategory)) {
     }
 }
 
-// Build arrays for backward compatibility
-$teaching = $questionsByCategory['teaching'] ?? [];
-$research = $questionsByCategory['research'] ?? [];
-$admin = $questionsByCategory['admin'] ?? [];
-$community = $questionsByCategory['community'] ?? [];
-$professional = $questionsByCategory['professional'] ?? [];
-
-if (empty($teaching)) { $teaching = [['key' => 'teaching_1', 'label' => 'Teaching Performance 1']]; }
-if (empty($research)) { $research = [['key' => 'research_1', 'label' => 'Research Output 1']]; }
-if (empty($admin)) { $admin = [['key' => 'admin_1', 'label' => 'Administrative Duty 1']]; }
-if (empty($community)) { $community = [['key' => 'community_1', 'label' => 'Community Service 1']]; }
-if (empty($professional)) { $professional = [['key' => 'professional_1', 'label' => 'Professional Development 1']]; }
-$teaching = $categoryQuestions['teaching'] ?? [];
-$research = $categoryQuestions['research'] ?? [];
-$admin = $categoryQuestions['admin'] ?? [];
-$community = $categoryQuestions['community'] ?? [];
-$professional = $categoryQuestions['professional'] ?? [];
-
-// Fallback if no questions in category
-if (empty($teaching)) {
-    $teaching = [['key' => 'teaching_1', 'label' => 'Teaching Performance 1']];
-}
-if (empty($research)) {
-    $research = [['key' => 'research_1', 'label' => 'Research Output 1']];
-}
-if (empty($admin)) {
-    $admin = [['key' => 'admin_1', 'label' => 'Administrative Duty 1']];
-}
-if (empty($community)) {
-    $community = [['key' => 'community_1', 'label' => 'Community Service 1']];
-}
-if (empty($professional)) {
-    $professional = [['key' => 'professional_1', 'label' => 'Professional Development 1']];
-}
-
 function getScoreLabel($score) {
     $labels = [1 => 'Poor', 2 => 'Fair', 3 => 'Good', 4 => 'Very Good', 5 => 'Excellent'];
     return $labels[$score] ?? 'N/A';
@@ -155,15 +151,33 @@ function getAnsweredQuestions($questions, $responses) {
     $maxScore = 0;
     foreach ($questions as $q) {
         $key = $q['key'];
-        // Check if answer exists in responses (could be in JSON or direct column)
-        $value = $responses[$key] ?? null;
-        if ($value === null && isset($eval[$key])) {
-            $value = $eval[$key];
+        $label = $q['label'];
+
+        // Try multiple ways to find the answer
+        $value = null;
+
+        // 1. Try key directly
+        if (isset($responses[$key])) {
+            $value = $responses[$key];
         }
-        if ($value !== null && $value !== '' && $value !== 0) {
+        // 2. Try with question text
+        elseif (isset($responses[$label])) {
+            $value = $responses[$label];
+        }
+        // 3. Try matching by looking through all responses for numeric values
+        if ($value === null && !empty($responses)) {
+            foreach ($responses as $rk => $rv) {
+                if (is_numeric($rv) && strtolower($rk) === strtolower($key)) {
+                    $value = $rv;
+                    break;
+                }
+            }
+        }
+
+        if ($value !== null && $value !== '' && $value !== 0 && is_numeric($value)) {
             $answered[] = [
                 'key' => $key,
-                'label' => $q['label'],
+                'label' => $label,
                 'score' => $value
             ];
             $totalScore += intval($value);
