@@ -230,19 +230,21 @@ try {
     // Table doesn't exist yet - sub-categories will be empty
 }
 
-// Build query based on filter
+// Build query based on filter - Supervising Officer questions are separate
 if ($filterCategory === 'supervising-officer' || $filterCategory === 'hod') {
     // Supervising Officer evaluation questions - ONLY show questions with target_staff_category = 'hod'
     $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'hod' ORDER BY category, id");
 } elseif ($filterCategory === 'academic') {
     $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'academic' ORDER BY category, id");
 } elseif ($filterCategory === 'non-teaching') {
+    // Non-Teaching Senior (Level 6+) - only get non-teaching questions (NOT junior)
     $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'non-teaching' ORDER BY category, id");
 } elseif ($filterCategory === 'non-teaching-junior') {
+    // Junior Staff (Level 5 and below)
     $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'non-teaching-junior' ORDER BY category, id");
 } else {
-    // All questions
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions ORDER BY category, id");
+    // All questions EXCEPT Supervising Officer - for general staff questions
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category != 'hod' ORDER BY category, id");
 }
 $questions = $stmt->fetchAll();
 
@@ -319,18 +321,18 @@ foreach ($questions as $q) {
                         <div class="dropdown">
                             <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-filter me-2"></i>
-                                <?php echo $filterCategory === 'all' ? 'All Questions' :
-                                    ($filterCategory === 'supervising-officer' ? 'Supervising Officer Evaluation Questions' :
-                                    ($filterCategory === 'academic' ? 'Academic Staff' :
-                                    ($filterCategory === 'non-teaching-junior' ? 'Junior Staff' : 'Non-Teaching Staff'))); ?>
+                                <?php echo $filterCategory === 'all' ? 'All Staff Questions' :
+                                    ($filterCategory === 'supervising-officer' ? 'Supervising Officer Questions' :
+                                    ($filterCategory === 'academic' ? 'Academic Staff Questions' :
+                                    ($filterCategory === 'non-teaching-junior' ? 'Junior Staff Questions (Level 5 and below)' : 'Non-Teaching Senior Questions (Level 6+)'))); ?>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item <?php echo $filterCategory === 'all' ? 'active' : ''; ?>" href="questions.php?filter=all"><i class="fas fa-list me-2"></i>All Questions</a></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'all' ? 'active' : ''; ?>" href="questions.php?filter=all"><i class="fas fa-list me-2"></i>All Staff Questions</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item <?php echo $filterCategory === 'supervising-officer' ? 'active' : ''; ?>" href="questions.php?filter=supervising-officer"><i class="fas fa-user-tie me-2"></i>Supervising Officer Evaluation</a></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'supervising-officer' ? 'active' : ''; ?>" href="questions.php?filter=supervising-officer"><i class="fas fa-user-tie me-2"></i>Supervising Officer Questions</a></li>
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'academic' ? 'active' : ''; ?>" href="questions.php?filter=academic"><i class="fas fa-graduation-cap me-2"></i>Academic Staff Questions</a></li>
-                                <li><a class="dropdown-item <?php echo $filterCategory === 'non-teaching' ? 'active' : ''; ?>" href="questions.php?filter=non-teaching"><i class="fas fa-briefcase me-2"></i>Non-Teaching Staff Questions</a></li>
-                                <li><a class="dropdown-item <?php echo $filterCategory === 'non-teaching-junior' ? 'active' : ''; ?>" href="questions.php?filter=non-teaching-junior"><i class="fas fa-user-plus me-2"></i>Junior Staff Questions</a></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'non-teaching' ? 'active' : ''; ?>" href="questions.php?filter=non-teaching"><i class="fas fa-briefcase me-2"></i>Non-Teaching Senior (Level 6+)</a></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'non-teaching-junior' ? 'active' : ''; ?>" href="questions.php?filter=non-teaching-junior"><i class="fas fa-user-plus me-2"></i>Junior Staff (Level 5 and below)</a></li>
                             </ul>
                         </div>
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
@@ -416,7 +418,7 @@ foreach ($questions as $q) {
                                         <span class="badge bg-<?php echo ($q['target_staff_category'] ?? 'both') == 'both' ? 'primary' : (($q['target_staff_category'] ?? '') == 'academic' ? 'success' : (($q['target_staff_category'] ?? '') == 'non-teaching-junior' ? 'info' : 'warning')); ?>">
                                             <?php
                                                 $target = $q['target_staff_category'] ?? 'both';
-                                                echo $target == 'both' ? 'All Staff' : ($target == 'academic' ? 'Academic' : ($target == 'non-teaching-junior' ? 'Junior Staff' : 'Non-Teaching'));
+                                                echo $target == 'both' ? 'All Staff' : ($target == 'academic' ? 'Academic' : ($target == 'non-teaching-junior' ? 'Junior Staff (L5)' : ($target == 'non-teaching' ? 'Non-Teaching Senior (L6+)' : 'Non-Teaching')));
                                             ?>
                                         </span>
                                     </td>
@@ -496,7 +498,7 @@ foreach ($questions as $q) {
                                                             <select class="form-select" name="target_staff_category">
                                                                 <option value="both" <?php echo ($q['target_staff_category'] ?? 'both') == 'both' ? 'selected' : ''; ?>>All Staff</option>
                                                                 <option value="academic" <?php echo ($q['target_staff_category'] ?? '') == 'academic' ? 'selected' : ''; ?>>Academic Staff Only</option>
-                                                                <option value="non-teaching" <?php echo ($q['target_staff_category'] ?? '') == 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching Staff Only</option>
+                                                                <option value="non-teaching" <?php echo ($q['target_staff_category'] ?? '') == 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching Senior (Level 6+)</option>
                                                                 <option value="non-teaching-junior" <?php echo ($q['target_staff_category'] ?? '') == 'non-teaching-junior' ? 'selected' : ''; ?>>Junior Staff</option>
                                                                 <option value="hod" <?php echo ($q['target_staff_category'] ?? '') == 'hod' ? 'selected' : ''; ?>>Supervising Officer Evaluation Question</option>
                                                             </select>
@@ -652,7 +654,7 @@ foreach ($questions as $q) {
                                 <select class="form-select" name="target_staff_category" required>
                                     <option value="both" <?php echo $filterCategory === 'all' ? 'selected' : ''; ?>>All Staff</option>
                                     <option value="academic" <?php echo $filterCategory === 'academic' ? 'selected' : ''; ?>>Academic Staff Only</option>
-                                    <option value="non-teaching" <?php echo $filterCategory === 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching Staff Only</option>
+                                    <option value="non-teaching" <?php echo $filterCategory === 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching Senior (Level 6+)</option>
                                     <option value="non-teaching-junior" <?php echo $filterCategory === 'non-teaching-junior' ? 'selected' : ''; ?>>Junior Staff</option>
                                     <option value="hod" <?php echo $filterCategory === 'hod' ? 'selected' : ''; ?>>Supervising Officer Evaluation Question</option>
                                 </select>
