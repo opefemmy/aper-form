@@ -254,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 WHERE id = ?");
             $updateStmt->execute([
                 json_encode($allResponses),
-                $totalScore,
+                $totalScoreOutOf100,
                 $averageScore,
                 $percentage,
                 $gradeResult[0],
@@ -281,7 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 $academicSessionId,
                 $evaluationYear,
                 json_encode($responses),
-                $totalScore,
+                $totalScoreOutOf100,
                 $averageScore,
                 $percentage,
                 $gradeResult[0],
@@ -477,7 +477,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="score-card">
-                    <div class="value"><?php echo $existingEval['total_score']; ?>/<?php echo $maxPoints; ?></div>
+                    <div class="value"><?php echo min($existingEval['total_score'], 100); ?>/100</div>
                     <div>Points</div>
                 </div>
             </div>
