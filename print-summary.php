@@ -234,7 +234,7 @@ function getAnsweredQuestions($questions, $responses) {
             <div class="row">
                 <div class="col-md-4"><strong>Staff ID:</strong> <?php echo htmlspecialchars($eval['staff_identifier'] ?? $eval['staff_id']); ?></div>
                 <div class="col-md-4"><strong>Name:</strong> <?php echo htmlspecialchars($eval['first_name'] . ' ' . $eval['surname']); ?></div>
-                <div class="col-md-4"><strong>Category:</strong> <?php echo $eval['staff_category'] == 'academic' ? 'Academic Staff' : ($eval['staff_category'] == 'non-teaching-junior' ? 'Junior Staff Level 5 and below' : ($eval['staff_category'] == 'hod' ? 'Supervising Officer' : 'Non-Teaching Staff')); ?></div>
+                <div class="col-md-4"><strong>Category:</strong> <?php echo $eval['staff_category'] == 'academic' ? 'Academic Staff' : ($eval['staff_category'] == 'non-teaching-junior' ? 'Junior Staff' : ($eval['staff_category'] == 'hod' ? 'Supervising Officer' : 'Non-Teaching Staff')); ?></div>
             </div>
             <div class="row mt-2">
                 <div class="col-md-4"><strong>Department:</strong> <?php echo htmlspecialchars($eval['department'] ?? 'N/A'); ?></div>
