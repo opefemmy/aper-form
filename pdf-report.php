@@ -165,7 +165,7 @@ if ($useTcpdf) {
 
     // Performance Evaluation
     $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->Cell(0, 8, 'PERFORMANCE EVALUATION (By HOD)', 0, true, 'L');
+    $pdf->Cell(0, 8, 'PERFORMANCE EVALUATION (By Supervising Officer)', 0, true, 'L');
     $pdf->Ln(2);
 
     // Score display
@@ -186,16 +186,16 @@ if ($useTcpdf) {
 
     $pdf->Ln(10);
 
-    // HOD Evaluation Details
+    // Supervising Officer Evaluation Details
     if (!empty($eval['supervisor_remarks']) || !empty($eval['supervisor_name'])) {
         $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->Cell(0, 8, 'HOD EVALUATION DETAILS', 0, true, 'L');
+        $pdf->Cell(0, 8, 'SUPERVISING OFFICER EVALUATION DETAILS', 0, true, 'L');
         $pdf->Ln(2);
 
         $pdf->SetFont('helvetica', '', 10);
 
         if (!empty($eval['supervisor_name'])) {
-            $pdf->Cell(50, 6, 'Evaluated By (HOD):', 0, 0, 'L');
+            $pdf->Cell(50, 6, 'Evaluated By (Supervising Officer):', 0, 0, 'L');
             $pdf->Cell(0, 6, $eval['supervisor_name'], 0, 1, 'L');
         }
 
@@ -210,7 +210,7 @@ if ($useTcpdf) {
         }
 
         if (!empty($eval['supervisor_remarks'])) {
-            $pdf->Cell(0, 6, 'HOD Remarks:', 0, 1, 'L');
+            $pdf->Cell(0, 6, 'Supervising Officer Remarks:', 0, 1, 'L');
             $pdf->MultiCell(0, 6, $eval['supervisor_remarks'], 0, 'L');
         }
 
@@ -348,7 +348,7 @@ if ($useTcpdf) {
             <div class="info-label">Academic Year:</div><div>' . htmlspecialchars($eval['evaluation_year']) . '</div>
         </div>
 
-        <h3>Performance Evaluation (By HOD)</h3>
+        <h3>Performance Evaluation (By Supervising Officer)</h3>
         <div class="score-box">
             <div class="score-value">' . htmlspecialchars($eval['percentage']) . '%</div>
             <div>Score Percentage</div>
@@ -357,7 +357,7 @@ if ($useTcpdf) {
 
     if (!empty($eval['supervisor_remarks']) || !empty($eval['supervisor_name'])) {
         echo '
-        <h3>HOD Evaluation Details</h3>
+        <h3>Supervising Officer Evaluation Details</h3>
         <div class="info-grid">
             <div class="info-label">Evaluated By:</div><div>' . htmlspecialchars($eval['supervisor_name'] ?? 'N/A') . '</div>
             <div class="info-label">Designation:</div><div>' . htmlspecialchars($eval['supervisor_designation'] ?? 'N/A') . '</div>
@@ -365,7 +365,7 @@ if ($useTcpdf) {
         </div>';
 
         if (!empty($eval['supervisor_remarks'])) {
-            echo '<div class="remarks-box"><strong>HOD Remarks:</strong><br>' . nl2br(htmlspecialchars($eval['supervisor_remarks'])) . '</div>';
+            echo '<div class="remarks-box"><strong>Supervising Officer Remarks:</strong><br>' . nl2br(htmlspecialchars($eval['supervisor_remarks'])) . '</div>';
         }
 
         if (!empty($eval['overall_rating'])) {

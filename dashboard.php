@@ -278,7 +278,7 @@ $instAddress = $settings['institution_address'] ?? '';
                     <a href="staff-upload.php"><i class="fas fa-upload"></i> Upload Staff</a>
                     <a href="manage-evaluators.php"><i class="fas fa-user-tie"></i> Evaluators</a>
                     <a href="questions.php"><i class="fas fa-question-circle"></i> Questions</a>
-                    <a href="questions.php?filter=hod"><i class="fas fa-user-tie"></i> HOD Evaluation Questions</a>
+                    <a href="questions.php?filter=supervising-officer"><i class="fas fa-user-tie"></i> Supervising Officers Questions</a>
                     <a href="roles.php"><i class="fas fa-user-tag"></i> Staff Roles</a>
                     <a href="evaluate.php"><i class="fas fa-clipboard-check"></i> Evaluate</a>
                     <a href="reports.php"><i class="fas fa-chart-bar"></i> Reports</a>

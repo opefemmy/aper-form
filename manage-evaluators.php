@@ -414,10 +414,17 @@ if ($editId) {
                                 <p class="card-text text-muted mb-1">
                                     <i class="fas fa-user"></i> <strong>Username:</strong> <?php echo htmlspecialchars($eval['designation']); ?>
                                 </p>
-                                <?php if ($eval['evaluator_type'] === 'Supervising Officer' && $eval['department']): ?>
-                                <p class="card-text text-muted mb-1">
-                                    <i class="fas fa-building"></i> <strong>Department:</strong> <?php echo htmlspecialchars($eval['department']); ?>
+                                <?php if ($eval['evaluator_type'] === 'Supervising Officer'): ?>
+                                <?php if ($eval['department']): ?>
+                                <p class="card-text mb-1">
+                                    <span class="badge bg-success"><i class="fas fa-building me-1"></i> <?php echo htmlspecialchars($eval['department']); ?></span>
                                 </p>
+                                <?php endif; ?>
+                                <?php if ($eval['faculty']): ?>
+                                <p class="card-text mb-1">
+                                    <span class="badge bg-info"><i class="fas fa-university me-1"></i> <?php echo htmlspecialchars($eval['faculty']); ?></span>
+                                </p>
+                                <?php endif; ?>
                                 <?php endif; ?>
                                 <?php if ($eval['evaluator_type'] === 'Registrar'): ?>
                                 <p class="card-text text-muted mb-1">

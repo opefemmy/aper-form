@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('hod_questions', ?)");
             $stmt->execute([$json]);
         }
-        showMessage('HOD questions saved successfully!', 'success');
+        showMessage('Supervising Officer questions saved successfully!', 'success');
         redirect('hod-questions.php');
     }
 }
@@ -96,7 +96,7 @@ if (!$hodQuestions) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configure HOD Questions - <?php echo htmlspecialchars($instName); ?></title>
+    <title>Configure Supervising Officer Questions - <?php echo htmlspecialchars($instName); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="theme-overrides.css" rel="stylesheet">
@@ -120,7 +120,7 @@ if (!$hodQuestions) {
                 <h4 class="text-white mb-4"><i class="fas fa-university"></i> <?php echo htmlspecialchars($instName); ?></h4>
                 <a href="dashboard.php"><i class="fas fa-home"></i> Dashboard</a>
                 <a href="settings.php"><i class="fas fa-cog"></i> Settings</a>
-                <a href="hod-questions.php" class="active"><i class="fas fa-question-circle"></i> HOD Questions</a>
+                <a href="hod-questions.php" class="active"><i class="fas fa-question-circle"></i> Supervising Officer Questions</a>
                 <a href="logout.php" class="text-warning"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
 
@@ -128,17 +128,17 @@ if (!$hodQuestions) {
             <div class="col-md-10 main-content p-4">
                 <?php echo $message; ?>
 
-                <h2 class="mb-4"><i class="fas fa-cog"></i> Configure HOD Evaluation Questions</h2>
+                <h2 class="mb-4"><i class="fas fa-cog"></i> Configure Supervising Officer Evaluation Questions</h2>
 
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i>
-                    <strong>Note:</strong> These questions will be shown to HODs when evaluating staff in their department.
+                    <strong>Note:</strong> These questions will be shown to Supervising Officers when evaluating staff in their department.
                     Dean and Registrar will only see the summary and add comments - they will not answer these questions.
                 </div>
 
                 <form method="POST" class="card">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-clipboard-list"></i> HOD Evaluation Questions</h5>
+                        <h5 class="mb-0"><i class="fas fa-clipboard-list"></i> Supervising Officer Evaluation Questions</h5>
                     </div>
                     <div class="card-body">
                         <!-- Teaching Questions -->

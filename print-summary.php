@@ -226,7 +226,7 @@ function getAnsweredQuestions($questions, $responses) {
             <div class="row">
                 <div class="col-md-4"><strong>Staff ID:</strong> <?php echo htmlspecialchars($eval['staff_identifier'] ?? $eval['staff_id']); ?></div>
                 <div class="col-md-4"><strong>Name:</strong> <?php echo htmlspecialchars($eval['first_name'] . ' ' . $eval['surname']); ?></div>
-                <div class="col-md-4"><strong>Category:</strong> <?php echo $eval['staff_category'] == 'academic' ? 'Academic Staff' : ($eval['staff_category'] == 'non-teaching-junior' ? 'Non-Teaching Staff Junior' : ($eval['staff_category'] == 'hod' ? 'HOD' : 'Non-Teaching Staff')); ?></div>
+                <div class="col-md-4"><strong>Category:</strong> <?php echo $eval['staff_category'] == 'academic' ? 'Academic Staff' : ($eval['staff_category'] == 'non-teaching-junior' ? 'Junior Staff Level 5 and below' : ($eval['staff_category'] == 'hod' ? 'Supervising Officer' : 'Non-Teaching Staff')); ?></div>
             </div>
             <div class="row mt-2">
                 <div class="col-md-4"><strong>Department:</strong> <?php echo htmlspecialchars($eval['department'] ?? 'N/A'); ?></div>
@@ -256,19 +256,19 @@ function getAnsweredQuestions($questions, $responses) {
         </div>
 
         <?php
-        // Show HOD evaluation details if evaluation is approved
+        // Show Supervising Officer evaluation details if evaluation is approved
         if ($eval['status'] === 'approved' && !empty($eval['supervisor_name'])): ?>
         <div class="question-section" style="background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #308a1e;">
-            <h5 style="color: #308a1e;"><i class="fas fa-clipboard-check me-2"></i>HOD Evaluation Details (Final Result)</h5>
+            <h5 style="color: #308a1e;"><i class="fas fa-clipboard-check me-2"></i>Supervising Officer Evaluation Details (Final Result)</h5>
             <div class="row mt-3">
                 <div class="col-md-6">
                     <p><strong>Evaluated By:</strong> <?php echo htmlspecialchars($eval['supervisor_name']); ?></p>
-                    <p><strong>Designation:</strong> <?php echo htmlspecialchars($eval['supervisor_designation'] ?? 'HOD'); ?></p>
+                    <p><strong>Designation:</strong> <?php echo htmlspecialchars($eval['supervisor_designation'] ?? 'Supervising Officer'); ?></p>
                     <p><strong>Evaluation Date:</strong> <?php echo !empty($eval['supervisor_date']) ? date('F j, Y', strtotime($eval['supervisor_date'])) : 'N/A'; ?></p>
                 </div>
                 <div class="col-md-6">
                     <?php if (!empty($eval['supervisor_remarks'])): ?>
-                    <p><strong>HOD Remarks:</strong></p>
+                    <p><strong>Supervising Officer Remarks:</strong></p>
                     <p style="font-style: italic;"><?php echo nl2br(htmlspecialchars($eval['supervisor_remarks'])); ?></p>
                     <?php endif; ?>
                 </div>
@@ -379,7 +379,7 @@ function getAnsweredQuestions($questions, $responses) {
                 <h6 style="border-bottom: 2px solid #308a1e; padding-bottom: 5px; margin-bottom: 10px;">Evaluation Approval Chain</h6>
                 <div class="row">
                     <div class="col-md-4">
-                        <p class="mb-1"><strong>HOD Approval</strong></p>
+                        <p class="mb-1"><strong>Supervising Officer Approval</strong></p>
                         <p class="mb-0 text-muted"><?php echo !empty($eval['supervisor_name']) ? htmlspecialchars($eval['supervisor_name']) : 'N/A'; ?></p>
                         <p class="mb-0 text-muted" style="font-size: 0.8rem;"><?php echo !empty($eval['supervisor_date']) ? date('F j, Y', strtotime($eval['supervisor_date'])) : ''; ?></p>
                     </div>
