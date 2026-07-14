@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                     // Generate a unique staff_id for the evaluator
                     $staffId = 'EVAL-' . strtoupper(str_replace(' ', '-', $designation));
-                    $stmt = $pdo->prepare("INSERT INTO staff (staff_id, designation, surname, first_name, email, phone, department, faculty, evaluator_type, password, staff_category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'non-teaching')");
+                    $stmt = $pdo->prepare("INSERT INTO staff (staff_id, designation, surname, first_name, email, phone, department, faculty, evaluator_type, password, staff_category, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'non-teaching', 'active')");
                     $stmt->execute([$staffId, $designation, $surname, $firstName, $email, $phone, $department, $faculty, $evaluatorType, $hashedPassword]);
                     showMessage(ucfirst($evaluatorType) . ' added successfully!', 'success');
                     redirect('manage-evaluators.php');
@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Use staff_id as designation if empty
                         $newDesignation = $staffMember['staff_id'] ?: $staffMember['surname'] . '_' . $promoteEvaluatorType;
 
-                        $stmt = $pdo->prepare("UPDATE staff SET evaluator_type = ?, designation = ?, password = ? WHERE id = ?");
+                        $stmt = $pdo->prepare("UPDATE staff SET evaluator_type = ?, designation = ?, password = ?, status = 'active' WHERE id = ?");
                         $stmt->execute([$promoteEvaluatorType, $newDesignation, $hashedPassword, $promoteStaffId]);
                         showMessage(ucfirst($staffMember['surname'] . ' ' . $staffMember['first_name']) . ' promoted as ' . $promoteEvaluatorType . ' successfully!', 'success');
                         redirect('manage-evaluators.php');
