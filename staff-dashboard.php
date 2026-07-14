@@ -261,7 +261,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 $gradeResult[1],
                 $staffCategory
             ]);
-            $submitMessage = 'Evaluation submitted successfully!';
+            $newEvalId = $pdo->lastInsertId();
+            $submitMessage = 'Evaluation submitted successfully! <a href="print-summary.php?id=' . $newEvalId . '" target="_blank" class="btn btn-sm btn-outline-primary ms-2"><i class="fas fa-print"></i> Print Summary</a>';
 
             // Refresh the evaluation data
             $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1");

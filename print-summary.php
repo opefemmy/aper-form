@@ -58,39 +58,47 @@ $stmt = $pdo->prepare("SELECT * FROM academic_sessions WHERE id = ?");
 $stmt->execute([$eval['academic_session_id']]);
 $session = $stmt->fetch();
 
-// Questions mapping
+// Get questions from database dynamically
+$questionLabels = [];
+$stmt = $pdo->query("SELECT id, question_text, category FROM evaluation_questions WHERE is_active = 1 ORDER BY COALESCE(question_order, 99999), category, id");
+while ($q = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $key = 'q_' . $q['id'];
+    $questionLabels[$key] = $q['question_text'];
+}
+
+// Questions mapping - use database labels
 $teaching = [
-    ['key' => 'teaching_1', 'label' => 'Lecture Delivery'],
-    ['key' => 'teaching_2', 'label' => 'Class Attendance'],
-    ['key' => 'teaching_3', 'label' => 'Student Engagement'],
-    ['key' => 'teaching_4', 'label' => 'Course Preparation'],
-    ['key' => 'teaching_5', 'label' => 'Course Coverage'],
-    ['key' => 'teaching_6', 'label' => 'Time Management']
+    ['key' => 'teaching_1', 'label' => $questionLabels['q_1'] ?? 'Teaching Performance 1'],
+    ['key' => 'teaching_2', 'label' => $questionLabels['q_2'] ?? 'Teaching Performance 2'],
+    ['key' => 'teaching_3', 'label' => $questionLabels['q_3'] ?? 'Teaching Performance 3'],
+    ['key' => 'teaching_4', 'label' => $questionLabels['q_4'] ?? 'Teaching Performance 4'],
+    ['key' => 'teaching_5', 'label' => $questionLabels['q_5'] ?? 'Teaching Performance 5'],
+    ['key' => 'teaching_6', 'label' => $questionLabels['q_6'] ?? 'Teaching Performance 6']
 ];
 $research = [
-    ['key' => 'research_1', 'label' => 'Publications'],
-    ['key' => 'research_2', 'label' => 'Conferences'],
-    ['key' => 'research_3', 'label' => 'Research Grants'],
-    ['key' => 'research_4', 'label' => 'Journal Articles'],
-    ['key' => 'research_5', 'label' => 'Innovations']
+    ['key' => 'research_1', 'label' => $questionLabels['q_7'] ?? 'Research Output 1'],
+    ['key' => 'research_2', 'label' => $questionLabels['q_8'] ?? 'Research Output 2'],
+    ['key' => 'research_3', 'label' => $questionLabels['q_9'] ?? 'Research Output 3'],
+    ['key' => 'research_4', 'label' => $questionLabels['q_10'] ?? 'Research Output 4'],
+    ['key' => 'research_5', 'label' => $questionLabels['q_11'] ?? 'Research Output 5']
 ];
 $admin = [
-    ['key' => 'admin_1', 'label' => 'Attendance'],
-    ['key' => 'admin_2', 'label' => 'Punctuality'],
-    ['key' => 'admin_3', 'label' => 'Leadership'],
-    ['key' => 'admin_4', 'label' => 'Teamwork'],
-    ['key' => 'admin_5', 'label' => 'Record Keeping']
+    ['key' => 'admin_1', 'label' => $questionLabels['q_12'] ?? 'Administrative Duty 1'],
+    ['key' => 'admin_2', 'label' => $questionLabels['q_13'] ?? 'Administrative Duty 2'],
+    ['key' => 'admin_3', 'label' => $questionLabels['q_14'] ?? 'Administrative Duty 3'],
+    ['key' => 'admin_4', 'label' => $questionLabels['q_15'] ?? 'Administrative Duty 4'],
+    ['key' => 'admin_5', 'label' => $questionLabels['q_16'] ?? 'Administrative Duty 5']
 ];
 $community = [
-    ['key' => 'community_1', 'label' => 'Community Development'],
-    ['key' => 'community_2', 'label' => 'Committee Participation'],
-    ['key' => 'community_3', 'label' => 'Institutional Representation']
+    ['key' => 'community_1', 'label' => $questionLabels['q_17'] ?? 'Community Service 1'],
+    ['key' => 'community_2', 'label' => $questionLabels['q_18'] ?? 'Community Service 2'],
+    ['key' => 'community_3', 'label' => $questionLabels['q_19'] ?? 'Community Service 3']
 ];
 $professional = [
-    ['key' => 'professional_1', 'label' => 'Workshops'],
-    ['key' => 'professional_2', 'label' => 'Training'],
-    ['key' => 'professional_3', 'label' => 'Certifications'],
-    ['key' => 'professional_4', 'label' => 'Seminars']
+    ['key' => 'professional_1', 'label' => $questionLabels['q_20'] ?? 'Professional Development 1'],
+    ['key' => 'professional_2', 'label' => $questionLabels['q_21'] ?? 'Professional Development 2'],
+    ['key' => 'professional_3', 'label' => $questionLabels['q_22'] ?? 'Professional Development 3'],
+    ['key' => 'professional_4', 'label' => $questionLabels['q_23'] ?? 'Professional Development 4']
 ];
 
 function getScoreLabel($score) {
