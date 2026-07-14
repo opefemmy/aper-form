@@ -226,7 +226,7 @@ try {
 }
 
 // Build query based on filter
-if ($filterCategory === 'hod') {
+if ($filterCategory === 'supervising-officer') {
     // Filter HOD evaluation questions - show all questions that can be used for HOD evaluation
     // Also include 'both' category questions that can be used
     $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category IN ('hod', 'both') OR target_staff_category IS NULL OR target_staff_category = '' ORDER BY category, id");
@@ -316,14 +316,14 @@ foreach ($questions as $q) {
                             <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-filter me-2"></i>
                                 <?php echo $filterCategory === 'all' ? 'All Questions' :
-                                    ($filterCategory === 'hod' ? 'Supervising Officer Evaluation Questions' :
+                                    ($filterCategory === 'supervising-officer' ? 'Supervising Officer Evaluation Questions' :
                                     ($filterCategory === 'academic' ? 'Academic Staff' :
                                     ($filterCategory === 'non-teaching-junior' ? 'Non-Teaching Staff Junior' : 'Non-Teaching Staff'))); ?>
                             </button>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'all' ? 'active' : ''; ?>" href="questions.php?filter=all"><i class="fas fa-list me-2"></i>All Questions</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item <?php echo $filterCategory === 'hod' ? 'active' : ''; ?>" href="questions.php?filter=hod"><i class="fas fa-user-tie me-2"></i>Supervising Officer Evaluation (Questions Supervising Officer uses to evaluate staff)</a></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'supervising-officer' ? 'active' : ''; ?>" href="questions.php?filter=supervising-officer"><i class="fas fa-user-tie me-2"></i>Supervising Officer Evaluation</a></li>
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'academic' ? 'active' : ''; ?>" href="questions.php?filter=academic"><i class="fas fa-graduation-cap me-2"></i>Academic Staff Questions</a></li>
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'non-teaching' ? 'active' : ''; ?>" href="questions.php?filter=non-teaching"><i class="fas fa-briefcase me-2"></i>Non-Teaching Staff Questions</a></li>
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'non-teaching-junior' ? 'active' : ''; ?>" href="questions.php?filter=non-teaching-junior"><i class="fas fa-user-plus me-2"></i>Non-Teaching Staff Junior Questions</a></li>
@@ -338,7 +338,7 @@ foreach ($questions as $q) {
                     </div>
                 </div>
 
-                <?php if ($filterCategory === 'hod'): ?>
+                <?php if ($filterCategory === 'supervising-officer'): ?>
                 <div class="alert alert-info mb-4">
                     <i class="fas fa-info-circle me-2"></i>
                     <strong>Supervising Officer Evaluation Questions:</strong> These are the questions that Supervising Officers will use to evaluate their staff.

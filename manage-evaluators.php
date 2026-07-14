@@ -698,16 +698,22 @@ if ($editId) {
             var facInput = document.getElementById('facultyInput');
 
             if (evaluatorType === 'Supervising Officer') {
-                deptField.style.display = 'block';
-                facField.style.display = 'none';
-                deptInput.required = true;
-                facInput.required = false;
-                facInput.value = '';
+                if (deptField) deptField.style.display = 'block';
+                if (facField) facField.style.display = 'none';
+                if (deptInput) {
+                    deptInput.required = true;
+                    deptInput.parentElement.style.display = 'block';
+                }
+                if (facInput) {
+                    facInput.required = false;
+                    facInput.value = '';
+                }
             } else {
-                deptField.style.display = 'block';
-                facField.style.display = 'block';
-                deptInput.required = false;
-                facInput.required = false;
+                // Registrar - show both or hide based on what exists
+                if (deptField) deptField.style.display = 'block';
+                if (facField) facField.style.display = 'block';
+                if (deptInput) deptInput.required = false;
+                if (facInput) facInput.required = false;
             }
         }
 
