@@ -1,0 +1,19 @@
+APER System Updates
+===================
+
+Last Updated: 2026-07-14
+
+Recent Changes:
+1. Added Non-Teaching Staff Junior category
+2. Renamed HOD to Supervising Officer
+3. Removed Dean role
+4. New evaluation workflow: Staff → Supervising Officer → Staff Review → Registrar
+5. Added sample questions (2 per category) for each staff type
+6. Questions are now separated: Staff questions vs Supervising Officer questions
+
+Test Credentials:
+- Supervising Officer: SUP-ComputerScience / supervisor123
+
+Database Changes Made:
+- Added questions for all staff categories
+- Added test Supervising Officer to database
