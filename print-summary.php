@@ -58,43 +58,68 @@ $stmt = $pdo->prepare("SELECT * FROM academic_sessions WHERE id = ?");
 $stmt->execute([$eval['academic_session_id']]);
 $session = $stmt->fetch();
 
-// Get ALL questions from database to build dynamic mapping
-$allQuestions = [];
-$questionKeyMap = []; // Map question text to a standardized key
-$stmt = $pdo->query("SELECT id, question_text, category FROM evaluation_questions WHERE is_active = 1 ORDER BY COALESCE(question_order, 99999), category, id");
-$qIndex = 1;
+// Get the staff category for this evaluation
+$evalStaffCategory = $eval['staff_category'] ?? 'academic';
+
+// Get questions specifically for this staff category from database
+$questionsByCategory = [];
+$allDbQuestions = [];
+
+if ($evalStaffCategory === 'non-teaching-junior') {
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'non-teaching-junior' ORDER BY COALESCE(question_order, 99999), category, id");
+} elseif ($evalStaffCategory === 'non-teaching') {
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'non-teaching' ORDER BY COALESCE(question_order, 99999), category, id");
+} else {
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = '$evalStaffCategory' OR target_staff_category = 'both') ORDER BY COALESCE(question_order, 99999), category, id");
+}
+
 while ($q = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $allQuestions[$q['id']] = $q;
-    // Create a standardized key like teaching_1, research_1, etc.
     $category = strtolower($q['category']);
-    if (!isset($questionKeyMap[$category])) {
-        $questionKeyMap[$category] = 1;
+    if (!isset($questionsByCategory[$category])) {
+        $questionsByCategory[$category] = [];
     }
-    $key = $category . '_' . $questionKeyMap[$category];
-    $questionKeyMap[$category]++;
-    $questionLabels[$key] = $q['question_text'];
-    // Also store by index
-    $questionLabels['q_' . $qIndex] = $q['question_text'];
-    $qIndex++;
-}
-
-// Build question arrays dynamically based on actual categories
-$categoryQuestions = [];
-foreach ($allQuestions as $q) {
-    $cat = strtolower($q['category']);
-    if (!isset($categoryQuestions[$cat])) {
-        $categoryQuestions[$cat] = [];
-    }
-    $catIndex = count($categoryQuestions[$cat]) + 1;
-    $key = $cat . '_' . $catIndex;
-    $categoryQuestions[$cat][] = [
-        'key' => $key,
+    // Use question_text as key for matching with responses
+    $qText = sanitize($q['question_text']);
+    $questionsByCategory[$category][] = [
+        'key' => $qText,
         'label' => $q['question_text'],
-        'db_id' => $q['id']
+        'id' => $q['id'],
+        'category' => $category
     ];
+    $allDbQuestions[$qText] = $q['question_text'];
 }
 
-// Use the dynamic categories
+// Fallback: also check by 'both' category if no questions found
+if (empty($questionsByCategory)) {
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'both' ORDER BY COALESCE(question_order, 99999), category, id");
+    while ($q = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $category = strtolower($q['category']);
+        if (!isset($questionsByCategory[$category])) {
+            $questionsByCategory[$category] = [];
+        }
+        $qText = sanitize($q['question_text']);
+        $questionsByCategory[$category][] = [
+            'key' => $qText,
+            'label' => $q['question_text'],
+            'id' => $q['id'],
+            'category' => $category
+        ];
+        $allDbQuestions[$qText] = $q['question_text'];
+    }
+}
+
+// Build arrays for backward compatibility
+$teaching = $questionsByCategory['teaching'] ?? [];
+$research = $questionsByCategory['research'] ?? [];
+$admin = $questionsByCategory['admin'] ?? [];
+$community = $questionsByCategory['community'] ?? [];
+$professional = $questionsByCategory['professional'] ?? [];
+
+if (empty($teaching)) { $teaching = [['key' => 'teaching_1', 'label' => 'Teaching Performance 1']]; }
+if (empty($research)) { $research = [['key' => 'research_1', 'label' => 'Research Output 1']]; }
+if (empty($admin)) { $admin = [['key' => 'admin_1', 'label' => 'Administrative Duty 1']]; }
+if (empty($community)) { $community = [['key' => 'community_1', 'label' => 'Community Service 1']]; }
+if (empty($professional)) { $professional = [['key' => 'professional_1', 'label' => 'Professional Development 1']]; }
 $teaching = $categoryQuestions['teaching'] ?? [];
 $research = $categoryQuestions['research'] ?? [];
 $admin = $categoryQuestions['admin'] ?? [];
@@ -117,20 +142,6 @@ if (empty($community)) {
 if (empty($professional)) {
     $professional = [['key' => 'professional_1', 'label' => 'Professional Development 1']];
 }
-    ['key' => 'admin_4', 'label' => $questionLabels['q_15'] ?? 'Administrative Duty 4'],
-    ['key' => 'admin_5', 'label' => $questionLabels['q_16'] ?? 'Administrative Duty 5']
-];
-$community = [
-    ['key' => 'community_1', 'label' => $questionLabels['q_17'] ?? 'Community Service 1'],
-    ['key' => 'community_2', 'label' => $questionLabels['q_18'] ?? 'Community Service 2'],
-    ['key' => 'community_3', 'label' => $questionLabels['q_19'] ?? 'Community Service 3']
-];
-$professional = [
-    ['key' => 'professional_1', 'label' => $questionLabels['q_20'] ?? 'Professional Development 1'],
-    ['key' => 'professional_2', 'label' => $questionLabels['q_21'] ?? 'Professional Development 2'],
-    ['key' => 'professional_3', 'label' => $questionLabels['q_22'] ?? 'Professional Development 3'],
-    ['key' => 'professional_4', 'label' => $questionLabels['q_23'] ?? 'Professional Development 4']
-];
 
 function getScoreLabel($score) {
     $labels = [1 => 'Poor', 2 => 'Fair', 3 => 'Good', 4 => 'Very Good', 5 => 'Excellent'];
