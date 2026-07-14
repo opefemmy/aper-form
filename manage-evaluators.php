@@ -655,18 +655,29 @@ if ($editId) {
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Select Staff to Promote <span class="text-danger">*</span></label>
-                                        <select name="promote_staff_id" class="form-select" id="promoteStaffSelect">
+                                        <select name="promote_staff_id" class="form-select" id="promoteStaffSelect" onchange="updatePromoteFields()">
                                             <option value="">Select Staff Member</option>
                                             <?php
-                                            $stmt = $pdo->query("SELECT id, staff_id, surname, first_name, department, faculty FROM staff WHERE (evaluator_type = '' OR evaluator_type IS NULL) AND staff_id NOT LIKE 'DEPT-%' AND staff_id NOT LIKE 'FAC-%' ORDER BY surname, first_name");
+                                            // Get staff who are NOT already evaluators
+                                            $stmt = $pdo->query("SELECT id, staff_id, surname, first_name, department, faculty FROM staff WHERE (evaluator_type = '' OR evaluator_type IS NULL OR evaluator_type = 'HOD') AND staff_id NOT LIKE 'DEPT-%' AND staff_id NOT LIKE 'FAC-%' ORDER BY surname, first_name");
+                                            $staffCount = 0;
                                             while ($staffMember = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                                $staffCount++;
                                                 echo '<option value="' . $staffMember['id'] . '" data-dept="' . htmlspecialchars($staffMember['department'] ?? '') . '" data-fac="' . htmlspecialchars($staffMember['faculty'] ?? '') . '">';
                                                 echo htmlspecialchars($staffMember['surname'] . ' ' . $staffMember['first_name'] . ' (' . $staffMember['staff_id'] . ')');
                                                 if ($staffMember['department']) echo ' - ' . $staffMember['department'];
                                                 echo '</option>';
                                             }
+                                            if ($staffCount === 0) {
+                                                echo '<option value="">No staff available to promote</option>';
+                                            }
                                             ?>
                                         </select>
+                                        <?php if ($staffCount === 0): ?>
+                                        <div class="alert alert-warning mt-2">
+                                            <i class="fas fa-exclamation-triangle"></i> No staff available to promote. All staff may already be evaluators or no staff have been uploaded.
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Evaluator Type <span class="text-danger">*</span></label>
@@ -723,6 +734,38 @@ if ($editId) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Function to update department/faculty when staff is selected
+        function updatePromoteFields() {
+            var select = document.getElementById('promoteStaffSelect');
+            var selectedOption = select.options[select.selectedIndex];
+            var dept = selectedOption.getAttribute('data-dept');
+            var fac = selectedOption.getAttribute('data-fac');
+            document.getElementById('promoteDepartment').value = dept || '';
+            document.getElementById('promoteFaculty').value = fac || '';
+        }
+
+        // Show promote button when Promote tab is clicked
+        document.addEventListener('DOMContentLoaded', function() {
+            var promoteTab = document.getElementById('promote-tab');
+            var createTab = document.getElementById('create-tab');
+            var addBtn = document.getElementById('addBtn');
+            var promoteBtn = document.getElementById('promoteBtn');
+
+            if (promoteTab) {
+                promoteTab.addEventListener('click', function() {
+                    if (addBtn) addBtn.style.display = 'none';
+                    if (promoteBtn) promoteBtn.style.display = 'inline-block';
+                });
+            }
+
+            if (createTab) {
+                createTab.addEventListener('click', function() {
+                    if (addBtn) addBtn.style.display = 'inline-block';
+                    if (promoteBtn) promoteBtn.style.display = 'none';
+                });
+            }
+        });
+
         function toggleFields() {
             var evaluatorType = document.querySelector('select[name="evaluator_type"]').value;
             var deptField = document.getElementById('departmentField');
@@ -756,35 +799,6 @@ if ($editId) {
             if (evaluatorSelect) {
                 evaluatorSelect.addEventListener('change', toggleFields);
                 toggleFields();
-            }
-
-            // Tab switching
-            var createTab = document.getElementById('create-tab');
-            var promoteTab = document.getElementById('promote-tab');
-            var addBtn = document.getElementById('addBtn');
-            var promoteBtn = document.getElementById('promoteBtn');
-
-            if (createTab && promoteTab) {
-                createTab.addEventListener('shown.bs.tab', function() {
-                    if (addBtn) addBtn.style.display = 'inline-block';
-                    if (promoteBtn) promoteBtn.style.display = 'none';
-                });
-                promoteTab.addEventListener('shown.bs.tab', function() {
-                    if (addBtn) addBtn.style.display = 'none';
-                    if (promoteBtn) promoteBtn.style.display = 'inline-block';
-                });
-            }
-
-            // Auto-fill department/faculty when selecting staff to promote
-            var promoteStaffSelect = document.getElementById('promoteStaffSelect');
-            if (promoteStaffSelect) {
-                promoteStaffSelect.addEventListener('change', function() {
-                    var selectedOption = this.options[this.selectedIndex];
-                    var dept = selectedOption.getAttribute('data-dept');
-                    var fac = selectedOption.getAttribute('data-fac');
-                    document.getElementById('promoteDepartment').value = dept || '';
-                    document.getElementById('promoteFaculty').value = fac || '';
-                });
             }
         });
     </script>
