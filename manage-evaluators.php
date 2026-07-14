@@ -719,10 +719,11 @@ if ($editId) {
                         </button>
                         <?php else: ?>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" name="add_evaluator" class="btn btn-primary" id="addBtn">
                             <i class="fas fa-plus"></i> Add Evaluator
                         </button>
-                        <button type="submit" name="promote_evaluator" class="btn btn-success" id="promoteBtn" style="display:none;">
+                        <button type="submit" name="promote_evaluator" class="btn btn-success" id="promoteBtn">
                             <i class="fas fa-user-plus"></i> Promote to Evaluator
                         </button>
                         <?php endif; ?>
