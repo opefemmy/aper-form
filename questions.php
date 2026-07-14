@@ -649,6 +649,7 @@ foreach ($questions as $q) {
                                     <option value="both" <?php echo $filterCategory === 'all' ? 'selected' : ''; ?>>All Staff</option>
                                     <option value="academic" <?php echo $filterCategory === 'academic' ? 'selected' : ''; ?>>Academic Staff Only</option>
                                     <option value="non-teaching" <?php echo $filterCategory === 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching Staff Only</option>
+                                    <option value="non-teaching-junior" <?php echo $filterCategory === 'non-teaching-junior' ? 'selected' : ''; ?>>Non-Teaching Staff Junior Only</option>
                                     <option value="hod" <?php echo $filterCategory === 'hod' ? 'selected' : ''; ?>>Supervising Officer Evaluation Question</option>
                                 </select>
                                 <small class="text-muted">Which staff type sees this question</small>

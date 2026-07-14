@@ -147,16 +147,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             $responses[$q['id']] = $_POST[$fieldName] ?? '';
         }
 
-        // For numeric rating questions, calculate score
+        // For numeric rating/scale questions, calculate score
         if (($q['question_type'] === 'rating' || $q['question_type'] === 'scale') && !empty($responses[$q['id']])) {
             $numericScore += intval($responses[$q['id']]);
             $ratingQuestionCount++;
         }
     }
 
-    // Calculate totals based on actual rating questions
-    $totalScore = $numericScore;
-    $questionCount = count(array_filter($dbQuestions, fn($q) => $q['question_type'] === 'rating' || $q['question_type'] === 'scale'));
+    // Count ALL answered questions (for 100% based scoring)
+    // Every question type gets full marks (5 points) if answered
+    $answeredCount = 0;
+    $nonRatingScore = 0;
+    foreach ($dbQuestions as $q) {
+        $answer = $responses[$q['id']] ?? '';
+        // Check if question was answered (any non-empty value)
+        if (!empty($answer) && $answer !== '') {
+            $answeredCount++;
+            // Non-rating questions get 5 points if answered
+            if ($q['question_type'] !== 'rating' && $q['question_type'] !== 'scale') {
+                $nonRatingScore += 5;
+            }
+        }
+    }
+
+    // Calculate totals - NEW LOGIC: Every answered question = 5 points (100% base)
+    $totalQuestions = count($dbQuestions);
+    $totalScore = $numericScore + $nonRatingScore;
+    $questionCount = $totalQuestions;
     $averageScore = $questionCount > 0 ? round($totalScore / $questionCount, 2) : 0;
     $maxPossible = $questionCount * 5;
     $percentage = $maxPossible > 0 ? round(($totalScore / $maxPossible) * 100, 2) : 0;
@@ -426,8 +443,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
 
         <!-- Evaluation Status -->
         <?php if ($existingEval):
-            $ratingQuestionCount = count(array_filter($dbQuestions, fn($q) => $q['question_type'] === 'rating' || $q['question_type'] === 'scale'));
-            $maxPoints = $ratingQuestionCount * 5;
+            $totalQuestionsCount = count($dbQuestions);
+            $maxPoints = $totalQuestionsCount * 5;
         ?>
         <div class="row mb-4">
             <div class="col-md-3">
@@ -899,8 +916,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             count++;
         });
 
+        // Count ALL answered questions (rating, yes_no, true_false, text inputs, etc.)
+        // Each answered question gets 5 points (full marks)
+        const allInputs = document.querySelectorAll('.question-input, input[type="radio"], input[type="checkbox"], textarea, input[type="text"]');
+        allInputs.forEach(input => {
+            // Skip rating/scale radios (already counted above)
+            if (input.type === 'radio' && input.name.includes('rating')) return;
+
+            // Check if answered
+            if (input.type === 'checkbox') {
+                if (input.checked) {
+                    total += 5;
+                    count++;
+                }
+            } else if (input.value && input.value.trim() !== '') {
+                // Text inputs, selects, etc. - get 5 points if answered
+                total += 5;
+                count++;
+            }
+        });
+
         const avg = count > 0 ? (total / count).toFixed(2) : 0;
-        // Dynamic max possible based on number of rating questions
+        // Dynamic max possible based on ALL questions
         const maxPossible = window.questionCount ? window.questionCount * 5 : 23 * 5;
         const percentage = maxPossible > 0 ? ((total / maxPossible) * 100).toFixed(1) : 0;
 
@@ -914,8 +951,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         if (percentEl) percentEl.textContent = percentage + '%';
     }
 
-    // Set question count for dynamic score calculation
-    window.questionCount = <?php echo count(array_filter($dbQuestions, fn($q) => $q['question_type'] === 'rating' || $q['question_type'] === 'scale')); ?>;
+    // Set question count for dynamic score calculation - ALL questions count now
+    window.questionCount = <?php echo count($dbQuestions); ?>;
 
     // Section navigation
     const totalSections = <?php echo $totalSections; ?>;
