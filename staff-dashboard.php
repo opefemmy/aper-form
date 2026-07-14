@@ -66,9 +66,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['staff_consent_action'
 $stmt = $pdo->query("SELECT * FROM academic_sessions WHERE is_active = 1 LIMIT 1");
 $activeSession = $stmt->fetch();
 
-// Get questions from database based on staff category (include HOD category for HOD staff)
-$stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') ORDER BY COALESCE(question_order, 99999), category, id");
-$stmt->execute([$staffCategory]);
+// Get questions from database - COMPLETE separation between Junior Staff and Non-Teaching Staff
+// Junior Staff (non-teaching-junior) only gets junior questions
+// Non-Teaching Staff only gets non-teaching questions
+// Academic Staff gets academic questions
+if ($staffCategory === 'non-teaching-junior') {
+    // Junior Staff - only get questions specifically for junior staff
+    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'non-teaching-junior' ORDER BY COALESCE(question_order, 99999), category, id");
+    $stmt->execute();
+} elseif ($staffCategory === 'non-teaching') {
+    // Non-Teaching Staff (senior) - only get questions for non-teaching
+    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'non-teaching' ORDER BY COALESCE(question_order, 99999), category, id");
+    $stmt->execute();
+} else {
+    // Academic staff or others - use exact match + 'both'
+    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') ORDER BY COALESCE(question_order, 99999), category, id");
+    $stmt->execute([$staffCategory]);
+}
 $dbQuestions = $stmt->fetchAll();
 
 // Group questions by category
