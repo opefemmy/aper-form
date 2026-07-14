@@ -79,7 +79,7 @@ while ($q = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $questionsByCategory[$category] = [];
     }
     // Use question_text as key for matching with responses
-    $qText = sanitize($q['question_text']);
+    $qText = htmlspecialchars($q['question_text']);
     $questionsByCategory[$category][] = [
         'key' => $qText,
         'label' => $q['question_text'],
@@ -97,7 +97,7 @@ if (empty($questionsByCategory)) {
         if (!isset($questionsByCategory[$category])) {
             $questionsByCategory[$category] = [];
         }
-        $qText = sanitize($q['question_text']);
+        $qText = htmlspecialchars($q['question_text']);
         $questionsByCategory[$category][] = [
             'key' => $qText,
             'label' => $q['question_text'],
