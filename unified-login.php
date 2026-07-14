@@ -105,17 +105,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['admin_role'] = $admin['role'];
                         redirect(SITE_URL . '/dashboard.php');
                     } else {
-                        // Also check if it's an evaluator (Supervising Officer/old HOD, Registrar) logging in with designation + password
-                        $stmt = $pdo->prepare("SELECT * FROM staff WHERE designation = ? AND evaluator_type IN ('Supervising Officer', 'Registrar', 'HOD') LIMIT 1");
+                        // Also check if it's an evaluator (Supervising Officer, Registrar) logging in with designation + password
+                        $stmt = $pdo->prepare("SELECT * FROM staff WHERE designation = ? AND evaluator_type IN ('Supervising Officer', 'Registrar') LIMIT 1");
                         $stmt->execute([$email]);
                         $evaluator = $stmt->fetch();
-
-                        // If found as HOD, convert to Supervising Officer
-                        if ($evaluator && $evaluator['evaluator_type'] === 'HOD') {
-                            $updateStmt = $pdo->prepare("UPDATE staff SET evaluator_type = 'Supervising Officer' WHERE id = ?");
-                            $updateStmt->execute([$evaluator['id']]);
-                            $evaluator['evaluator_type'] = 'Supervising Officer';
-                        }
 
                         if ($evaluator && !empty($evaluator['password']) && password_verify($password, $evaluator['password'])) {
                             // Evaluator login - redirect to evaluator dashboard

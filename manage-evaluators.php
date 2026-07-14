@@ -19,6 +19,13 @@ $editId = $_GET['id'] ?? null;
 
 $pdo = getDBConnection();
 
+// Migration: Convert any HOD to Supervising Officer (one-time)
+$stmt = $pdo->query("SELECT id FROM staff WHERE evaluator_type = 'HOD' LIMIT 1");
+if ($stmt->fetch()) {
+    $stmt = $pdo->prepare("UPDATE staff SET evaluator_type = 'Supervising Officer' WHERE evaluator_type = 'HOD'");
+    $stmt->execute();
+}
+
 // Get settings
 $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
 $settings = [];
@@ -240,17 +247,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get evaluators - include HOD for backward compatibility
-$stmt = $pdo->query("SELECT * FROM staff WHERE evaluator_type IN ('Supervising Officer', 'Registrar', 'HOD') ORDER BY evaluator_type, department, surname");
+// Get evaluators - only Supervising Officer and Registrar
+$stmt = $pdo->query("SELECT * FROM staff WHERE evaluator_type IN ('Supervising Officer', 'Registrar') ORDER BY evaluator_type, department, surname");
 $evaluators = $stmt->fetchAll();
 
 // DEBUG: Show evaluators count
 $debugCount = count($evaluators);
 
-// Get evaluator for editing - include HOD for backward compatibility
+// Get evaluator for editing
 $editEvaluator = null;
 if ($editId) {
-    $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ? AND evaluator_type IN ('Supervising Officer', 'Registrar', 'HOD')");
+    $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ? AND evaluator_type IN ('Supervising Officer', 'Registrar')");
     $stmt->execute([$editId]);
     $editEvaluator = $stmt->fetch();
 }
