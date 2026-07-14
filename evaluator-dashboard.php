@@ -30,20 +30,21 @@ $evaluatorName = $_SESSION['staff_name'];
 $evaluatorDept = $_SESSION['staff_department'] ?? '';
 $evaluatorFac = $_SESSION['staff_faculty'] ?? '';
 
-// Get stats based on evaluator type - Simplified workflow: Staff -> Supervising Officer -> Registrar -> Completed
+// Get stats based on evaluator type - Workflow: Staff -> Supervising Officer -> Staff Review -> Registrar -> Completed
 if ($evaluatorType === 'Supervising Officer') {
     // Supervising Officer pending: staff who have submitted but Supervising Officer hasn't evaluated yet
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage = 'pending' AND e.status = 'submitted'");
+    // OR staff who rejected and need Supervising Officer review
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage IN ('pending', 'supervising_officer_reject') AND e.status = 'submitted'");
     $stmt->execute([$evaluatorDept]);
     $pendingCount = $stmt->fetchColumn();
 
     // Supervising Officer completed: staff who have been evaluated and passed to registrar or completed
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage IN ('registrar', 'completed') AND e.status = 'submitted'");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage IN ('staff_review', 'registrar', 'completed') AND e.status = 'submitted'");
     $stmt->execute([$evaluatorDept]);
     $completedByHod = $stmt->fetchColumn();
 } else {
-    // Registrar pending: evaluations that have passed Supervising Officer and waiting for Registrar
-    $stmt = $pdo->query("SELECT COUNT(*) FROM evaluations WHERE evaluation_stage = 'registrar' AND status = 'submitted'");
+    // Registrar pending: evaluations that have passed Supervising Officer (including rejected ones reviewed)
+    $stmt = $pdo->query("SELECT COUNT(*) FROM evaluations WHERE evaluation_stage IN ('registrar', 'supervising_officer_reject') AND status = 'submitted'");
     $pendingCount = $stmt->fetchColumn();
 
     // Registrar completed: fully approved evaluations

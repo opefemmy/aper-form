@@ -102,6 +102,7 @@ $evalFac = $_SESSION['staff_faculty'] ?? '';
 
 if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
     // Supervising Officer sees staff in their department who have submitted (evaluation_stage = 'pending')
+    // OR staff who have reviewed and need Supervising Officer to address their concerns (evaluation_stage = 'supervising_officer_reject')
     if (!empty($evalDept)) {
         // Pending: staff submitted but Supervising Officer hasn't evaluated yet
         $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
@@ -112,24 +113,34 @@ if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
         $stmt->execute([$evalDept]);
         $pendingEvals = $stmt->fetchAll();
 
-        // Processed: evaluations that have passed Supervising Officer stage
+        // Rejected by staff - needs Supervising Officer review
         $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
             FROM evaluations e
             JOIN staff s ON e.staff_id = s.id
-            WHERE s.department = ? AND e.evaluation_stage IN ('registrar', 'completed')
+            WHERE s.department = ? AND e.evaluation_stage = 'supervising_officer_reject' AND e.status = 'submitted'
+            ORDER BY e.created_at DESC");
+        $stmt->execute([$evalDept]);
+        $rejectedByStaff = $stmt->fetchAll();
+
+        // Processed: evaluations that have passed Supervising Officer stage (including staff_review)
+        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+            FROM evaluations e
+            JOIN staff s ON e.staff_id = s.id
+            WHERE s.department = ? AND e.evaluation_stage IN ('staff_review', 'supervising_officer_reject', 'registrar', 'completed')
             ORDER BY e.updated_at DESC");
         $stmt->execute([$evalDept]);
         $processedEvals = $stmt->fetchAll();
     } else {
         $pendingEvals = [];
         $processedEvals = [];
+        $rejectedByStaff = [];
     }
 } elseif ($adminRole === 'registrar') {
-    // Registrar sees all evaluations that have passed Supervising Officer and waiting for Registrar
+    // Registrar sees all evaluations waiting for final approval AND rejected ones that have been reviewed
     $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
-        WHERE e.evaluation_stage = 'registrar'
+        WHERE e.evaluation_stage IN ('registrar', 'supervising_officer_reject')
         ORDER BY e.created_at DESC");
     $stmt->execute();
     $pendingEvals = $stmt->fetchAll();
@@ -319,11 +330,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
     try {
         $pdo->beginTransaction();
 
-        // Determine next stage - Simplified workflow: Staff -> Supervising Officer -> Registrar -> Completed
+        // Determine next stage - Workflow: Staff -> Supervising Officer -> Staff Review -> (consent: Registrar, reject: Supervising Officer Review) -> Registrar -> Completed
         $nextStage = 'completed';
         if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
-            // After Supervising Officer evaluates, goes directly to Registrar (no staff review)
-            $nextStage = 'registrar';
+            // After Supervising Officer evaluates, goes to Staff for review
+            $nextStage = 'staff_review';
         } elseif ($adminRole === 'registrar') {
             $nextStage = 'completed'; // Registrar is final approval
         }
@@ -405,8 +416,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
                     'hod_performance_status' => $gradeInfo[1],
                 ];
 
-                // Supervising Officer evaluation - advance directly to Registrar stage
-                $updateData['evaluation_stage'] = 'registrar';
+                // Supervising Officer evaluation - advance to Staff Review stage
+                $updateData['evaluation_stage'] = 'staff_review';
                 $updateData['hod_id'] = $adminId;
                 $updateData['supervisor_name'] = sanitize($_POST['supervisor_name'] ?? $adminName);
                 $updateData['supervisor_designation'] = sanitize($_POST['supervisor_designation'] ?? 'Supervising Officer');
@@ -675,8 +686,9 @@ $sessions = $stmt->fetchAll();
                                             <span class="badge bg-<?php
                                                 $stage = $eval['evaluation_stage'];
                                                 if ($stage === 'pending') echo 'secondary';
-                                                elseif ($stage === 'supervising_officer') echo 'warning';
-                                                elseif (in_array($stage, ['registrar'])) echo 'info';
+                                                elseif ($stage === 'staff_review') echo 'info';
+                                                elseif ($stage === 'supervising_officer_reject') echo 'danger';
+                                                elseif (in_array($stage, ['registrar'])) echo 'warning';
                                                 else echo 'success';
                                             ?> stage-badge">
                                                 <?php echo strtoupper($stage); ?>
@@ -720,8 +732,9 @@ $sessions = $stmt->fetchAll();
                                             <span class="badge bg-<?php
                                                 $stage = $selectedEval['evaluation_stage'] ?? 'pending';
                                                 if ($stage === 'pending') echo 'secondary';
-                                                elseif ($stage === 'supervising_officer') echo 'warning';
-                                                elseif ($stage === 'registrar') echo 'info';
+                                                elseif ($stage === 'staff_review') echo 'info';
+                                                elseif ($stage === 'supervising_officer_reject') echo 'danger';
+                                                elseif ($stage === 'registrar') echo 'warning';
                                                 else echo 'success';
                                             ?>">
                                                 Stage: <?php echo strtoupper($stage); ?>
