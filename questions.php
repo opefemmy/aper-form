@@ -112,6 +112,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         showMessage('Question added successfully!', 'success');
     }
 
+    // Handle question reordering
+    if (isset($_POST['reorder_questions']) && isset($_POST['question_orders'])) {
+        $orders = $_POST['question_orders'];
+        foreach ($orders as $questionId => $order) {
+            $stmt = $pdo->prepare("UPDATE evaluation_questions SET question_order = ? WHERE id = ?");
+            $stmt->execute([intval($order), intval($questionId)]);
+        }
+        showMessage('Question order saved successfully!', 'success');
+    }
+
     if (isset($_POST['update_question'])) {
         $questionType = $_POST['question_type'];
         $options = '';
@@ -321,6 +331,9 @@ foreach ($questions as $q) {
                         </div>
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
                             <i class="fas fa-plus me-2"></i>Add Question
+                        </button>
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#reorderQuestionsModal">
+                            <i class="fas fa-sort-numeric-up me-2"></i>Reorder Questions
                         </button>
                     </div>
                 </div>
@@ -737,6 +750,63 @@ foreach ($questions as $q) {
         toggleCustomSubCategory(this);
     });
     </script>
+
+    <!-- Reorder Questions Modal -->
+    <div class="modal fade" id="reorderQuestionsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="POST" action="questions.php">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-sort-numeric-up me-2"></i>Reorder Questions</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted">Enter the display order number for each question. Questions with lower numbers appear first.</p>
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-bordered table-sm">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 80px;">Order</th>
+                                        <th>Question</th>
+                                        <th>Category</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    // Get all questions for reordering
+                                    $allQuestionsStmt = $pdo->query("SELECT id, question_text, category, question_order, target_staff_category FROM evaluation_questions ORDER BY COALESCE(question_order, 99999), category, id");
+                                    $allQuestions = $allQuestionsStmt->fetchAll();
+                                    foreach ($allQuestions as $aq):
+                                    ?>
+                                    <tr>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm" name="question_orders[<?php echo $aq['id']; ?>]" value="<?php echo $aq['question_order'] ?? 0; ?>" min="0" style="width: 80px;">
+                                        </td>
+                                        <td><?php echo htmlspecialchars(substr($aq['question_text'], 0, 80)) . (strlen($aq['question_text']) > 80 ? '...' : ''); ?></td>
+                                        <td>
+                                            <span class="badge bg-<?php
+                                                echo $aq['target_staff_category'] === 'academic' ? 'success' :
+                                                    ($aq['target_staff_category'] === 'non-teaching' ? 'warning' :
+                                                    ($aq['target_staff_category'] === 'non-teaching-junior' ? 'info' :
+                                                    ($aq['target_staff_category'] === 'hod' ? 'primary' : 'secondary')));
+                                            ?>">
+                                                <?php echo htmlspecialchars($aq['category']); ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="reorder_questions" class="btn btn-success"><i class="fas fa-save me-2"></i>Save Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
