@@ -240,17 +240,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get evaluators
-$stmt = $pdo->query("SELECT * FROM staff WHERE evaluator_type IN ('Supervising Officer', 'Registrar') ORDER BY evaluator_type, department, surname");
+// Get evaluators - include HOD for backward compatibility
+$stmt = $pdo->query("SELECT * FROM staff WHERE evaluator_type IN ('Supervising Officer', 'Registrar', 'HOD') ORDER BY evaluator_type, department, surname");
 $evaluators = $stmt->fetchAll();
 
 // DEBUG: Show evaluators count
 $debugCount = count($evaluators);
 
-// Get evaluator for editing
+// Get evaluator for editing - include HOD for backward compatibility
 $editEvaluator = null;
 if ($editId) {
-    $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ? AND evaluator_type IN ('Supervising Officer', 'Registrar')");
+    $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ? AND evaluator_type IN ('Supervising Officer', 'Registrar', 'HOD')");
     $stmt->execute([$editId]);
     $editEvaluator = $stmt->fetch();
 }
