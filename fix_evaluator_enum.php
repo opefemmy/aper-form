@@ -3,7 +3,7 @@ require_once 'config.php';
 
 $pdo = getDBConnection();
 
-echo "<h2>Fixing evaluator_type ENUM in database...</h2>";
+echo "<h2>Cleaning up evaluator_type - Removing Dean and HOD...</h2>";
 
 try {
     // Check current ENUM values
@@ -11,30 +11,30 @@ try {
     $column = $stmt->fetch();
     echo "Current type: " . $column['Type'] . "<br><br>";
 
-    // Drop and recreate the column with new ENUM values
-    $pdo->exec("ALTER TABLE staff MODIFY COLUMN evaluator_type ENUM('Supervising Officer', 'Registrar', 'Dean', 'HOD', '') DEFAULT ''");
+    // First convert any Dean or HOD to Supervising Officer
+    $stmt = $pdo->query("SELECT COUNT(*) as cnt FROM staff WHERE evaluator_type IN ('Dean', 'HOD')");
+    $countToConvert = $stmt->fetch()['cnt'];
 
-    echo "✅ Updated evaluator_type to include 'Supervising Officer'<br><br>";
+    if ($countToConvert > 0) {
+        $pdo->exec("UPDATE staff SET evaluator_type = 'Supervising Officer' WHERE evaluator_type IN ('Dean', 'HOD')");
+        echo "✅ Converted $countToConvert Dean/HOD to Supervising Officer<br><br>";
+    }
+
+    // Now update the ENUM to only have Supervising Officer and Registrar
+    $pdo->exec("ALTER TABLE staff MODIFY COLUMN evaluator_type ENUM('Supervising Officer', 'Registrar', '') DEFAULT ''");
+
+    echo "✅ Removed Dean and HOD from allowed values<br><br>";
 
     // Verify the update
     $stmt = $pdo->query("SHOW COLUMNS FROM staff LIKE 'evaluator_type'");
     $column = $stmt->fetch();
     echo "New type: " . $column['Type'] . "<br><br>";
 
-    // Convert any HOD to Supervising Officer
-    $stmt = $pdo->query("SELECT COUNT(*) as cnt FROM staff WHERE evaluator_type = 'HOD'");
-    $hodCount = $stmt->fetch()['cnt'];
-
-    if ($hodCount > 0) {
-        $pdo->exec("UPDATE staff SET evaluator_type = 'Supervising Officer' WHERE evaluator_type = 'HOD'");
-        echo "✅ Converted $hodCount HOD(s) to Supervising Officer<br><br>";
-    }
-
     // Show current evaluators
     $stmt = $pdo->query("SELECT id, designation, department, evaluator_type, status FROM staff WHERE evaluator_type IN ('Supervising Officer', 'Registrar')");
     $evaluators = $stmt->fetchAll();
 
-    echo "<h3>Current Evaluators:</h3>";
+    echo "<h3>Current Evaluators (only Supervising Officer & Registrar):</h3>";
     echo "<table border='1' cellpadding='8'>";
     echo "<tr><th>ID</th><th>Designation</th><th>Department</th><th>Type</th><th>Status</th></tr>";
     foreach ($evaluators as $e) {
