@@ -105,8 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['admin_role'] = $admin['role'];
                         redirect(SITE_URL . '/dashboard.php');
                     } else {
-                        // Also check if it's an evaluator (HOD, Dean, Registrar) logging in with designation + password
-                        $stmt = $pdo->prepare("SELECT * FROM staff WHERE designation = ? AND evaluator_type IN ('HOD', 'Dean', 'Registrar') LIMIT 1");
+                        // Also check if it's an evaluator (Supervising Officer, Registrar) logging in with designation + password
+                        $stmt = $pdo->prepare("SELECT * FROM staff WHERE designation = ? AND evaluator_type IN ('Supervising Officer', 'Registrar') LIMIT 1");
                         $stmt->execute([$email]);
                         $evaluator = $stmt->fetch();
 
@@ -517,13 +517,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>Admin/Evaluator Login:</strong><br>
                             Admin: Email + Password<br>
-                            Evaluator (HOD/Dean/Registrar): Designation (Username) + Password
+                            Evaluator (Supervising Officer/Registrar): Designation (Username) + Password
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email or Username</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                <input type="text" class="form-control" name="email" placeholder="admin@domain.com OR HOD-Computer Science" required>
+                                <input type="text" class="form-control" name="email" placeholder="admin@domain.com OR SUP-ComputerScience" required>
                             </div>
                         </div>
                         <div class="mb-3">

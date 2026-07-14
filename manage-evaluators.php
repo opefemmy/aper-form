@@ -118,10 +118,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 showMessage('Designation (username) is required', 'danger');
             } elseif (empty($password) || strlen($password) < 6) {
                 showMessage('Password must be at least 6 characters', 'danger');
-            } elseif ($evaluatorType === 'HOD' && empty($department)) {
-                showMessage('Department is required for HOD', 'danger');
-            } elseif ($evaluatorType === 'Dean' && empty($faculty)) {
-                showMessage('Faculty is required for Dean', 'danger');
+            } elseif ($evaluatorType === 'Supervising Officer' && empty($department)) {
+                showMessage('Department is required for Supervising Officer', 'danger');
             } else {
                 // Check if designation already exists
                 $stmt = $pdo->prepare("SELECT id FROM staff WHERE designation = ?");
@@ -181,10 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['update_evaluator']) && $editId) {
             if (empty($designation)) {
                 showMessage('Designation (username) is required', 'danger');
-            } elseif ($evaluatorType === 'HOD' && empty($department)) {
-                showMessage('Department is required for HOD', 'danger');
-            } elseif ($evaluatorType === 'Dean' && empty($faculty)) {
-                showMessage('Faculty is required for Dean', 'danger');
+            } elseif ($evaluatorType === 'Supervising Officer' && empty($department)) {
+                showMessage('Department is required for Supervising Officer', 'danger');
             } else {
                 $stmt = $pdo->prepare("SELECT id FROM staff WHERE designation = ? AND id != ?");
                 $stmt->execute([$designation, $editId]);
@@ -234,13 +230,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get evaluators
-$stmt = $pdo->query("SELECT * FROM staff WHERE evaluator_type IN ('HOD', 'Dean', 'Registrar') ORDER BY evaluator_type, department, surname");
+$stmt = $pdo->query("SELECT * FROM staff WHERE evaluator_type IN ('Supervising Officer', 'Registrar') ORDER BY evaluator_type, department, surname");
 $evaluators = $stmt->fetchAll();
 
 // Get evaluator for editing
 $editEvaluator = null;
 if ($editId) {
-    $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ? AND evaluator_type IN ('HOD', 'Dean', 'Registrar')");
+    $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ? AND evaluator_type IN ('Supervising Officer', 'Registrar')");
     $stmt->execute([$editId]);
     $editEvaluator = $stmt->fetch();
 }
@@ -357,14 +353,14 @@ if ($editId) {
                         <div class="alert alert-info mt-3 mb-0">
                             <i class="fas fa-info-circle"></i>
                             <strong>Tip:</strong> Departments and faculties are automatically loaded from your uploaded staff.
-                            Add staff with the correct department/faculty, then promote them as HOD/Dean.
+                            Add staff with the correct department, then promote them as Supervising Officer.
                             If you need a department/faculty that doesn't exist in your staff data, you can add it here.
                         </div>
                     </div>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="fas fa-user-tie"></i> Manage Evaluators (HOD, Dean, Registrar)</h2>
+                    <h2><i class="fas fa-user-tie"></i> Manage Evaluators (Supervising Officer, Registrar)</h2>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEvaluatorModal">
                         <i class="fas fa-plus"></i> Add Evaluator
                     </button>
@@ -378,7 +374,7 @@ if ($editId) {
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <span class="badge bg-<?php
-                                        echo $eval['evaluator_type'] === 'HOD' ? 'warning' : ($eval['evaluator_type'] === 'Dean' ? 'primary' : 'info');
+                                        echo $eval['evaluator_type'] === 'Supervising Officer' ? 'warning' : 'info';
                                     ?>">
                                         <?php echo htmlspecialchars($eval['evaluator_type']); ?>
                                     </span>
@@ -405,13 +401,11 @@ if ($editId) {
                                 <p class="card-text text-muted mb-1">
                                     <i class="fas fa-user"></i> <strong>Username:</strong> <?php echo htmlspecialchars($eval['designation']); ?>
                                 </p>
-                                <?php if ($eval['evaluator_type'] === 'HOD' && $eval['department']): ?>
+                                <?php if ($eval['evaluator_type'] === 'Supervising Officer' && $eval['department']): ?>
                                 <p class="card-text text-muted mb-1">
                                     <i class="fas fa-building"></i> <strong>Department:</strong> <?php echo htmlspecialchars($eval['department']); ?>
                                 </p>
                                 <?php endif; ?>
-                                <?php if ($eval['evaluator_type'] === 'Dean' && $eval['faculty']): ?>
-                                <p class="card-text text-muted mb-1">
                                     <i class="fas fa-school"></i> <strong>Faculty:</strong> <?php echo htmlspecialchars($eval['faculty']); ?>
                                 </p>
                                 <?php endif; ?>
@@ -544,8 +538,7 @@ if ($editId) {
                                 <label class="form-label">Evaluator Type <span class="text-danger">*</span></label>
                                 <select name="evaluator_type" class="form-select" required>
                                     <option value="">Select Type</option>
-                                    <option value="HOD" <?php echo ($editEvaluator['evaluator_type'] ?? '') === 'HOD' ? 'selected' : ''; ?>>HOD (Head of Department)</option>
-                                    <option value="Dean" <?php echo ($editEvaluator['evaluator_type'] ?? '') === 'Dean' ? 'selected' : ''; ?>>Dean</option>
+                                    <option value="Supervising Officer" <?php echo ($editEvaluator['evaluator_type'] ?? '') === 'Supervising Officer' ? 'selected' : ''; ?>>Supervising Officer</option>
                                     <option value="Registrar" <?php echo ($editEvaluator['evaluator_type'] ?? '') === 'Registrar' ? 'selected' : ''; ?>>Registrar</option>
                                 </select>
                             </div>
@@ -649,8 +642,7 @@ if ($editId) {
                                         <label class="form-label">Evaluator Type <span class="text-danger">*</span></label>
                                         <select name="promote_evaluator_type" class="form-select" id="promoteEvaluatorType">
                                             <option value="">Select Type</option>
-                                            <option value="HOD">HOD (Head of Department)</option>
-                                            <option value="Dean">Dean</option>
+                                            <option value="Supervising Officer">Supervising Officer</option>
                                             <option value="Registrar">Registrar</option>
                                         </select>
                                     </div>
@@ -708,18 +700,12 @@ if ($editId) {
             var deptInput = document.getElementById('departmentInput');
             var facInput = document.getElementById('facultyInput');
 
-            if (evaluatorType === 'HOD') {
+            if (evaluatorType === 'Supervising Officer') {
                 deptField.style.display = 'block';
                 facField.style.display = 'none';
                 deptInput.required = true;
                 facInput.required = false;
                 facInput.value = '';
-            } else if (evaluatorType === 'Dean') {
-                deptField.style.display = 'none';
-                facField.style.display = 'block';
-                deptInput.required = false;
-                facInput.required = true;
-                deptInput.value = '';
             } else {
                 deptField.style.display = 'block';
                 facField.style.display = 'block';

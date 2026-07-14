@@ -26,6 +26,42 @@ $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE staff_id = ? ORDER BY cre
 $stmt->execute([$staff['id']]);
 $existingEval = $stmt->fetch();
 
+// Handle Staff Consent/Rejection - New workflow
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['staff_consent_action'])) {
+    if ($existingEval && in_array($existingEval['evaluation_stage'], ['supervising_officer'])) {
+        $consentAction = $_POST['staff_consent_action'];
+        $rejectionReason = sanitize($_POST['rejection_reason'] ?? '');
+
+        if ($consentAction === 'consent') {
+            // Staff consents - move to registrar
+            $updateStmt = $pdo->prepare("UPDATE evaluations SET
+                staff_consent = 'consented',
+                evaluation_stage = 'staff_review'
+                WHERE id = ?");
+            $updateStmt->execute([$existingEval['id']]);
+            $consentMessage = 'Thank you! You have consented to the evaluation. It will now be forwarded to the Registrar for final approval.';
+        } elseif ($consentAction === 'reject') {
+            if (empty($rejectionReason)) {
+                $consentError = 'Please provide a reason for not consenting to the evaluation.';
+            } else {
+                // Staff rejects - move back to supervising officer for comments
+                $updateStmt = $pdo->prepare("UPDATE evaluations SET
+                    staff_consent = 'rejected',
+                    staff_rejection_reason = ?,
+                    evaluation_stage = 'staff_review'
+                    WHERE id = ?");
+                $updateStmt->execute([$rejectionReason, $existingEval['id']]);
+                $consentMessage = 'Your feedback has been submitted. The Supervising Officer will review your concerns and add comments before it goes to the Registrar.';
+            }
+        }
+
+        // Refresh evaluation data
+        $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE id = ?");
+        $stmt->execute([$existingEval['id']]);
+        $existingEval = $stmt->fetch();
+    }
+}
+
 // Get active academic session
 $stmt = $pdo->query("SELECT * FROM academic_sessions WHERE is_active = 1 LIMIT 1");
 $activeSession = $stmt->fetch();
@@ -383,7 +419,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                 <div class="col-md-3"><strong>Name:</strong> <?php echo htmlspecialchars($staff['name']); ?></div>
                 <div class="col-md-2"><strong>Department:</strong> <?php echo htmlspecialchars($staff['department'] ?? 'N/A'); ?></div>
                 <div class="col-md-2"><strong>Level:</strong> <?php echo htmlspecialchars($staff['grade_level'] ?? 'N/A'); ?></div>
-                <div class="col-md-2"><strong>Category:</strong> <?php echo $staffCategory == 'academic' ? 'Academic' : 'Non-Teaching'; ?></div>
+                <div class="col-md-2"><strong>Category:</strong> <?php echo $staffCategory == 'academic' ? 'Academic' : ($staffCategory == 'non-teaching-junior' ? 'Non-Teaching Junior' : 'Non-Teaching'); ?></div>
                 <div class="col-md-1"><strong>Session:</strong> <?php echo htmlspecialchars($activeSession['session_name'] ?? 'N/A'); ?></div>
             </div>
         </div>
@@ -434,6 +470,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             </a>
             <p class="text-muted mt-2"><small>Print this as evidence that you have completed your evaluation</small></p>
         </div>
+
+        <!-- Staff Review Section - Show when Supervising Officer has evaluated -->
+        <?php if ($existingEval && in_array($existingEval['evaluation_stage'], ['supervising_officer'])): ?>
+        <div class="card mb-4 border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Review Your Evaluation</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="score-display">
+                            <div class="value"><?php echo $existingEval['total_score']; ?></div>
+                            <div>Total Score</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="score-display">
+                            <div class="value"><?php echo $existingEval['percentage']; ?>%</div>
+                            <div>Percentage</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="score-display" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <div class="value"><?php echo $existingEval['performance_grade']; ?></div>
+                            <div>Grade</div>
+                        </div>
+                    </div>
+                </div>
+
+                <?php if (!empty($existingEval['supervisor_remarks'])): ?>
+                <div class="alert alert-info">
+                    <strong><i class="fas fa-comment me-2"></i>Supervising Officer Remarks:</strong><br>
+                    <?php echo nl2br(htmlspecialchars($existingEval['supervisor_remarks'])); ?>
+                </div>
+                <?php endif; ?>
+
+                <hr>
+
+                <h5><i class="fas fa-question-circle me-2"></i>Do you consent to this evaluation grade?</h5>
+
+                <?php if (isset($consentMessage)): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i><?php echo $consentMessage; ?>
+                </div>
+                <?php endif; ?>
+
+                <?php if (isset($consentError)): ?>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i><?php echo $consentError; ?>
+                </div>
+                <?php endif; ?>
+
+                <form method="POST" class="mb-3">
+                    <div class="mb-3">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="staff_consent_action" id="consent_yes" value="consent" required>
+                            <label class="form-check-label" for="consent_yes">
+                                <i class="fas fa-check-circle text-success me-1"></i>
+                                <strong>Yes, I consent to the grade of my Supervising Officer</strong>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="staff_consent_action" id="consent_no" value="reject" required>
+                            <label class="form-check-label" for="consent_no">
+                                <i class="fas fa-times-circle text-danger me-1"></i>
+                                <strong>No, I do not consent</strong>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="rejection_reason_div" style="display:none;">
+                        <label class="form-label">Please provide your reasons for not consenting:</label>
+                        <textarea class="form-control" name="rejection_reason" rows="4" placeholder="Explain your concerns about the evaluation..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Your Response
+                    </button>
+                </form>
+
+                <script>
+                document.querySelectorAll('input[name="staff_consent_action"]').forEach(function(radio) {
+                    radio.addEventListener('change', function() {
+                        var reasonDiv = document.getElementById('rejection_reason_div');
+                        if (this.value === 'reject') {
+                            reasonDiv.style.display = 'block';
+                        } else {
+                            reasonDiv.style.display = 'none';
+                        }
+                    });
+                });
+                </script>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Show status if staff has already responded -->
+        <?php if ($existingEval && in_array($existingEval['evaluation_stage'], ['staff_review', 'supervising_officer_final', 'registrar', 'completed'])): ?>
+        <div class="card mb-4 <?php echo $existingEval['staff_consent'] === 'consented' ? 'border-success' : 'border-danger'; ?>">
+            <div class="card-header <?php echo $existingEval['staff_consent'] === 'consented' ? 'bg-success' : 'bg-danger'; ?> text-white">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Your Response to Evaluation</h5>
+            </div>
+            <div class="card-body">
+                <?php if ($existingEval['staff_consent'] === 'consented'): ?>
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>You have consented</strong> to the evaluation grade. It has been forwarded to the Registrar for final approval.
+                </div>
+                <?php elseif ($existingEval['staff_consent'] === 'rejected'): ?>
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>You did not consent</strong> to the evaluation. Your reasons were:<br>
+                    <em><?php echo nl2br(htmlspecialchars($existingEval['staff_rejection_reason'])); ?></em>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- Uploaded Files Display - View Only (No Download for Staff) -->
         <?php

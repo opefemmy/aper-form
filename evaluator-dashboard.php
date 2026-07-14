@@ -4,7 +4,7 @@ require_once 'config.php';
 // Define the Appointment and Promotion Committee name (renamed from Dean)
 define('APC_COMMITTEE_NAME', 'Appointment and Promotion Committee');
 
-// Check if evaluator (HOD/Dean/Registrar) is logged in
+// Check if evaluator (Supervising Officer/Registrar) is logged in
 if (!isEvaluatorLoggedIn()) {
     // Also check for admin login
     if (isAdminLoggedIn()) {
@@ -30,30 +30,21 @@ $evaluatorName = $_SESSION['staff_name'];
 $evaluatorDept = $_SESSION['staff_department'] ?? '';
 $evaluatorFac = $_SESSION['staff_faculty'] ?? '';
 
-// Get stats based on evaluator type - FIXED: Accurate counts with proper filters
-if ($evaluatorType === 'HOD') {
-    // HOD pending: staff who have submitted but HOD hasn't evaluated yet (stage = 'pending')
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage = 'pending' AND e.status = 'submitted'");
+// Get stats based on evaluator type - New workflow: Staff -> Supervising Officer -> Staff Review -> Supervising Officer Final -> Registrar -> Completed
+if ($evaluatorType === 'Supervising Officer') {
+    // Supervising Officer pending: staff who have submitted but Supervising Officer hasn't evaluated yet (stage = 'pending')
+    // OR staff who have reviewed and need final comments (stage = 'staff_review')
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage IN ('pending', 'staff_review') AND e.status = 'submitted'");
     $stmt->execute([$evaluatorDept]);
     $pendingCount = $stmt->fetchColumn();
 
-    // HOD completed: staff who have been evaluated by HOD and passed to next stage
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage IN ('dean', 'registrar', 'completed') AND e.status = 'submitted'");
+    // Supervising Officer completed: staff who have been evaluated and passed to registrar or completed
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.department = ? AND e.evaluation_stage IN ('supervising_officer', 'supervising_officer_final', 'registrar', 'completed') AND e.status = 'submitted'");
     $stmt->execute([$evaluatorDept]);
-    $completedByHod = $stmt->fetchColumn();
-} elseif ($evaluatorType === 'Dean') {
-    // Dean pending: evaluations that have passed HOD and waiting for Dean (stage = 'dean')
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.faculty = ? AND e.evaluation_stage = 'dean' AND e.status = 'submitted'");
-    $stmt->execute([$evaluatorFac]);
-    $pendingCount = $stmt->fetchColumn();
-
-    // Dean completed: evaluations that have passed Dean
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE s.faculty = ? AND e.evaluation_stage IN ('registrar', 'completed') AND e.status = 'submitted'");
-    $stmt->execute([$evaluatorFac]);
     $completedByHod = $stmt->fetchColumn();
 } else {
-    // Registrar pending: evaluations that have passed Dean and waiting for Registrar (stage = 'registrar')
-    $stmt = $pdo->query("SELECT COUNT(*) FROM evaluations WHERE evaluation_stage = 'registrar' AND status = 'submitted'");
+    // Registrar pending: evaluations that have passed Supervising Officer final review and waiting for Registrar
+    $stmt = $pdo->query("SELECT COUNT(*) FROM evaluations WHERE evaluation_stage IN ('registrar', 'supervising_officer_final') AND status = 'submitted'");
     $pendingCount = $stmt->fetchColumn();
 
     // Registrar completed: fully approved evaluations (stage = 'completed')
@@ -113,13 +104,11 @@ if ($evaluatorType === 'HOD') {
                     <div>
                         <h2><i class="fas fa-tachometer-alt"></i> Welcome, <?php echo htmlspecialchars($evaluatorName); ?></h2>
                         <p class="text-muted mb-0">
-                            <span class="badge bg-<?php echo $evaluatorType === 'HOD' ? 'warning' : ($evaluatorType === 'Dean' ? 'primary' : 'info'); ?>">
-                                <?php echo $evaluatorType === 'Dean' ? APC_COMMITTEE_NAME : $evaluatorType; ?>
+                            <span class="badge bg-<?php echo $evaluatorType === 'Supervising Officer' ? 'warning' : 'info'; ?>">
+                                <?php echo $evaluatorType; ?>
                             </span>
-                            <?php if ($evaluatorType === 'HOD'): ?>
+                            <?php if ($evaluatorType === 'Supervising Officer'): ?>
                             Department: <?php echo htmlspecialchars($evaluatorDept); ?>
-                            <?php elseif ($evaluatorType === 'Dean'): ?>
-                            Faculty: <?php echo htmlspecialchars($evaluatorFac); ?>
                             <?php else: ?>
                             Full Access
                             <?php endif; ?>

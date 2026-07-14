@@ -272,10 +272,11 @@ $staffList = $stmt->fetchAll();
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label">Staff Category <span class="text-danger">*</span></label>
-                                    <select class="form-select" name="staff_category" required title="Select whether this staff is Academic (teaching), Non-Teaching (administrative), or HOD">
+                                    <select class="form-select" name="staff_category" required title="Select whether this staff is Academic (teaching), Non-Teaching (administrative), Non-Teaching Junior, or HOD">
                                         <option value="academic" <?php echo ($staffMember['staff_category'] ?? 'academic') == 'academic' ? 'selected' : ''; ?>>Academic (Teaching)</option>
                                         <option value="non-teaching" <?php echo ($staffMember['staff_category'] ?? '') == 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching (Administrative)</option>
-                                        <option value="hod" <?php echo ($staffMember['staff_category'] ?? '') == 'hod' ? 'selected' : ''; ?>>HOD (Head of Department)</option>
+                                        <option value="non-teaching-junior" <?php echo ($staffMember['staff_category'] ?? '') == 'non-teaching-junior' ? 'selected' : ''; ?>>Non-Teaching Staff Junior</option>
+                                        <option value="hod" <?php echo ($staffMember['staff_category'] ?? '') == 'hod' ? 'selected' : ''; ?>>Supervising Officer</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3 mb-3">

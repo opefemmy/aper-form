@@ -92,7 +92,7 @@ function isStaffLoggedIn() {
 }
 
 /**
- * Check if evaluator (HOD/Dean/Registrar) is logged in
+ * Check if evaluator (Supervising Officer/Registrar) is logged in
  */
 function isEvaluatorLoggedIn() {
     startSession();

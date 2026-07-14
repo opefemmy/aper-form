@@ -273,6 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_single_staff'])) 
                                     <option value="">-- Select Category --</option>
                                     <option value="academic">Academic Staff (Teaching)</option>
                                     <option value="non-teaching">Non-Teaching Staff</option>
+                                    <option value="non-teaching-junior">Non-Teaching Staff Junior</option>
                                 </select>
                                 <small class="text-muted">Select the category for all staff being uploaded</small>
                             </div>

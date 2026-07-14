@@ -224,6 +224,8 @@ if ($filterCategory === 'hod') {
     $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'academic' ORDER BY category, id");
 } elseif ($filterCategory === 'non-teaching') {
     $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'non-teaching' ORDER BY category, id");
+} elseif ($filterCategory === 'non-teaching-junior') {
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'non-teaching-junior' ORDER BY category, id");
 } else {
     // All questions
     $stmt = $pdo->query("SELECT * FROM evaluation_questions ORDER BY category, id");
@@ -304,15 +306,17 @@ foreach ($questions as $q) {
                             <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-filter me-2"></i>
                                 <?php echo $filterCategory === 'all' ? 'All Questions' :
-                                    ($filterCategory === 'hod' ? 'HOD Evaluation Questions' :
-                                    ($filterCategory === 'academic' ? 'Academic Staff' : 'Non-Teaching Staff')); ?>
+                                    ($filterCategory === 'hod' ? 'Supervising Officer Evaluation Questions' :
+                                    ($filterCategory === 'academic' ? 'Academic Staff' :
+                                    ($filterCategory === 'non-teaching-junior' ? 'Non-Teaching Staff Junior' : 'Non-Teaching Staff'))); ?>
                             </button>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'all' ? 'active' : ''; ?>" href="questions.php?filter=all"><i class="fas fa-list me-2"></i>All Questions</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item <?php echo $filterCategory === 'hod' ? 'active' : ''; ?>" href="questions.php?filter=hod"><i class="fas fa-user-tie me-2"></i>HOD Evaluation (Questions HOD uses to evaluate staff)</a></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'hod' ? 'active' : ''; ?>" href="questions.php?filter=hod"><i class="fas fa-user-tie me-2"></i>Supervising Officer Evaluation (Questions Supervising Officer uses to evaluate staff)</a></li>
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'academic' ? 'active' : ''; ?>" href="questions.php?filter=academic"><i class="fas fa-graduation-cap me-2"></i>Academic Staff Questions</a></li>
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'non-teaching' ? 'active' : ''; ?>" href="questions.php?filter=non-teaching"><i class="fas fa-briefcase me-2"></i>Non-Teaching Staff Questions</a></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'non-teaching-junior' ? 'active' : ''; ?>" href="questions.php?filter=non-teaching-junior"><i class="fas fa-user-plus me-2"></i>Non-Teaching Staff Junior Questions</a></li>
                             </ul>
                         </div>
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
@@ -324,7 +328,7 @@ foreach ($questions as $q) {
                 <?php if ($filterCategory === 'hod'): ?>
                 <div class="alert alert-info mb-4">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>HOD Evaluation Questions:</strong> These are the questions that HODs will use to evaluate their staff.
+                    <strong>Supervising Officer Evaluation Questions:</strong> These are the questions that Supervising Officers will use to evaluate their staff.
                     You can add, edit, or delete these questions. The questions are grouped by category for easy management.
                 </div>
                 <?php endif; ?>
@@ -476,7 +480,8 @@ foreach ($questions as $q) {
                                                                 <option value="both" <?php echo ($q['target_staff_category'] ?? 'both') == 'both' ? 'selected' : ''; ?>>All Staff</option>
                                                                 <option value="academic" <?php echo ($q['target_staff_category'] ?? '') == 'academic' ? 'selected' : ''; ?>>Academic Staff Only</option>
                                                                 <option value="non-teaching" <?php echo ($q['target_staff_category'] ?? '') == 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching Staff Only</option>
-                                                                <option value="hod" <?php echo ($q['target_staff_category'] ?? '') == 'hod' ? 'selected' : ''; ?>>HOD Evaluation Question</option>
+                                                                <option value="non-teaching-junior" <?php echo ($q['target_staff_category'] ?? '') == 'non-teaching-junior' ? 'selected' : ''; ?>>Non-Teaching Staff Junior Only</option>
+                                                                <option value="hod" <?php echo ($q['target_staff_category'] ?? '') == 'hod' ? 'selected' : ''; ?>>Supervising Officer Evaluation Question</option>
                                                             </select>
                                                         </div>
                                                     </div>
@@ -631,7 +636,7 @@ foreach ($questions as $q) {
                                     <option value="both" <?php echo $filterCategory === 'all' ? 'selected' : ''; ?>>All Staff</option>
                                     <option value="academic" <?php echo $filterCategory === 'academic' ? 'selected' : ''; ?>>Academic Staff Only</option>
                                     <option value="non-teaching" <?php echo $filterCategory === 'non-teaching' ? 'selected' : ''; ?>>Non-Teaching Staff Only</option>
-                                    <option value="hod" <?php echo $filterCategory === 'hod' ? 'selected' : ''; ?>>HOD Evaluation Question</option>
+                                    <option value="hod" <?php echo $filterCategory === 'hod' ? 'selected' : ''; ?>>Supervising Officer Evaluation Question</option>
                                 </select>
                                 <small class="text-muted">Which staff type sees this question</small>
                             </div>
