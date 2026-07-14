@@ -2,6 +2,11 @@
 require_once 'config.php';
 requireAdminLogin();
 
+// Prevent caching
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 $messageData = getMessage();
 $message = '';
 if ($messageData && is_array($messageData)) {
@@ -233,6 +238,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stmt = $pdo->query("SELECT * FROM staff WHERE evaluator_type IN ('Supervising Officer', 'Registrar') ORDER BY evaluator_type, department, surname");
 $evaluators = $stmt->fetchAll();
 
+// DEBUG: Show evaluators count
+$debugCount = count($evaluators);
+
 // Get evaluator for editing
 $editEvaluator = null;
 if ($editId) {
@@ -366,6 +374,11 @@ if ($editId) {
                     </button>
                 </div>
 
+                <!-- DEBUG: Show evaluator count -->
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> DEBUG: Found <?php echo $debugCount; ?> evaluators in database
+                </div>
+
                 <!-- Evaluators List -->
                 <div class="row">
                     <?php foreach ($evaluators as $eval): ?>
@@ -446,7 +459,7 @@ if ($editId) {
                         <div class="mb-3">
                             <label class="form-label">Department Name</label>
                             <input type="text" name="department_name" class="form-control" placeholder="e.g., Computer Science" required>
-                            <small class="text-muted">This will be available when assigning HOD</small>
+                            <small class="text-muted">This will be available when assigning Supervising Officer</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Assign to Faculty</label>
@@ -541,7 +554,7 @@ if ($editId) {
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Designation (Username) <span class="text-danger">*</span></label>
-                                <input type="text" name="designation" class="form-control" placeholder="e.g., HOD-Computer Science" value="<?php echo htmlspecialchars($editEvaluator['designation'] ?? ''); ?>" required>
+                                <input type="text" name="designation" class="form-control" placeholder="e.g., SUP-Computer Science" value="<?php echo htmlspecialchars($editEvaluator['designation'] ?? ''); ?>" required>
                                 <small class="text-muted">This will be used as login username</small>
                             </div>
                         </div>
@@ -582,7 +595,7 @@ if ($editId) {
                                     <option value="<?php echo htmlspecialchars($dept); ?>">
                                     <?php endforeach; ?>
                                 </datalist>
-                                <small class="text-muted">Required for HOD - select or add new</small>
+                                <small class="text-muted">Required for Supervising Officer - select or add new</small>
                             </div>
                             <div class="col-md-6 mb-3" id="facultyField">
                                 <label class="form-label">Faculty <span class="text-danger">*</span></label>

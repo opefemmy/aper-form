@@ -2,6 +2,11 @@
 require_once 'config.php';
 requireAdminLogin();
 
+// Prevent caching
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 $message = getMessage();
 $pdo = getDBConnection();
 
