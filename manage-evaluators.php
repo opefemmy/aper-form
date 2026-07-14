@@ -406,9 +406,6 @@ if ($editId) {
                                     <i class="fas fa-building"></i> <strong>Department:</strong> <?php echo htmlspecialchars($eval['department']); ?>
                                 </p>
                                 <?php endif; ?>
-                                    <i class="fas fa-school"></i> <strong>Faculty:</strong> <?php echo htmlspecialchars($eval['faculty']); ?>
-                                </p>
-                                <?php endif; ?>
                                 <?php if ($eval['evaluator_type'] === 'Registrar'): ?>
                                 <p class="card-text text-muted mb-1">
                                     <i class="fas fa-globe"></i> <strong>Scope:</strong> All Departments/Faculties
