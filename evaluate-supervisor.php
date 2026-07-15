@@ -229,8 +229,9 @@ $professional = [];
 
 if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' || $evaluatorRole === 'hod' || $evaluatorRole === 'dean' || $evaluatorRole === 'admin' || $evaluatorRole === 'super_admin') {
     // Get staff category to filter SO questions appropriately
-    $staffCategoryForQuestions = 'hod_academic'; // default
-    if ($selectedStaff && isset($selectedStaff['staff_category'])) {
+    $staffCategoryForQuestions = null; // Will show all SO questions if no staff selected
+
+    if ($selectedStaff && isset($selectedStaff['staff_category']) && $selectedStaff['staff_category']) {
         $sc = $selectedStaff['staff_category'];
         if ($sc === 'non-teaching-junior') {
             $staffCategoryForQuestions = 'hod_junior';
@@ -241,15 +242,51 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
         }
     }
 
-    // Get SO evaluation questions based on staff category being evaluated
-    // Also include 'hod' (legacy) and 'both' for backwards compatibility
+    // Get SO evaluation questions - show all SO questions if no specific staff selected
+    // Include legacy 'hod' and all specific categories for backwards compatibility
     try {
+        if ($staffCategoryForQuestions) {
+            // Specific category for selected staff
+            $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
+                WHERE is_active = 1
+                AND (
+                    target_staff_category = ?
+                    OR target_staff_category = 'hod'
+                    OR target_staff_category = 'both'
+                    OR target_staff_category IS NULL
+                    OR target_staff_category = ''
+                )
+                ORDER BY category, id");
+            $stmt->execute([$staffCategoryForQuestions]);
+        } else {
+            // No staff selected - show all SO questions
+            $stmt = $pdo->query("SELECT * FROM evaluation_questions
+                WHERE is_active = 1
+                AND (
+                    target_staff_category LIKE 'hod%'
+                    OR target_staff_category = 'hod'
+                    OR target_staff_category = 'both'
+                    OR target_staff_category IS NULL
+                    OR target_staff_category = ''
+                )
+                ORDER BY category, id");
+        }
+        $dbQuestions = $stmt->fetchAll();
         $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
             WHERE is_active = 1
-            AND (target_staff_category = ? OR target_staff_category = 'hod' OR target_staff_category = 'both' OR target_staff_category IS NULL OR target_staff_category = '')
+            AND (
+                target_staff_category = ?
+                OR target_staff_category = 'hod'
+                OR target_staff_category = 'both'
+                OR target_staff_category IS NULL
+                OR target_staff_category = ''
+            )
             ORDER BY category, id");
         $stmt->execute([$staffCategoryForQuestions]);
         $dbQuestions = $stmt->fetchAll();
+
+        // Debug: log what category is being used
+        error_log("SO Questions - Staff category: $staffCategoryForQuestions, Questions found: " . count($dbQuestions));
 
         // Group questions by category
         foreach ($dbQuestions as $q) {
