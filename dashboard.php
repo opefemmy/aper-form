@@ -77,7 +77,7 @@ $instAddress = $settings['institution_address'] ?? '';
         }
         .sidebar {
             min-height: 100vh;
-            background: linear-gradient(180deg, #308a1e 0%, #269c16 100%);
+            background: linear-gradient(180deg, #247d57 0%, #1a5238 100%);
             color: white;
         }
         .sidebar .sidebar-header {

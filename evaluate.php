@@ -12,8 +12,8 @@ while ($row = $stmt->fetch()) {
 $institutionName = $settings['institution_name'] ?? 'Institution';
 $institutionAddress = $settings['institution_address'] ?? '';
 $institutionLogo = $settings['institution_logo'] ?? '';
-$primaryColor = $settings['primary_color'] ?? '#308a1e';
-$secondaryColor = $settings['secondary_color'] ?? '#269c16';
+$primaryColor = $settings['primary_color'] ?? '#247d57';
+$secondaryColor = $settings['secondary_color'] ?? '#1a5238';
 
 $message = getMessage();
 $staffId = $_GET['staff_id'] ?? null;
@@ -274,9 +274,9 @@ $sessions = $stmt->fetchAll();
     <link href="theme-overrides.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --primary-blue: #308a1e; }
+        :root { --primary-blue: #247d57; }
         body { background: #f3f4f6; }
-        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #247d57 0%, #1a5238 100%); color: white; }
         .sidebar .sidebar-header h5 { color: #10b981 !important; font-weight: 700; }
         .sidebar .sidebar-header small { color: #10b981 !important; font-weight: 600; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
@@ -285,7 +285,7 @@ $sessions = $stmt->fetchAll();
         .rating-label { padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 20px; cursor: pointer; margin-right: 0.25rem; margin-bottom: 0.25rem; display: inline-block; }
         .rating-label:hover { background: #dbeafe; }
         .rating-label input:checked + span { background: var(--primary-blue); color: white; }
-        .score-display { background: linear-gradient(135deg, #308a1e, #269c16); color: white; padding: 1rem; border-radius: 10px; text-align: center; }
+        .score-display { background: linear-gradient(135deg, #247d57, #1a5238); color: white; padding: 1rem; border-radius: 10px; text-align: center; }
         .score-display .value { font-size: 2rem; font-weight: 700; }
 
         /* Mobile Hamburger Menu */

@@ -26,8 +26,8 @@ while ($row = $stmt->fetch()) {
 $instName = $settings['institution_name'] ?? 'Institution';
 $instAddress = $settings['institution_address'] ?? '';
 $logo = $settings['institution_logo'] ?? '';
-$primaryColor = $settings['primary_color'] ?? '#308a1e';
-$secondaryColor = $settings['secondary_color'] ?? '#269c16';
+$primaryColor = $settings['primary_color'] ?? '#247d57';
+$secondaryColor = $settings['secondary_color'] ?? '#1a5238';
 
 // Get filters
 $department = $_GET['department'] ?? '';
@@ -263,8 +263,8 @@ if (isset($_GET['single_pdf']) && $_GET['single_pdf'] && hasPermission('reports_
     $instName = $settings['institution_name'] ?? 'Institution';
     $instAddress = $settings['institution_address'] ?? '';
     $logo = $settings['institution_logo'] ?? '';
-    $primaryColor = $settings['primary_color'] ?? '#308a1e';
-    $secondaryColor = $settings['secondary_color'] ?? '#269c16';
+    $primaryColor = $settings['primary_color'] ?? '#247d57';
+    $secondaryColor = $settings['secondary_color'] ?? '#1a5238';
 
     $sessionName = '';
     if ($eval['academic_session_id']) {
@@ -298,7 +298,7 @@ if (isset($_GET['single_pdf']) && $_GET['single_pdf'] && hasPermission('reports_
         .total-row { background: <?php echo $primaryColor; ?>; color: white; font-weight: bold; }
         .grade-box { display: inline-block; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 18px; }
         .grade-O { background: #10b981; color: white; }
-        .grade-E { background: #269c16; color: white; }
+        .grade-E { background: #1a5238; color: white; }
         .grade-VG { background: #06b6d4; color: white; }
         .grade-G { background: #f59e0b; color: white; }
         .grade-F { background: #ef4444; color: white; }
@@ -445,8 +445,8 @@ if (isset($_GET['individual_pdf']) && $_GET['individual_pdf'] && hasPermission('
     $instName = $settings['institution_name'] ?? 'Institution';
     $instAddress = $settings['institution_address'] ?? '';
     $logo = $settings['institution_logo'] ?? '';
-    $primaryColor = $settings['primary_color'] ?? '#308a1e';
-    $secondaryColor = $settings['secondary_color'] ?? '#269c16';
+    $primaryColor = $settings['primary_color'] ?? '#247d57';
+    $secondaryColor = $settings['secondary_color'] ?? '#1a5238';
 
     $sessionName = '';
     if ($eval['academic_session_id']) {
@@ -634,7 +634,7 @@ if (isset($_GET['individual_pdf']) && $_GET['individual_pdf'] && hasPermission('
             font-size: 16px;
         }
         .grade-O { background: #10b981; color: white; }
-        .grade-E { background: #269c16; color: white; }
+        .grade-E { background: #1a5238; color: white; }
         .grade-VG { background: #06b6d4; color: white; }
         .grade-G { background: #f59e0b; color: white; }
         .grade-F { background: #ef4444; color: white; }
@@ -879,34 +879,34 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; line-height: 1.4; }
-        .header { text-align: center; padding: 15px; border-bottom: 3px solid #308a1e; margin-bottom: 20px; }
-        .header h1 { color: #308a1e; font-size: 24px; margin: 0; }
+        .header { text-align: center; padding: 15px; border-bottom: 3px solid #247d57; margin-bottom: 20px; }
+        .header h1 { color: #247d57; font-size: 24px; margin: 0; }
         .header p { color: #64748b; margin: 5px 0 0 0; }
         .summary { display: flex; justify-content: space-between; margin-bottom: 20px; }
         .summary-box { background: #f8fafc; padding: 12px; border-radius: 8px; text-align: center; flex: 1; margin: 0 5px; border: 1px solid #e2e8f0; }
-        .summary-box h3 { color: #308a1e; font-size: 22px; margin: 0; }
+        .summary-box h3 { color: #247d57; font-size: 22px; margin: 0; }
         .summary-box p { color: #64748b; margin: 0; font-size: 11px; }
 
-        .section-title { background: #308a1e; color: white; padding: 10px 15px; font-weight: bold; margin: 25px 0 15px 0; }
+        .section-title { background: #247d57; color: white; padding: 10px 15px; font-weight: bold; margin: 25px 0 15px 0; }
 
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; }
-        th { background: #269c16; color: white; padding: 8px 6px; text-align: left; font-weight: bold; }
+        th { background: #1a5238; color: white; padding: 8px 6px; text-align: left; font-weight: bold; }
         td { padding: 6px; border-bottom: 1px solid #e2e8f0; }
         tr:nth-child(even) { background: #f8fafc; }
         tr:hover { background: #f1f5f9; }
 
         .grade-Outstanding { color: #10b981; font-weight: bold; }
-        .grade-Excellent { color: #269c16; font-weight: bold; }
+        .grade-Excellent { color: #1a5238; font-weight: bold; }
         .grade-Very { color: #06b6d4; font-weight: bold; }
         .grade-Good { color: #f59e0b; font-weight: bold; }
         .grade-Fair { color: #ef4444; font-weight: bold; }
         .grade-Poor { color: #dc2626; font-weight: bold; }
 
-        .detail-card { border: 2px solid #308a1e; border-radius: 8px; margin-bottom: 20px; page-break-inside: avoid; }
-        .detail-header { background: #308a1e; color: white; padding: 10px 15px; font-weight: bold; }
+        .detail-card { border: 2px solid #247d57; border-radius: 8px; margin-bottom: 20px; page-break-inside: avoid; }
+        .detail-header { background: #247d57; color: white; padding: 10px 15px; font-weight: bold; }
         .detail-body { padding: 15px; }
         .detail-row { display: flex; margin-bottom: 8px; }
-        .detail-label { font-weight: bold; width: 150px; color: #308a1e; }
+        .detail-label { font-weight: bold; width: 150px; color: #247d57; }
         .detail-value { flex: 1; }
 
         .scores-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -927,8 +927,8 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
 
         .no-print { background: #fef3c7; border: 2px solid #f59e0b; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
         .no-print h3 { color: #92400e; margin: 0 0 10px 0; }
-        .no-print button { background: #308a1e; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; }
-        .no-print button:hover { background: #269c16; }
+        .no-print button { background: #247d57; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        .no-print button:hover { background: #1a5238; }
     </style>
 </head>
 <body>
@@ -1126,11 +1126,11 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
                 </tr>
                 <tr style="background: #e8f4fd;">
                     <td colspan="6" style="text-align: right;"><strong>TOTAL SCORE:</strong></td>
-                    <td style="background: #308a1e; color: white;"><strong><?php echo $eval['percentage']; ?>%</strong></td>
+                    <td style="background: #247d57; color: white;"><strong><?php echo $eval['percentage']; ?>%</strong></td>
                 </tr>
                 <tr style="background: #e8f4fd;">
                     <td colspan="6" style="text-align: right;"><strong>PERCENTAGE:</strong></td>
-                    <td style="background: #308a1e; color: white;"><strong><?php echo $eval['percentage']; ?>%</strong></td>
+                    <td style="background: #247d57; color: white;"><strong><?php echo $eval['percentage']; ?>%</strong></td>
                 </tr>
                 <tr style="background: #e8f4fd;">
                     <td colspan="6" style="text-align: right;"><strong>GRADE:</strong></td>
@@ -1265,9 +1265,9 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
     <link href="theme-overrides.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --primary-blue: #308a1e; }
+        :root { --primary-blue: #247d57; }
         body { background: #f3f4f6; }
-        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #247d57 0%, #1a5238 100%); color: white; }
         .sidebar .sidebar-header h5 { color: #10b981 !important; font-weight: 700; }
         .sidebar .sidebar-header small { color: #10b981 !important; font-weight: 600; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }

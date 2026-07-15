@@ -259,7 +259,7 @@ $instName = $settings['institution_name'] ?? 'Institution';
     <style>
         :root { --primary-blue: <?php echo $primaryColor; ?>; --secondary-blue: <?php echo $secondaryColor; ?>; }
         body { background: #f3f4f6; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #247d57 0%, #1a5238 100%); color: white; }
         .sidebar .sidebar-header { padding: 15px 10px; border-bottom: 1px solid rgba(255,255,255,0.3); margin-bottom: 10px; }
         .sidebar .sidebar-header h5 { font-size: 1.1rem !important; font-weight: 800 !important; margin: 8px 0 5px 0; color: #10b981 !important; }
         .sidebar .sidebar-header small { font-size: 0.8rem !important; font-weight: 600 !important; color: #10b981 !important; }
@@ -444,15 +444,15 @@ $instName = $settings['institution_name'] ?? 'Institution';
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Primary Color</label>
                                     <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" name="primary_color" value="<?php echo htmlspecialchars($settings['primary_color'] ?? '#308a1e'); ?>">
-                                        <input type="text" class="form-control" name="primary_color_text" value="<?php echo htmlspecialchars($settings['primary_color'] ?? '#308a1e'); ?>">
+                                        <input type="color" class="form-control form-control-color" name="primary_color" value="<?php echo htmlspecialchars($settings['primary_color'] ?? '#247d57'); ?>">
+                                        <input type="text" class="form-control" name="primary_color_text" value="<?php echo htmlspecialchars($settings['primary_color'] ?? '#247d57'); ?>">
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Secondary Color</label>
                                     <div class="input-group">
-                                        <input type="color" class="form-control form-control-color" name="secondary_color" value="<?php echo htmlspecialchars($settings['secondary_color'] ?? '#269c16'); ?>">
-                                        <input type="text" class="form-control" name="secondary_color_text" value="<?php echo htmlspecialchars($settings['secondary_color'] ?? '#269c16'); ?>">
+                                        <input type="color" class="form-control form-control-color" name="secondary_color" value="<?php echo htmlspecialchars($settings['secondary_color'] ?? '#1a5238'); ?>">
+                                        <input type="text" class="form-control" name="secondary_color_text" value="<?php echo htmlspecialchars($settings['secondary_color'] ?? '#1a5238'); ?>">
                                     </div>
                                 </div>
                             </div>

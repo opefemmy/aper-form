@@ -14,8 +14,8 @@ while ($row = $stmt->fetch()) {
 $instName = $settings['institution_name'] ?? 'Institution';
 $instAddress = $settings['institution_address'] ?? '';
 $logo = $settings['institution_logo'] ?? '';
-$primaryColor = $settings['primary_color'] ?? '#308a1e';
-$secondaryColor = $settings['secondary_color'] ?? '#269c16';
+$primaryColor = $settings['primary_color'] ?? '#247d57';
+$secondaryColor = $settings['secondary_color'] ?? '#1a5238';
 
 $message = getMessage();
 $action = $_GET['action'] ?? 'list';
@@ -131,7 +131,7 @@ $staffList = $stmt->fetchAll();
     <style>
         :root { --primary-blue: <?php echo $primaryColor; ?>; --secondary-blue: <?php echo $secondaryColor; ?>; }
         body { background: #f3f4f6; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #247d57 0%, #1a5238 100%); color: white; }
         .sidebar .sidebar-header { padding: 15px 10px; border-bottom: 1px solid rgba(255,255,255,0.3); margin-bottom: 10px; }
         .sidebar .sidebar-header h5 { font-size: 1.1rem !important; font-weight: 800 !important; color: #10b981 !important; }
         .sidebar .sidebar-header small { font-size: 0.8rem !important; font-weight: 600 !important; color: #10b981 !important; }

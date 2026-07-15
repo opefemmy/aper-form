@@ -18,8 +18,8 @@ while ($row = $stmt->fetch()) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
 
-$primaryColor = $settings['primary_color'] ?? '#308a1e';
-$secondaryColor = $settings['secondary_color'] ?? '#269c16';
+$primaryColor = $settings['primary_color'] ?? '#247d57';
+$secondaryColor = $settings['secondary_color'] ?? '#1a5238';
 
 // Check if evaluation already exists for this staff
 $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1");
@@ -702,7 +702,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             <!-- Live Score Display -->
             <div class="row mb-4">
                 <div class="col-md-2">
-                    <div class="score-card" style="background: linear-gradient(135deg, #308a1e, #269c16);">
+                    <div class="score-card" style="background: linear-gradient(135deg, #247d57, #1a5238);">
                         <div class="value" id="liveTotalScore">0</div>
                         <div>Points</div>
                     </div>

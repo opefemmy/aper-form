@@ -393,7 +393,7 @@ h1, h2, h3, h4, h5, h6 {
    ========================================== */
 .sidebar-custom {
     min-height: 100vh;
-    background: linear-gradient(180deg, #1E3A8A 0%, #1E3A8A 100%);
+    background: linear-gradient(180deg, #247d57 0%, #1a5238 100%);
     box-shadow: 4px 0 6px -1px rgba(0, 0, 0, 0.15);
 }
 

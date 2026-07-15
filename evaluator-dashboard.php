@@ -64,8 +64,8 @@ if ($evaluatorType === 'Supervising Officer') {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary: <?php echo $settings['primary_color'] ?? '#308a1e'; ?>;
-            --secondary: <?php echo $settings['secondary_color'] ?? '#269c16'; ?>;
+            --primary: <?php echo $settings['primary_color'] ?? '#247d57'; ?>;
+            --secondary: <?php echo $settings['secondary_color'] ?? '#1a5238'; ?>;
         }
         body { background: #f5f5f5; }
         .dark-mode { background: #1a1a1a !important; color: #e0e0e0 !important; }

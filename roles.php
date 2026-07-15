@@ -99,14 +99,14 @@ $staffList = $stmt->fetchAll();
     <link href="theme-overrides.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root { --primary-blue: <?php echo $settings['primary_color'] ?? '#308a1e'; ?>; }
+        :root { --primary-blue: <?php echo $settings['primary_color'] ?? '#247d57'; ?>; }
         body { background: #f3f4f6; }
-        .sidebar { min-height: 100vh; background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#308a1e'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#269c16'; ?> 100%); color: white; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#247d57'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#1a5238'; ?> 100%); color: white; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
         .sidebar-header-institution-name { color: #10b981 !important; font-weight: 700; }
         .sidebar-header-institution-address { color: #10b981 !important; font-weight: 500; opacity: 0.9; }
-        .hamburger { display: none; position: fixed; top: 15px; left: 15px; z-index: 1001; background: <?php echo $settings['primary_color'] ?? '#308a1e'; ?>; border: none; border-radius: 5px; padding: 10px; cursor: pointer; }
+        .hamburger { display: none; position: fixed; top: 15px; left: 15px; z-index: 1001; background: <?php echo $settings['primary_color'] ?? '#247d57'; ?>; border: none; border-radius: 5px; padding: 10px; cursor: pointer; }
         .hamburger span { display: block; width: 25px; height: 3px; background: white; margin: 5px 0; border-radius: 2px; transition: 0.3s; }
         .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
         .hamburger.active span:nth-child(2) { opacity: 0; }
@@ -460,7 +460,7 @@ $staffList = $stmt->fetchAll();
         }
     </script>
     <!-- Footer -->
-    <footer class="mt-4 py-3" style="background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#308a1e'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#269c16'; ?> 100%); color: white; border-radius: 8px;">
+    <footer class="mt-4 py-3" style="background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#247d57'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#1a5238'; ?> 100%); color: white; border-radius: 8px;">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-6">

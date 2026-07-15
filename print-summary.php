@@ -236,16 +236,16 @@ function getAnsweredQuestions($questions, $responses) {
             height: 100%;
             object-fit: contain;
         }
-        .print-header { text-align: center; border-bottom: 3px solid #308a1e; padding-bottom: 15px; margin-bottom: 20px; position: relative; z-index: 1; }
+        .print-header { text-align: center; border-bottom: 3px solid #247d57; padding-bottom: 15px; margin-bottom: 20px; position: relative; z-index: 1; }
         .print-header img.logo-img { max-height: 70px; margin-bottom: 10px; }
-        .staff-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #308a1e; position: relative; z-index: 1; }
-        .score-summary { background: linear-gradient(135deg, #308a1e, #269c16); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; position: relative; z-index: 1; }
+        .staff-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #247d57; position: relative; z-index: 1; }
+        .score-summary { background: linear-gradient(135deg, #247d57, #1a5238); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; position: relative; z-index: 1; }
         .score-box { font-size: 2rem; font-weight: bold; }
         .question-section { margin-bottom: 20px; position: relative; z-index: 1; }
-        .question-section h5 { border-bottom: 2px solid #308a1e; padding-bottom: 8px; color: #308a1e; font-weight: bold; }
+        .question-section h5 { border-bottom: 2px solid #247d57; padding-bottom: 8px; color: #247d57; font-weight: bold; }
         .question-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
         .question-label { font-weight: 500; }
-        .question-score { font-weight: bold; color: #308a1e; }
+        .question-score { font-weight: bold; color: #247d57; }
         .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; font-size: 0.9rem; position: relative; z-index: 1; }
         .signature-section { margin-top: 20px; display: flex; justify-content: space-between; }
         .signature-box { width: 30%; text-align: center; }
@@ -322,8 +322,8 @@ function getAnsweredQuestions($questions, $responses) {
         <?php
         // Show Supervising Officer evaluation details if evaluation is approved
         if ($eval['status'] === 'approved' && !empty($eval['supervisor_name'])): ?>
-        <div class="question-section" style="background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #308a1e;">
-            <h5 style="color: #308a1e;"><i class="fas fa-clipboard-check me-2"></i>Supervising Officer Evaluation Details (Final Result)</h5>
+        <div class="question-section" style="background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #247d57;">
+            <h5 style="color: #247d57;"><i class="fas fa-clipboard-check me-2"></i>Supervising Officer Evaluation Details (Final Result)</h5>
             <div class="row mt-3">
                 <div class="col-md-6">
                     <p><strong>Evaluated By:</strong> <?php echo htmlspecialchars($eval['supervisor_name']); ?></p>
@@ -440,7 +440,7 @@ function getAnsweredQuestions($questions, $responses) {
             <?php if ($eval['status'] === 'approved'): ?>
             <!-- Approval Chain -->
             <div class="approval-section" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                <h6 style="border-bottom: 2px solid #308a1e; padding-bottom: 5px; margin-bottom: 10px;">Evaluation Approval Chain</h6>
+                <h6 style="border-bottom: 2px solid #247d57; padding-bottom: 5px; margin-bottom: 10px;">Evaluation Approval Chain</h6>
                 <div class="row">
                     <div class="col-md-4">
                         <p class="mb-1"><strong>Supervising Officer Approval</strong></p>

@@ -96,9 +96,9 @@ foreach ($evaluations as $eval) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="theme-overrides.css" rel="stylesheet">
     <style>
-        :root { --primary-blue: <?php echo $settings['primary_color'] ?? '#308a1e'; ?>; }
+        :root { --primary-blue: <?php echo $settings['primary_color'] ?? '#247d57'; ?>; }
         body { background: #f3f4f6; }
-        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #308a1e 0%, #269c16 100%); color: white; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #247d57 0%, #1a5238 100%); color: white; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
         .file-card { background: white; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -250,7 +250,7 @@ foreach ($evaluations as $eval) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Footer -->
-    <footer class="mt-4 py-3" style="background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#308a1e'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#269c16'; ?> 100%); color: white; border-radius: 8px;">
+    <footer class="mt-4 py-3" style="background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#247d57'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#1a5238'; ?> 100%); color: white; border-radius: 8px;">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-6">
