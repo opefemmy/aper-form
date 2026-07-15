@@ -497,7 +497,6 @@ foreach ($questions as $q) {
                                                                     <?php echo htmlspecialchars($sc['sub_category_name']); ?>
                                                                 </option>
                                                                 <?php endforeach; ?>
-                                                                <?php endif; ?>
                                                             </select>
                                                         </div>
                                                         <div class="col-md-4 mb-3">
