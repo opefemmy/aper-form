@@ -235,7 +235,7 @@ try {
     // Table doesn't exist yet - sub-categories will be empty
 }
 
-// Build query based on filter - Supervising Officer questions are separate
+// Build query based on filter - Supervising Officer questions are HIDDEN from general list
 if ($filterCategory === 'supervising-officer' || $filterCategory === 'hod') {
     // Supervising Officer evaluation questions - ONLY show questions with target_staff_category = 'hod'
     $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'hod' ORDER BY category, id");
@@ -326,13 +326,13 @@ foreach ($questions as $q) {
                         <div class="dropdown">
                             <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-filter me-2"></i>
-                                <?php echo $filterCategory === 'all' ? 'All Staff Questions' :
+                                <?php echo $filterCategory === 'all' ? 'Staff Questions (Not for SO)' :
                                     ($filterCategory === 'supervising-officer' ? 'Supervising Officer Questions' :
                                     ($filterCategory === 'academic' ? 'Academic Staff Questions' :
                                     ($filterCategory === 'non-teaching-junior' ? 'Junior Staff Questions (Level 5 and below)' : 'Non-Teaching Senior Questions (Level 6+)'))); ?>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item <?php echo $filterCategory === 'all' ? 'active' : ''; ?>" href="questions.php?filter=all"><i class="fas fa-list me-2"></i>All Staff Questions</a></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'all' ? 'active' : ''; ?>" href="questions.php?filter=all"><i class="fas fa-list me-2"></i>Staff Questions (Not for SO)</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'supervising-officer' ? 'active' : ''; ?>" href="questions.php?filter=supervising-officer"><i class="fas fa-user-tie me-2"></i>Supervising Officer Questions</a></li>
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'academic' ? 'active' : ''; ?>" href="questions.php?filter=academic"><i class="fas fa-graduation-cap me-2"></i>Academic Staff Questions</a></li>
