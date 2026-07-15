@@ -13,16 +13,16 @@ if (!$evalId) {
 
 $pdo = getDBConnection();
 
-// Get evaluation
+// Get evaluation - use LEFT JOIN to still get evaluation even if staff record is missing
 $stmt = $pdo->prepare("SELECT e.*, s.staff_id AS staff_identifier, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
     FROM evaluations e
-    JOIN staff s ON e.staff_id = s.id
+    LEFT JOIN staff s ON e.staff_id = s.id
     WHERE e.id = ?");
 $stmt->execute([$evalId]);
 $eval = $stmt->fetch();
 
 if (!$eval) {
-    die('Evaluation not found');
+    die('Evaluation not found. ID: ' . htmlspecialchars($evalId));
 }
 
 // Verify access (staff can only view their own, admins can view all)

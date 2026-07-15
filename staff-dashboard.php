@@ -597,12 +597,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         <?php endif; ?>
 
         <!-- Print Summary - Available immediately after submission (evidence of participation) -->
+        <?php if ($existingEval && isset($existingEval['id'])): ?>
         <div class="text-center mb-3">
             <a href="print-summary.php?id=<?php echo $existingEval['id']; ?>" target="_blank" class="btn btn-primary btn-lg">
                 <i class="fas fa-print me-2"></i>Print Summary (Evidence of Participation)
             </a>
             <p class="text-muted mt-2"><small>Print this as evidence that you have completed your evaluation</small></p>
         </div>
+        <?php endif; ?>
 
         <!-- Staff Review Section - Show when Supervising Officer has evaluated and passed to staff -->
         <?php if ($existingEval && $existingEval['evaluation_stage'] === 'staff_review'): ?>
