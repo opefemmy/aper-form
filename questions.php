@@ -455,23 +455,39 @@ foreach ($questions as $q) {
                                                         <div class="col-md-4 mb-3">
                                                             <label class="form-label">Category</label>
                                                             <select class="form-select" name="category" id="edit_category_<?php echo $q['id']; ?>" onchange="toggleCustomCategory(this, 'edit_<?php echo $q['id']; ?>')">
-                                                                <option value="Teaching" <?php echo $q['category'] == 'Teaching' ? 'selected' : ''; ?>>Teaching</option>
-                                                                <option value="Research" <?php echo $q['category'] == 'Research' ? 'selected' : ''; ?>>Research</option>
-                                                                <option value="Administrative" <?php echo $q['category'] == 'Administrative' ? 'selected' : ''; ?>>Administrative</option>
-                                                                <option value="Community" <?php echo $q['category'] == 'Community' ? 'selected' : ''; ?>>Community</option>
-                                                                <option value="Professional" <?php echo $q['category'] == 'Professional' ? 'selected' : ''; ?>>Professional</option>
-                                                                <option value="custom" <?php echo !in_array($q['category'], ['Teaching', 'Research', 'Administrative', 'Community', 'Professional']) ? 'selected' : ''; ?>>+ Add Custom Category</option>
+                                                                <?php
+                                                                // Get all unique categories from database
+                                                                $allCategories = ['Teaching', 'Research', 'Administrative', 'Community', 'Professional'];
+                                                                $stmt = $pdo->query("SELECT DISTINCT category FROM evaluation_questions WHERE category IS NOT NULL AND category != '' ORDER BY category");
+                                                                while ($row = $stmt->fetch()) {
+                                                                    if (!in_array($row['category'], $allCategories)) {
+                                                                        $allCategories[] = $row['category'];
+                                                                    }
+                                                                }
+                                                                foreach ($allCategories as $cat): ?>
+                                                                <option value="<?php echo htmlspecialchars($cat); ?>" <?php echo $q['category'] == $cat ? 'selected' : ''; ?>><?php echo htmlspecialchars($cat); ?></option>
+                                                                <?php endforeach; ?>
+                                                                <option value="custom" <?php echo !in_array($q['category'], $allCategories) ? 'selected' : ''; ?>>+ Add Custom Category</option>
                                                             </select>
-                                                            <input type="text" class="form-control mt-2" name="custom_category" id="edit_<?php echo $q['id']; ?>_custom_category" placeholder="Enter custom category name" style="display:none;" value="<?php echo !in_array($q['category'], ['Teaching', 'Research', 'Administrative', 'Community', 'Professional']) ? htmlspecialchars($q['category']) : ''; ?>">
+                                                            <input type="text" class="form-control mt-2" name="custom_category" id="edit_<?php echo $q['id']; ?>_custom_category" placeholder="Enter custom category name" style="display:none;" value="<?php echo !in_array($q['category'], $allCategories) ? htmlspecialchars($q['category']) : ''; ?>">
                                                         </div>
                                                         <div class="col-md-4 mb-3">
                                                             <label class="form-label">Sub-Category</label>
                                                             <select class="form-select" name="sub_category" id="edit_sub_category_<?php echo $q['id']; ?>">
                                                                 <option value="">None</option>
                                                                 <?php
-                                                                $currentCategory = $q['category'];
-                                                                if (isset($subCategoriesByCategory[$currentCategory])):
-                                                                    foreach ($subCategoriesByCategory[$currentCategory] as $sc): ?>
+                                                                // Get ALL sub-categories from database
+                                                                $allSubCategories = [];
+                                                                try {
+                                                                    $stmt = $pdo->query("SELECT DISTINCT sub_category_name, category FROM question_sub_categories WHERE is_active = 1 ORDER BY sub_category_name");
+                                                                    while ($sc = $stmt->fetch()) {
+                                                                        if (!empty($sc['sub_category_name'])) {
+                                                                            $allSubCategories[] = $sc;
+                                                                        }
+                                                                    }
+                                                                } catch (Exception $e) {}
+                                                                // Show all sub-categories as options
+                                                                foreach ($allSubCategories as $sc): ?>
                                                                 <option value="<?php echo htmlspecialchars($sc['sub_category_name']); ?>" <?php echo ($q['sub_category'] ?? '') == $sc['sub_category_name'] ? 'selected' : ''; ?>>
                                                                     <?php echo htmlspecialchars($sc['sub_category_name']); ?>
                                                                 </option>
