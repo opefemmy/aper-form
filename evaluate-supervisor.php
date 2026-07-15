@@ -1223,6 +1223,104 @@ $sessions = $stmt->fetchAll();
                                 </div>
                             </form>
                         <?php else: ?>
+                            <div class="card mb-4">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Evaluation Questions Preview</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info mb-3">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Preview Mode:</strong> These are the questions you will use to evaluate staff.
+                                        Select a staff member from the list to start evaluating.
+                                    </div>
+
+                                    <!-- Show Questions in Preview Mode -->
+                                    <?php if (!empty($teaching) || !empty($research) || !empty($adminQuestions) || !empty($community) || !empty($professional)): ?>
+
+                                    <!-- Teaching/Job Performance -->
+                                    <?php if (!empty($teaching)): ?>
+                                    <div class="mb-4">
+                                        <h6 class="text-primary border-bottom pb-2">Teaching/Job Performance</h6>
+                                        <?php foreach ($teaching as $q): ?>
+                                        <div class="question-item bg-light">
+                                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-circle-notch fa-spin"></i> Rating options will appear when evaluating
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <!-- Research -->
+                                    <?php if (!empty($research)): ?>
+                                    <div class="mb-4">
+                                        <h6 class="text-primary border-bottom pb-2">Research/Development</h6>
+                                        <?php foreach ($research as $q): ?>
+                                        <div class="question-item bg-light">
+                                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-circle-notch fa-spin"></i> Rating options will appear when evaluating
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <!-- Administrative -->
+                                    <?php if (!empty($adminQuestions)): ?>
+                                    <div class="mb-4">
+                                        <h6 class="text-primary border-bottom pb-2">Administrative Duties</h6>
+                                        <?php foreach ($adminQuestions as $q): ?>
+                                        <div class="question-item bg-light">
+                                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-circle-notch fa-spin"></i> Rating options will appear when evaluating
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <!-- Community -->
+                                    <?php if (!empty($community)): ?>
+                                    <div class="mb-4">
+                                        <h6 class="text-primary border-bottom pb-2">Community Service</h6>
+                                        <?php foreach ($community as $q): ?>
+                                        <div class="question-item bg-light">
+                                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-circle-notch fa-spin"></i> Rating options will appear when evaluating
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <!-- Professional -->
+                                    <?php if (!empty($professional)): ?>
+                                    <div class="mb-4">
+                                        <h6 class="text-primary border-bottom pb-2">Professional Development</h6>
+                                        <?php foreach ($professional as $q): ?>
+                                        <div class="question-item bg-light">
+                                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-circle-notch fa-spin"></i> Rating options will appear when evaluating
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php endif; ?>
+
+                                    <?php else: ?>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        No evaluation questions found. Please contact the administrator to add questions.
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
                             <div class="card">
                                 <div class="card-body text-center py-5">
                                     <i class="fas fa-clipboard-check fa-4x text-muted mb-3"></i>

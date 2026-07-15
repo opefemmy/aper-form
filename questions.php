@@ -269,7 +269,7 @@ try {
 }
 
 // Build query based on filter - Each category shows its specific questions + "both" (all staff) questions
-if ($filterCategory === 'S.O') {
+if ($filterCategory === 'S.O' || $filterCategory === 'supervising-officer') {
     // Supervising Officer - all SO categories
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
         WHERE (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O')
