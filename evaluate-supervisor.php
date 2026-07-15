@@ -498,7 +498,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
             redirect("evaluate-supervisor.php?eval_id=$evalId");
         }
 
-    } catch (Exception $e) {
+        }} catch (Exception $e) {
         $pdo->rollBack();
         showMessage('Error: ' . $e->getMessage(), 'danger');
     }
