@@ -15,6 +15,18 @@ while ($row = $stmt->fetch()) {
 }
 $instName = $settings['institution_name'] ?? 'Institution';
 
+// Get staff category for this staff
+$staffStmt = $pdo->prepare("SELECT staff_category FROM staff WHERE id = ?");
+$staffStmt->execute([$staffId]);
+$staffData = $staffStmt->fetch();
+$staffCategory = $staffData['staff_category'] ?? 'academic';
+
+// Get SO evaluation questions for this staff category
+$soQuestions = [];
+$soQStmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'hod' ORDER BY category, id");
+$soQStmt->execute();
+$soQuestions = $soQStmt->fetchAll();
+
 // Get current year
 $currentYear = date('Y');
 
@@ -158,6 +170,64 @@ if ($messageData && is_array($messageData)) {
                             <?php if (!empty($eval['recommendation'])): ?>
                             <div class="mb-3">
                                 <strong>Recommendation:</strong> <?php echo htmlspecialchars($eval['recommendation']); ?>
+                            </div>
+                            <?php endif; ?>
+
+                            <hr>
+
+                            <!-- Supervising Officer's Evaluation of Each Question -->
+                            <h5><i class="fas fa-list-check me-2"></i>Supervising Officer's Evaluation</h5>
+                            <?php
+                            // Get SO responses from evaluation
+                            $soResponses = [];
+                            if (!empty($eval['responses'])) {
+                                $allResponses = is_array($eval['responses']) ? $eval['responses'] : json_decode($eval['responses'], true);
+                                if (is_array($allResponses)) {
+                                    foreach ($allResponses as $key => $value) {
+                                        if (strpos($key, 'so_') === 0) {
+                                            $soResponses[$key] = $value;
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (!empty($soResponses) && !empty($soQuestions)): ?>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Question</th>
+                                            <th>Score (out of 5)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($soQuestions as $sq): ?>
+                                        <?php
+                                        $fieldName = 'so_q_' . $sq['id'];
+                                        $score = $soResponses[$fieldName] ?? null;
+                                        ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($sq['category']); ?></td>
+                                            <td><?php echo htmlspecialchars($sq['question_text']); ?></td>
+                                            <td>
+                                                <?php if ($score !== null): ?>
+                                                <span class="badge bg-<?php echo $score >= 4 ? 'success' : ($score >= 3 ? 'warning' : 'danger'); ?> fs-6">
+                                                    <?php echo $score; ?>/5
+                                                </span>
+                                                <?php else: ?>
+                                                <span class="text-muted">Not scored</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <?php elseif (empty($soResponses)): ?>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                No individual question scores available yet. The Supervising Officer has submitted the overall evaluation.
                             </div>
                             <?php endif; ?>
 

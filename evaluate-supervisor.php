@@ -440,6 +440,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
                 $updateData['supervisor_date'] = date('Y-m-d');
                 $updateData['overall_rating'] = sanitize($_POST['overall_rating'] ?? '');
                 $updateData['recommendation'] = sanitize($_POST['recommendation'] ?? '');
+
+                // Save Supervising Officer's scores to responses field (prefixed with 'so_')
+                $soResponses = [];
+                foreach ($scores as $key => $value) {
+                    $soResponses['so_' . $key] = $value;
+                }
+                if (!empty($soResponses)) {
+                    // Merge with existing responses
+                    $existingResponses = [];
+                    if ($selectedEval && isset($selectedEval['responses']) && !empty($selectedEval['responses'])) {
+                        $existingResponses = is_array($selectedEval['responses']) ? $selectedEval['responses'] : json_decode($selectedEval['responses'], true);
+                    }
+                    $mergedResponses = array_merge($existingResponses ?? [], $soResponses);
+                    $updateData['responses'] = json_encode($mergedResponses);
+                }
             } else {
                 // Re-evaluation after staff rejection - update supervisor details and pass back to staff review
                 $updateData['evaluation_stage'] = 'staff_review';

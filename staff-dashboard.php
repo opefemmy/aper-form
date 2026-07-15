@@ -521,31 +521,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             $maxPoints = $totalQuestionsCount * 5;
         ?>
         <div class="row mb-4">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="score-card">
                     <div class="value"><?php echo min($existingEval['total_score'], 100); ?>/100</div>
                     <div>Points</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="score-card">
                     <div class="value"><?php echo $existingEval['percentage']; ?>%</div>
                     <div>Percentage</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="score-card" style="background: linear-gradient(135deg, #10b981, #059669);">
                     <div class="value"><?php echo $existingEval['performance_grade']; ?></div>
                     <div>Grade</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="score-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
                     <div class="value"><?php echo ucfirst($existingEval['status']); ?></div>
                     <div>Status</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="score-card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
                     <?php
                     $stageLabels = [
