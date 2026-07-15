@@ -117,14 +117,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         showMessage('Question added successfully!', 'success');
     }
 
-    // Handle question reordering
-    if (isset($_POST['reorder_questions']) && isset($_POST['question_orders'])) {
-        $orders = $_POST['question_orders'];
-        foreach ($orders as $questionId => $order) {
-            $stmt = $pdo->prepare("UPDATE evaluation_questions SET question_order = ? WHERE id = ?");
-            $stmt->execute([intval($order), intval($questionId)]);
+    // Handle question and category reordering
+    if (isset($_POST['reorder_questions'])) {
+        // Save question orders
+        if (isset($_POST['question_orders'])) {
+            $orders = $_POST['question_orders'];
+            foreach ($orders as $questionId => $order) {
+                $stmt = $pdo->prepare("UPDATE evaluation_questions SET question_order = ? WHERE id = ?");
+                $stmt->execute([intval($order), intval($questionId)]);
+            }
         }
-        showMessage('Question order saved successfully!', 'success');
+
+        // Save category/section orders
+        if (isset($_POST['category_orders'])) {
+            $catOrders = $_POST['category_orders'];
+            foreach ($catOrders as $categoryName => $order) {
+                $stmt = $pdo->prepare("UPDATE evaluation_questions SET category_order = ? WHERE category = ?");
+                $stmt->execute([intval($order), $categoryName]);
+            }
+        }
+
+        showMessage('Order saved successfully!', 'success');
     }
 
     if (isset($_POST['update_question'])) {
@@ -238,28 +251,28 @@ try {
 // Build query based on filter - Supervising Officer questions are HIDDEN from general list
 if ($filterCategory === 'supervising-officer' || $filterCategory === 'S.O') {
     // Supervising Officer evaluation questions - all categories
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'S.O' ORDER BY category, id");
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'S.O' ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'S.O_junior') {
     // SO: Junior Staff questions
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'S.O_junior' ORDER BY category, id");
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'S.O_junior' ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'S.O_senior') {
     // SO: Non-Teaching Senior questions
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'S.O_senior' ORDER BY category, id");
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'S.O_senior' ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'S.O_academic') {
     // SO: Academic Staff questions
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'S.O_academic' ORDER BY category, id");
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'S.O_academic' ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'academic') {
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'academic' ORDER BY category, id");
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'academic' ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'non-teaching') {
     // Non-Teaching Senior (Level 6+) - only get non-teaching questions (NOT junior)
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'non-teaching' ORDER BY category, id");
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'non-teaching' ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'non-teaching-junior') {
     // Junior Staff (Level 5 and below)
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'non-teaching-junior' ORDER BY category, id");
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category = 'non-teaching-junior' ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } else {
     // All questions EXCEPT Supervising Officer - for general staff questions
     // Also exclude the new SO categories
-    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category NOT IN ('S.O', 'S.O_junior', 'S.O_senior', 'S.O_academic') ORDER BY category, id");
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions WHERE target_staff_category NOT IN ('S.O', 'S.O_junior', 'S.O_senior', 'S.O_academic') ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 }
 $questions = $stmt->fetchAll();
 
@@ -813,51 +826,109 @@ foreach ($questions as $q) {
 
     <!-- Reorder Questions Modal -->
     <div class="modal fade" id="reorderQuestionsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <form method="POST" action="questions.php">
                     <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-sort-numeric-up me-2"></i>Reorder Questions</h5>
+                        <h5 class="modal-title"><i class="fas fa-sort-numeric-up me-2"></i>Reorder Sections & Questions</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <p class="text-muted">Enter the display order number for each question. Questions with lower numbers appear first.</p>
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                            <table class="table table-bordered table-sm">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th style="width: 80px;">Order</th>
-                                        <th>Question</th>
-                                        <th>Category</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php
-                                    // Get all questions for reordering
-                                    $allQuestionsStmt = $pdo->query("SELECT id, question_text, category, question_order, target_staff_category FROM evaluation_questions ORDER BY COALESCE(question_order, 99999), category, id");
-                                    $allQuestions = $allQuestionsStmt->fetchAll();
-                                    foreach ($allQuestions as $aq):
-                                    ?>
-                                    <tr>
-                                        <td>
-                                            <input type="number" class="form-control form-control-sm" name="question_orders[<?php echo $aq['id']; ?>]" value="<?php echo $aq['question_order'] ?? 0; ?>" min="0" style="width: 80px;">
-                                        </td>
-                                        <td><?php echo htmlspecialchars(substr($aq['question_text'], 0, 80)) . (strlen($aq['question_text']) > 80 ? '...' : ''); ?></td>
-                                        <td>
-                                            <span class="badge bg-<?php
-                                                echo $aq['target_staff_category'] === 'academic' ? 'success' :
-                                                    ($aq['target_staff_category'] === 'non-teaching' ? 'warning' :
-                                                    ($aq['target_staff_category'] === 'non-teaching-junior' ? 'info' :
-                                                    ($aq['target_staff_category'] === 'S.O' ? 'primary' : 'secondary')));
-                                            ?>">
-                                                <?php echo htmlspecialchars($aq['category']); ?>
-                                            </span>
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#reorder-sections" type="button">
+                                    <i class="fas fa-layer-group me-1"></i> Reorder Sections
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#reorder-questions" type="button">
+                                    <i class="fas fa-list-ol me-1"></i> Reorder Questions
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content">
+                            <!-- Section/Category Reordering -->
+                            <div class="tab-pane fade show active" id="reorder-sections">
+                                <p class="text-muted">Enter the display order number for each section/category. Sections with lower numbers appear first.</p>
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                    <table class="table table-bordered table-sm">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th style="width: 100px;">Section Order</th>
+                                                <th>Section/Category Name</th>
+                                                <th>Questions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php
+                                            // Get all categories with their order
+                                            $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category");
+                                            $categories = $categoriesStmt->fetchAll();
+
+                                            // Get question counts per category
+                                            $catCounts = [];
+                                            $countStmt = $pdo->query("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 GROUP BY category");
+                                            while ($row = $countStmt->fetch()) {
+                                                $catCounts[$row['category']] = $row['cnt'];
+                                            }
+
+                                            foreach ($categories as $cat):
+                                            ?>
+                                            <tr>
+                                                <td>
+                                                    <input type="number" class="form-control form-control-sm" name="category_orders[<?php echo htmlspecialchars($cat['category']); ?>]" value="<?php echo $cat['category_order'] ?? 0; ?>" min="0" style="width: 80px;">
+                                                </td>
+                                                <td><strong><?php echo htmlspecialchars($cat['category']); ?></strong></td>
+                                                <td><span class="badge bg-secondary"><?php echo $catCounts[$cat['category']] ?? 0; ?> questions</span></td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Question Reordering -->
+                            <div class="tab-pane fade" id="reorder-questions">
+                                <p class="text-muted">Enter the display order number for each question. Questions with lower numbers appear first within their section.</p>
+                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                    <table class="table table-bordered table-sm">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th style="width: 100px;">Question Order</th>
+                                                <th>Question</th>
+                                                <th>Section</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php
+                                            // Get all questions for reordering
+                                            $allQuestionsStmt = $pdo->query("SELECT id, question_text, category, question_order, target_staff_category FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
+                                            $allQuestions = $allQuestionsStmt->fetchAll();
+                                            foreach ($allQuestions as $aq):
+                                            ?>
+                                            <tr>
+                                                <td>
+                                                    <input type="number" class="form-control form-control-sm" name="question_orders[<?php echo $aq['id']; ?>]" value="<?php echo $aq['question_order'] ?? 0; ?>" min="0" style="width: 80px;">
+                                                </td>
+                                                <td><?php echo htmlspecialchars(substr($aq['question_text'], 0, 60)) . (strlen($aq['question_text']) > 60 ? '...' : ''); ?></td>
+                                                <td>
+                                                    <span class="badge bg-<?php
+                                                        echo $aq['target_staff_category'] === 'academic' ? 'success' :
+                                                            ($aq['target_staff_category'] === 'non-teaching' ? 'warning' :
+                                                            ($aq['target_staff_category'] === 'non-teaching-junior' ? 'info' :
+                                                            ($aq['target_staff_category'] === 'S.O' ? 'primary' : 'secondary')));
+                                                    ?>">
+                                                        <?php echo htmlspecialchars($aq['category']); ?>
+                                                    </span>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
+                        </div> <!-- End tab-pane -->
+                        </div> <!-- End tab-content -->
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

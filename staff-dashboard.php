@@ -95,15 +95,15 @@ $activeSession = $stmt->fetch();
 // Academic Staff gets academic questions + 'both'
 if ($staffCategory === 'non-teaching-junior') {
     // Junior Staff - get junior specific questions + 'both' (all staff questions)
-    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = 'non-teaching-junior' OR target_staff_category = 'both') ORDER BY COALESCE(question_order, 99999), category, id");
+    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = 'non-teaching-junior' OR target_staff_category = 'both') ORDER BY COALESCE(category_order, 99999), COALESCE(question_order, 99999), category, id");
     $stmt->execute();
 } elseif ($staffCategory === 'non-teaching') {
     // Non-Teaching Staff (senior) - get non-teaching specific questions + 'both'
-    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = 'non-teaching' OR target_staff_category = 'both') ORDER BY COALESCE(question_order, 99999), category, id");
+    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = 'non-teaching' OR target_staff_category = 'both') ORDER BY COALESCE(category_order, 99999), COALESCE(question_order, 99999), category, id");
     $stmt->execute();
 } else {
     // Academic staff or others - use exact match + 'both'
-    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') ORDER BY COALESCE(question_order, 99999), category, id");
+    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') ORDER BY COALESCE(category_order, 99999), COALESCE(question_order, 99999), category, id");
     $stmt->execute([$staffCategory]);
 }
 $dbQuestions = $stmt->fetchAll();
