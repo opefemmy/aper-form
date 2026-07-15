@@ -459,7 +459,7 @@ foreach ($questions as $q) {
                     </strong>
                 </div>
 
-                <?php if ($filterCategory === 'supervising-officer'): ?>
+                <?php if ($filterCategory === 'supervising-officer' || $filterCategory === 'S.O'): ?>
                 <div class="alert alert-info mb-4">
                     <i class="fas fa-info-circle me-2"></i>
                     <strong>Supervising Officer Evaluation Questions:</strong> These are the questions that Supervising Officers will use to evaluate their staff.
