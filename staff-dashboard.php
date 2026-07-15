@@ -89,17 +89,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['staff_consent_action'
 $stmt = $pdo->query("SELECT * FROM academic_sessions WHERE is_active = 1 LIMIT 1");
 $activeSession = $stmt->fetch();
 
-// Get questions from database - COMPLETE separation between Junior Staff and Non-Teaching Staff
-// Junior Staff (non-teaching-junior) only gets junior questions
-// Non-Teaching Staff only gets non-teaching questions
-// Academic Staff gets academic questions
+// Get questions from database - Include 'both' for all staff categories
+// Junior Staff (non-teaching-junior) gets junior questions + 'both'
+// Non-Teaching Staff gets non-teaching questions + 'both'
+// Academic Staff gets academic questions + 'both'
 if ($staffCategory === 'non-teaching-junior') {
-    // Junior Staff - only get questions specifically for junior staff
-    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'non-teaching-junior' ORDER BY COALESCE(question_order, 99999), category, id");
+    // Junior Staff - get junior specific questions + 'both' (all staff questions)
+    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = 'non-teaching-junior' OR target_staff_category = 'both') ORDER BY COALESCE(question_order, 99999), category, id");
     $stmt->execute();
 } elseif ($staffCategory === 'non-teaching') {
-    // Non-Teaching Staff (senior) - only get questions for non-teaching
-    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'non-teaching' ORDER BY COALESCE(question_order, 99999), category, id");
+    // Non-Teaching Staff (senior) - get non-teaching specific questions + 'both'
+    $stmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = 'non-teaching' OR target_staff_category = 'both') ORDER BY COALESCE(question_order, 99999), category, id");
     $stmt->execute();
 } else {
     // Academic staff or others - use exact match + 'both'
