@@ -333,6 +333,12 @@ foreach ($questions as $q) {
         .sidebar { min-height: 100vh; background: linear-gradient(180deg, #247d57 0%, #1a5238 100%); color: white; }
         .sidebar a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px 15px; display: block; border-radius: 8px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,0.15); color: white; }
+        /* Fix for modal dropdowns */
+        .modal { z-index: 9999 !important; }
+        .modal-backdrop { z-index: 9998 !important; }
+        .modal.show { display: block !important; }
+        .form-select { cursor: pointer; }
+        select.form-select { cursor: pointer; -webkit-appearance: auto; -moz-appearance: auto; appearance: auto; }
     </style>
 </head>
 <body>
@@ -881,6 +887,11 @@ foreach ($questions as $q) {
             customField.required = false;
             customField.value = '';
         }
+    }
+    // Function to update sub-categories based on selected category (placeholder for future use)
+    function updateSubCategories(category) {
+        // This function can be extended to dynamically load sub-categories based on category
+        console.log('Category selected:', category);
     }
     // Add event listener for sub-category dropdown
     document.getElementById('add_sub_category')?.addEventListener('change', function() {
