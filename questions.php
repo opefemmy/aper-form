@@ -234,15 +234,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get filter category
 $filterCategory = $_GET['filter'] ?? 'all';
 
+// Get all existing categories from database for dropdown
+$allCategories = [];
+try {
+    $stmt = $pdo->query("SELECT DISTINCT category FROM evaluation_questions WHERE category IS NOT NULL AND category != '' ORDER BY category");
+    while ($row = $stmt->fetch()) {
+        $allCategories[] = $row['category'];
+    }
+} catch (Exception $e) {
+    // Use default categories if table doesn't exist
+}
+
+// Default categories
+$defaultCategories = ['Teaching', 'Research', 'Administrative', 'Community', 'Professional'];
+
+// Merge default + custom categories (remove duplicates)
+$categoryOptions = array_unique(array_merge($defaultCategories, $allCategories));
+sort($categoryOptions);
+
 // Get sub-categories for dropdown (if table exists)
 $subCategories = [];
 $subCategoriesByCategory = [];
+$allSubCategoriesList = [];
 try {
     $stmt = $pdo->query("SELECT * FROM question_sub_categories WHERE is_active = 1 ORDER BY category, sub_category_order");
     $subCategories = $stmt->fetchAll();
     // Group sub-categories by category
     foreach ($subCategories as $sc) {
         $subCategoriesByCategory[$sc['category']][] = $sc;
+        $allSubCategoriesList[] = $sc['sub_category_name'];
     }
 } catch (Exception $e) {
     // Table doesn't exist yet - sub-categories will be empty
@@ -703,58 +723,40 @@ foreach ($questions as $q) {
                     <div class="modal-body">
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label class="form-label">Category</label>
-                                <select class="form-select" name="category" id="add_category" required onchange="toggleCustomCategory(this, 'add')">
+                                <label class="form-label">Category/Section</label>
+                                <select class="form-select" name="category" id="add_category" required onchange="toggleCustomCategory(this, 'add'); updateSubCategories(this.value);">
                                     <option value="">Select Category</option>
-                                    <option value="Teaching">Teaching Performance</option>
-                                    <option value="Research">Research Performance</option>
-                                    <option value="Administrative">Administrative Duties</option>
-                                    <option value="Community">Community Service</option>
-                                    <option value="Professional">Professional Development</option>
-                                    <option value="custom">+ Add Custom Category</option>
+                                    <?php foreach ($categoryOptions as $cat): ?>
+                                    <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                    <?php endforeach; ?>
+                                    <option value="custom">+ Add New Category</option>
                                 </select>
-                                <input type="text" class="form-control mt-2" name="custom_category" id="add_custom_category" placeholder="Enter custom category name" style="display:none;">
+                                <input type="text" class="form-control mt-2" name="custom_category" id="add_custom_category" placeholder="Enter new category name" style="display:none;">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Sub-Category</label>
                                 <select class="form-select" name="sub_category" id="add_sub_category" onchange="toggleCustomSubCategory(this)">
-                                    <option value="">None</option>
-                                    <optgroup label="Teaching">
-                                        <option value="Lecture Delivery">Lecture Delivery</option>
-                                        <option value="Student Engagement">Student Engagement</option>
-                                        <option value="Course Preparation">Course Preparation</option>
-                                        <option value="Course Coverage">Course Coverage</option>
-                                        <option value="Time Management">Time Management</option>
-                                        <option value="Assessment & Feedback">Assessment & Feedback</option>
+                                    <option value="">Select Sub-Category (Optional)</option>
+                                    <?php
+                                    // Group sub-categories by their parent category
+                                    $groupedSubCats = [];
+                                    foreach ($subCategories as $sc) {
+                                        if (!isset($groupedSubCats[$sc['category']])) {
+                                            $groupedSubCats[$sc['category']] = [];
+                                        }
+                                        $groupedSubCats[$sc['category']][] = $sc['sub_category_name'];
+                                    }
+                                    foreach ($groupedSubCats as $parentCat => $subCats):
+                                    ?>
+                                    <optgroup label="<?php echo htmlspecialchars($parentCat); ?>">
+                                        <?php foreach ($subCats as $subCat): ?>
+                                        <option value="<?php echo htmlspecialchars($subCat); ?>"><?php echo htmlspecialchars($subCat); ?></option>
+                                        <?php endforeach; ?>
                                     </optgroup>
-                                    <optgroup label="Research">
-                                        <option value="Publications">Publications</option>
-                                        <option value="Conference Participation">Conference Participation</option>
-                                        <option value="Research Grants">Research Grants</option>
-                                        <option value="Innovations">Innovations</option>
-                                        <option value="Journal Articles">Journal Articles</option>
-                                    </optgroup>
-                                    <optgroup label="Administrative">
-                                        <option value="Meeting Attendance">Meeting Attendance</option>
-                                        <option value="Punctuality">Punctuality</option>
-                                        <option value="Leadership">Leadership</option>
-                                        <option value="Teamwork">Teamwork</option>
-                                        <option value="Record Keeping">Record Keeping</option>
-                                    </optgroup>
-                                    <optgroup label="Community">
-                                        <option value="Community Development">Community Development</option>
-                                        <option value="Committee Participation">Committee Participation</option>
-                                        <option value="Institutional Representation">Institutional Representation</option>
-                                    </optgroup>
-                                    <optgroup label="Professional">
-                                        <option value="Workshops">Workshops</option>
-                                        <option value="Training Programs">Training Programs</option>
-                                        <option value="Certifications">Certifications</option>
-                                        <option value="Seminars">Seminars</option>
-                                    </optgroup>
-                                    <option value="custom">+ Add Custom Sub-Category</option>
+                                    <?php endforeach; ?>
+                                    <option value="custom">+ Add New Sub-Category</option>
                                 </select>
-                                <input type="text" class="form-control mt-2" name="custom_sub_category" id="add_custom_sub_category" placeholder="Enter custom sub-category name" style="display:none;">
+                                <input type="text" class="form-control mt-2" name="custom_sub_category" id="add_custom_sub_category" placeholder="Enter new sub-category name" style="display:none;">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Question Type</label>
