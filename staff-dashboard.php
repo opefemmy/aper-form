@@ -363,8 +363,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         body { background: #f3f4f6; }
         .top-bar { background: linear-gradient(135deg, <?php echo $primaryColor; ?> 0%, <?php echo $secondaryColor; ?> 100%); color: white; padding: 1rem 0; }
         .staff-info-card { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .score-card { background: linear-gradient(135deg, <?php echo $primaryColor; ?>, <?php echo $secondaryColor; ?>); color: white; padding: 1.5rem; border-radius: 16px; text-align: center; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3); }
-        .score-card .value { font-size: 2.5rem; font-weight: 700; }
+        .score-card { background: linear-gradient(135deg, <?php echo $primaryColor; ?>, <?php echo $secondaryColor; ?>); color: white; padding: 1.5rem; border-radius: 16px; text-align: center; box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.3); min-height: 120px; display: flex; flex-direction: column; justify-content: center; }
+        .score-card .value { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+        .score-card > div:last-child { font-size: 0.85rem; opacity: 0.9; margin-top: 0.25rem; }
         .question-item { background: white; padding: 1.25rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid #e5e7eb; transition: all 0.3s ease; }
         .question-item:hover { border-color: <?php echo $secondaryColor; ?>; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .rating-label { padding: 0.5rem 0.75rem; background: #f8fafc; border-radius: 20px; cursor: pointer; margin-right: 0.25rem; display: inline-block; text-align: center; min-width: 45px; }
@@ -375,7 +376,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         @media (max-width: 768px) {
             .top-bar .container { flex-direction: column; align-items: flex-start !important; }
             .top-bar .text-end { margin-top: 10px; }
-            .score-card { padding: 1rem; margin-bottom: 10px; }
+            .score-card { padding: 1rem; margin-bottom: 0; min-height: 100px; }
             .score-card .value { font-size: 1.5rem; }
             .staff-info-card .row > div { margin-bottom: 5px; }
         }
@@ -520,33 +521,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             $totalQuestionsCount = count($dbQuestions);
             $maxPoints = $totalQuestionsCount * 5;
         ?>
-        <div class="row mb-4">
-            <div class="col-md-2">
-                <div class="score-card">
+        <div class="row g-3 mb-4 text-center">
+            <div class="col-6 col-md-2">
+                <div class="score-card h-100">
                     <div class="value"><?php echo min($existingEval['total_score'], 100); ?>/100</div>
                     <div>Points</div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="score-card">
+            <div class="col-6 col-md-2">
+                <div class="score-card h-100">
                     <div class="value"><?php echo $existingEval['percentage']; ?>%</div>
                     <div>Percentage</div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="score-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <div class="col-6 col-md-2">
+                <div class="score-card h-100" style="background: linear-gradient(135deg, #10b981, #059669);">
                     <div class="value"><?php echo $existingEval['performance_grade']; ?></div>
                     <div>Grade</div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="score-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <div class="col-6 col-md-2">
+                <div class="score-card h-100" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
                     <div class="value"><?php echo ucfirst($existingEval['status']); ?></div>
                     <div>Status</div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="score-card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+            <div class="col-6 col-md-2">
+                <div class="score-card h-100" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
                     <?php
                     $stageLabels = [
                         'pending' => 'Pending SO Review',
