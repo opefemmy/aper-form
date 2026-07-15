@@ -29,7 +29,7 @@ $existingEval = $stmt->fetch();
 
 // Handle Staff Consent/Rejection - New workflow
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['staff_consent_action'])) {
-    if ($existingEval && in_array($existingEval['evaluation_stage'], ['supervising_officer', 'staff_review'])) {
+    if ($existingEval && $existingEval['evaluation_stage'] === 'staff_review') {
         $consentAction = $_POST['staff_consent_action'];
         $rejectionReason = sanitize($_POST['rejection_reason'] ?? '');
 
@@ -545,14 +545,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                     <div>Status</div>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="score-card" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                    <?php
+                    $stageLabels = [
+                        'pending' => 'Pending SO Review',
+                        'staff_review' => 'Awaiting Your Review',
+                        'supervising_officer_reject' => 'SO Re-Evaluating',
+                        'registrar' => 'Awaiting Registrar',
+                        'completed' => 'Completed'
+                    ];
+                    $stage = $existingEval['evaluation_stage'] ?? 'pending';
+                    ?>
+                    <div class="value"><?php echo $stageLabels[$stage] ?? ucfirst($stage); ?></div>
+                    <div>Stage</div>
+                </div>
+            </div>
         </div>
         <?php endif; ?>
 
         <?php if ($existingEval && is_array($existingEval) && ($existingEval['status'] ?? '') !== 'draft'): ?>
+        <?php
+        // Show appropriate message based on evaluation stage
+        $stage = $existingEval['evaluation_stage'] ?? 'pending';
+        if ($stage === 'pending'): ?>
+        <div class="alert alert-info">
+            <i class="fas fa-clock me-2"></i>
+            Your evaluation has been submitted and is currently being reviewed by your Supervising Officer. You will be notified when it's ready for your review.
+        </div>
+        <?php elseif ($stage === 'staff_review'): ?>
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            Your Supervising Officer has completed your evaluation. Please review and consent to the evaluation grade.
+        </div>
+        <?php elseif ($stage === 'registrar'): ?>
+        <div class="alert alert-info">
+            <i class="fas fa-check-circle me-2"></i>
+            You have consented to the evaluation. It is now awaiting final approval from the Registrar.
+        </div>
+        <?php elseif ($stage === 'completed'): ?>
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            Your evaluation has been fully completed and approved.
+        </div>
+        <?php else: ?>
         <div class="alert alert-info">
             <i class="fas fa-check-circle me-2"></i>
             Your evaluation has been submitted. You can still update and resubmit at any time.
         </div>
+        <?php endif; ?>
 
         <!-- Print Summary - Available immediately after submission (evidence of participation) -->
         <div class="text-center mb-3">
