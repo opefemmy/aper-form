@@ -28,7 +28,7 @@ $existingEval = $stmt->fetch();
 
 // Handle Staff Consent/Rejection - New workflow
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['staff_consent_action'])) {
-    if ($existingEval && in_array($existingEval['evaluation_stage'], ['supervising_officer'])) {
+    if ($existingEval && in_array($existingEval['evaluation_stage'], ['supervising_officer', 'staff_review'])) {
         $consentAction = $_POST['staff_consent_action'];
         $rejectionReason = sanitize($_POST['rejection_reason'] ?? '');
 
@@ -36,7 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['staff_consent_action'
             // Staff consents - move to registrar
             $updateStmt = $pdo->prepare("UPDATE evaluations SET
                 staff_consent = 'consented',
-                evaluation_stage = 'staff_review'
+                staff_consent_date = NOW(),
+                evaluation_stage = 'registrar'
                 WHERE id = ?");
             $updateStmt->execute([$existingEval['id']]);
             $consentMessage = 'Thank you! You have consented to the evaluation. It will now be forwarded to the Registrar for final approval.';
@@ -44,11 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['staff_consent_action'
             if (empty($rejectionReason)) {
                 $consentError = 'Please provide a reason for not consenting to the evaluation.';
             } else {
-                // Staff rejects - move back to supervising officer for comments
+                // Staff rejects - move back to supervising officer for review
                 $updateStmt = $pdo->prepare("UPDATE evaluations SET
                     staff_consent = 'rejected',
                     staff_rejection_reason = ?,
-                    evaluation_stage = 'staff_review'
+                    staff_consent_date = NOW(),
+                    evaluation_stage = 'supervising_officer_reject'
                     WHERE id = ?");
                 $updateStmt->execute([$rejectionReason, $existingEval['id']]);
                 $consentMessage = 'Your feedback has been submitted. The Supervising Officer will review your concerns and add comments before it goes to the Registrar.';
@@ -516,8 +518,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             <p class="text-muted mt-2"><small>Print this as evidence that you have completed your evaluation</small></p>
         </div>
 
-        <!-- Staff Review Section - Show when Supervising Officer has evaluated -->
-        <?php if ($existingEval && in_array($existingEval['evaluation_stage'], ['supervising_officer'])): ?>
+        <!-- Staff Review Section - Show when Supervising Officer has evaluated and passed to staff -->
+        <?php if ($existingEval && in_array($existingEval['evaluation_stage'], ['supervising_officer', 'staff_review'])): ?>
         <div class="card mb-4 border-warning">
             <div class="card-header bg-warning text-dark">
                 <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Review Your Evaluation</h5>
