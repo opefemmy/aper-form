@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 requireStaffLogin();
+require_once 'mail.php';
 
 $pdo = getDBConnection();
 $staff = getCurrentStaff();
@@ -41,6 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['staff_consent_action'
                 WHERE id = ?");
             $updateStmt->execute([$existingEval['id']]);
             $consentMessage = 'Thank you! You have consented to the evaluation. It will now be forwarded to the Registrar for final approval.';
+
+            // Send email notification to registrar
+            try {
+                sendEvaluationStageNotification('registrar', $existingEval, $staff);
+            } catch (Exception $e) {
+                error_log("Email notification error: " . $e->getMessage());
+            }
         } elseif ($consentAction === 'reject') {
             if (empty($rejectionReason)) {
                 $consentError = 'Please provide a reason for not consenting to the evaluation.';
@@ -54,6 +62,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['staff_consent_action'
                     WHERE id = ?");
                 $updateStmt->execute([$rejectionReason, $existingEval['id']]);
                 $consentMessage = 'Your feedback has been submitted. The Supervising Officer will review your concerns and add comments before it goes to the Registrar.';
+
+                // Send email notification to supervising officer
+                try {
+                    $soStmt = $pdo->prepare("SELECT * FROM staff WHERE department = ? AND (evaluator_type = 'Supervising Officer' OR evaluator_type = 'supervisor') LIMIT 1");
+                    $soStmt->execute([$staff['department']]);
+                    $supervisor = $soStmt->fetch();
+
+                    if ($supervisor) {
+                        sendEvaluationStageNotification('supervising_officer_reject', $existingEval, $staff, $supervisor);
+                    }
+                } catch (Exception $e) {
+                    error_log("Email notification error: " . $e->getMessage());
+                }
             }
         }
 
@@ -293,6 +314,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
             $newEvalId = $pdo->lastInsertId();
             $submitMessage = 'Evaluation submitted successfully! <a href="print-summary.php?id=' . $newEvalId . '" target="_blank" class="btn btn-sm btn-outline-primary ms-2"><i class="fas fa-print"></i> Print Summary</a>';
 
+            // Send email notification to supervising officer
+            try {
+                // Get the supervising officer for this staff
+                $soStmt = $pdo->prepare("SELECT * FROM staff WHERE department = ? AND (evaluator_type = 'Supervising Officer' OR evaluator_type = 'supervisor') LIMIT 1");
+                $soStmt->execute([$staff['department']]);
+                $supervisor = $soStmt->fetch();
+
+                if ($supervisor) {
+                    sendEvaluationStageNotification('pending', $existingEval, $staff, $supervisor);
+                }
+            } catch (Exception $e) {
+                // Silent fail for email - don't interrupt the flow
+                error_log("Email notification error: " . $e->getMessage());
+            }
+
+            // Send confirmation email to staff
+            try {
+                sendEvaluationStageNotification('submitted', $existingEval, $staff);
+            } catch (Exception $e) {
+                // Silent fail for email - don't interrupt the flow
+                error_log("Email notification error: " . $e->getMessage());
+            }
+
             // Refresh the evaluation data
             $stmt = $pdo->prepare("SELECT * FROM evaluations WHERE staff_id = ? ORDER BY created_at DESC LIMIT 1");
             $stmt->execute([$staff['id']]);
@@ -519,7 +563,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
         </div>
 
         <!-- Staff Review Section - Show when Supervising Officer has evaluated and passed to staff -->
-        <?php if ($existingEval && in_array($existingEval['evaluation_stage'], ['supervising_officer', 'staff_review'])): ?>
+        <?php if ($existingEval && $existingEval['evaluation_stage'] === 'staff_review'): ?>
         <div class="card mb-4 border-warning">
             <div class="card-header bg-warning text-dark">
                 <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Review Your Evaluation</h5>
@@ -545,6 +589,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_evaluation']))
                         </div>
                     </div>
                 </div>
+
+                <!-- Button to view detailed review - only show when SO has passed to staff -->
+                <?php if ($existingEval['evaluation_stage'] === 'staff_review'): ?>
+                <div class="text-center mb-3">
+                    <a href="staff-review.php" class="btn btn-warning btn-lg">
+                        <i class="fas fa-search me-2"></i>View Detailed Review
+                    </a>
+                    <p class="text-muted mt-2"><small>Click to see how your Supervising Officer graded each question</small></p>
+                </div>
+                <?php endif; ?>
 
                 <?php if (!empty($existingEval['supervisor_remarks'])): ?>
                 <div class="alert alert-info">

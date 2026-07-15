@@ -159,6 +159,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $maxFileSize = intval($_POST['max_file_size'] ?? 5);
         }
 
+        // Handle question group and label
+        $questionGroup = !empty($_POST['question_group']) ? sanitize($_POST['question_group']) : null;
+        $questionLabel = !empty($_POST['question_label']) ? sanitize($_POST['question_label']) : null;
+        $questionOrder = intval($_POST['question_order'] ?? 0);
+
         // Build query based on available columns
         if ($hasQuestionLabel) {
             $stmt = $pdo->prepare("UPDATE evaluation_questions SET category = ?, sub_category = ?, question_text = ?, question_type = ?, options = ?, is_active = ?, target_staff_category = ?, allowed_file_types = ?, max_file_size = ?, question_group = ?, question_label = ?, question_order = ? WHERE id = ?");

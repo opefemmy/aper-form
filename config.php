@@ -24,10 +24,11 @@ define('ADMIN_URL', SITE_URL);
 // Email Configuration
 define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 587);
-define('SMTP_USERNAME', 'your-email@gmail.com');
-define('SMTP_PASSWORD', 'your-app-password');
-define('EMAIL_FROM', 'noreply@yourdomain.com');
-define('EMAIL_TO', 'evaluation@yourdomain.com');
+define('SMTP_USERNAME', 'admin@ekscotech.edu.ng');
+define('SMTP_PASSWORD', 'Directorate@123$');
+define('EMAIL_FROM', 'admin@ekscotech.edu.ng');
+define('EMAIL_TO', 'registrar@ekscotech.edu.ng');
+define('ENABLE_EMAIL_NOTIFICATIONS', true); // Set to false to disable email notifications
 
 // Session name
 define('SESSION_NAME', 'APER_ADMIN_SESSION');

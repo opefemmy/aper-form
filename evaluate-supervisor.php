@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once 'mail.php';
 
 // Define the Appointment and Promotion Committee name (renamed from Dean)
 define('APC_COMMITTEE_NAME', 'Appointment and Promotion Committee');
@@ -311,6 +312,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_approve_all']) &
                 WHERE id = ?");
             $updateStmt->execute([$adminName, $adminName, date('Y-m-d'), $eval['id']]);
             $approvedCount++;
+
+            // Send email notification to staff
+            try {
+                $staffStmt = $pdo->prepare("SELECT e.*, s.* FROM evaluations e JOIN staff s ON e.staff_id = s.id WHERE e.id = ?");
+                $staffStmt->execute([$eval['id']]);
+                $staffData = $staffStmt->fetch();
+
+                if ($staffData) {
+                    sendEvaluationStageNotification('completed', $eval, $staffData);
+                }
+            } catch (Exception $e) {
+                error_log("Email notification error: " . $e->getMessage());
+            }
         }
 
         $pdo->commit();
@@ -489,6 +503,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
         $stmt->execute($values);
 
         $pdo->commit();
+
+        // Send email notification to staff when SO passes evaluation
+        if ($updateData['evaluation_stage'] === 'staff_review') {
+            try {
+                // Get staff details
+                $staffStmt = $pdo->prepare("SELECT * FROM staff WHERE id = ?");
+                $staffStmt->execute([$staffId]);
+                $staffMember = $staffStmt->fetch();
+
+                if ($staffMember) {
+                    // Get supervisor details for the email
+                    $supervisor = [
+                        'first_name' => $adminName,
+                        'surname' => '',
+                        'email' => ''
+                    ];
+                    if (isset($admin['email'])) {
+                        $supervisor['email'] = $admin['email'];
+                    }
+
+                    sendEvaluationStageNotification('staff_review', ['id' => $evalId, 'evaluation_year' => date('Y')], $staffMember, $supervisor);
+                }
+            } catch (Exception $e) {
+                error_log("Email notification error: " . $e->getMessage());
+            }
+        }
+
+        // Send email notification when Registrar approves (completed)
+        if ($updateData['evaluation_stage'] === 'completed') {
+            try {
+                $staffStmt = $pdo->prepare("SELECT * FROM staff WHERE id = ?");
+                $staffStmt->execute([$staffId]);
+                $staffMember = $staffStmt->fetch();
+
+                if ($staffMember) {
+                    // Get the evaluation for percentage and grade
+                    $evalStmt = $pdo->prepare("SELECT * FROM evaluations WHERE id = ?");
+                    $evalStmt->execute([$evalId]);
+                    $evaluation = $evalStmt->fetch();
+
+                    sendEvaluationStageNotification('completed', $evaluation, $staffMember);
+                }
+            } catch (Exception $e) {
+                error_log("Email notification error: " . $e->getMessage());
+            }
+        }
+
         showMessage('Evaluation saved successfully!', 'success');
 
         // Redirect based on action

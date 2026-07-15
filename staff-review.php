@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 requireStaffLogin();
+require_once 'mail.php';
 
 $pdo = getDBConnection();
 $staffId = $_SESSION['staff_id'];
@@ -42,11 +43,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare("UPDATE evaluations SET evaluation_stage = 'registrar', staff_consent = 'consented', staff_consent_date = NOW() WHERE id = ?");
                 $stmt->execute([$evalId]);
                 $message = '<div class="alert alert-success">You have consented to the evaluation. It has been sent to the Registrar for final approval.</div>';
+
+                // Send email notification to registrar
+                try {
+                    sendEvaluationStageNotification('registrar', $eval, $staff);
+                } catch (Exception $e) {
+                    error_log("Email notification error: " . $e->getMessage());
+                }
             } else {
                 // Staff rejects - goes back to Supervising Officer for review
                 $stmt = $pdo->prepare("UPDATE evaluations SET evaluation_stage = 'supervising_officer_reject', staff_consent = 'rejected', staff_rejection_reason = ?, staff_consent_date = NOW() WHERE id = ?");
                 $stmt->execute([$comments, $evalId]);
                 $message = '<div class="alert alert-warning">You have rejected the evaluation. Your concerns have been sent to the Supervising Officer for review.</div>';
+
+                // Send email notification to supervising officer
+                try {
+                    $soStmt = $pdo->prepare("SELECT * FROM staff WHERE department = ? AND (evaluator_type = 'Supervising Officer' OR evaluator_type = 'supervisor') LIMIT 1");
+                    $soStmt->execute([$staff['department']]);
+                    $supervisor = $soStmt->fetch();
+
+                    if ($supervisor) {
+                        sendEvaluationStageNotification('supervising_officer_reject', $eval, $staff, $supervisor);
+                    }
+                } catch (Exception $e) {
+                    error_log("Email notification error: " . $e->getMessage());
+                }
             }
         }
     }

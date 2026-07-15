@@ -16,17 +16,17 @@ use PHPMailer\PHPSmtpTransport\Exception as PHPSmtpException;
 // ==========================================
 
 /**
- * Get email configuration from environment variables
+ * Get email configuration from constants in config.php
  */
 function getEmailConfig() {
     return [
-        'host' => getenv('SMTP_HOST') ?: 'smtp.gmail.com',
-        'username' => getenv('SMTP_USERNAME') ?: '',
-        'password' => getenv('SMTP_PASSWORD') ?: '',
-        'port' => getenv('SMTP_PORT') ?: 587,
-        'from_address' => getenv('EMAIL_FROM_ADDRESS') ?: 'noreply@yourinstitution.edu.ng',
-        'from_name' => getenv('EMAIL_FROM_NAME') ?: 'Performance Evaluation System',
-        'to_address' => getenv('EMAIL_TO_ADDRESS') ?: 'evaluation@yourinstitution.edu.ng',
+        'host' => defined('SMTP_HOST') ? SMTP_HOST : 'smtp.gmail.com',
+        'username' => defined('SMTP_USERNAME') ? SMTP_USERNAME : '',
+        'password' => defined('SMTP_PASSWORD') ? SMTP_PASSWORD : '',
+        'port' => defined('SMTP_PORT') ? SMTP_PORT : 587,
+        'from_address' => defined('EMAIL_FROM') ? EMAIL_FROM : 'noreply@yourinstitution.edu.ng',
+        'from_name' => 'Ekiti State College of Technology, APER Evaluation Form 2026',
+        'to_address' => defined('EMAIL_TO') ? EMAIL_TO : 'evaluation@yourinstitution.edu.ng',
         'encryption' => PHPMailer::ENCRYPTION_STARTTLS,
     ];
 }
@@ -567,6 +567,270 @@ function testEmailConfiguration() {
 // ==========================================
 // Handle Direct Requests
 // ==========================================
+
+// ==========================================
+// Evaluation Stage Notification Functions
+// ==========================================
+
+/**
+ * Send evaluation stage change notification
+ *
+ * @param string $stage The new evaluation stage
+ * @param array $evaluation The evaluation data
+ * @param array $staff The staff data
+ * @param array $supervisor The supervisor data (optional)
+ * @return array Result with success status and message
+ */
+function sendEvaluationStageNotification($stage, $evaluation, $staff, $supervisor = null) {
+    // Check if email notifications are enabled
+    if (!defined('ENABLE_EMAIL_NOTIFICATIONS') || !ENABLE_EMAIL_NOTIFICATIONS) {
+        return ['success' => false, 'message' => 'Email notifications disabled'];
+    }
+
+    $config = getEmailConfig();
+
+    // Validate configuration
+    if (empty($config['username']) || empty($config['password'])) {
+        logEmailActivity('SMTP credentials not configured for stage notification', $config);
+        return ['success' => false, 'message' => 'Email not configured'];
+    }
+
+    // Determine email content based on stage
+    $emailData = getStageEmailContent($stage, $evaluation, $staff, $supervisor);
+
+    if (!$emailData) {
+        return ['success' => false, 'message' => 'Invalid stage'];
+    }
+
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host = $config['host'];
+        $mail->SMTPAuth = true;
+        $mail->Username = $config['username'];
+        $mail->Password = $config['password'];
+        $mail->SMTPSecure = $config['encryption'];
+        $mail->Port = $config['port'];
+
+        $mail->setFrom($config['from_address'], $config['from_name']);
+
+        // Add recipient(s)
+        if (!empty($emailData['to_emails'])) {
+            foreach ($emailData['to_emails'] as $email) {
+                if (!empty($email)) {
+                    $mail->addAddress($email, $emailData['to_name'] ?? '');
+                }
+            }
+        }
+
+        // Add CC if present
+        if (!empty($emailData['cc_emails'])) {
+            foreach ($emailData['cc_emails'] as $email) {
+                if (!empty($email)) {
+                    $mail->addCC($email);
+                }
+            }
+        }
+
+        $mail->Subject = $emailData['subject'];
+        $mail->Body = $emailData['body'];
+        $mail->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $emailData['body']));
+
+        $mail->send();
+
+        logEmailActivity("Stage notification sent: $stage", [
+            'to' => $emailData['to_emails'],
+            'stage' => $stage,
+            'evaluation_id' => $evaluation['id'] ?? ''
+        ]);
+
+        return ['success' => true, 'message' => 'Notification sent'];
+
+    } catch (Exception $e) {
+        logEmailActivity("Stage notification failed: " . $e->getMessage(), [
+            'stage' => $stage,
+            'evaluation_id' => $evaluation['id'] ?? ''
+        ]);
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
+
+/**
+ * Get email content based on evaluation stage
+ */
+function getStageEmailContent($stage, $evaluation, $staff, $supervisor = null) {
+    $instName = 'Ekiti State College of Technology, APER Evaluation Form 2026';
+    $year = $evaluation['evaluation_year'] ?? date('Y');
+    $staffName = trim(($staff['first_name'] ?? '') . ' ' . ($staff['surname'] ?? ''));
+    $staffEmail = $staff['email'] ?? '';
+    $department = $staff['department'] ?? '';
+
+    $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
+
+    switch ($stage) {
+        case 'submitted':
+            // Staff submitted their evaluation - notify staff of confirmation
+            return [
+                'to_emails' => !empty($staffEmail) ? [$staffEmail] : [],
+                'to_name' => $staffName,
+                'subject' => "Evaluation Submitted Successfully - $year",
+                'body' => "<html>
+<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+    <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+        <h2 style='color: #2c7a1c;'>Evaluation Submitted Successfully!</h2>
+        <p>Dear $staffName,</p>
+        <p>Your performance evaluation has been submitted successfully for the year <strong>$year</strong>.</p>
+        <p><strong>What happens next?</strong></p>
+        <ol>
+            <li><strong>Your Supervising Officer</strong> will review and grade your evaluation.</li>
+            <li>Once completed, you will be notified to review and consent to the evaluation.</li>
+            <li>Finally, the <strong>Registrar</strong> will give final approval.</li>
+        </ol>
+        <p>Please check your portal regularly for updates on your evaluation status.</p>
+        <p><a href='$baseUrl/staff-dashboard.php' style='background: #2c7a1c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>View Your Dashboard</a></p>
+        <p style='margin-top: 30px;'>Best regards,<br>$instName</p>
+    </div>
+</body>
+</html>"
+            ];
+
+        case 'pending':
+            // Staff submitted - notify supervisor
+            return [
+                'to_emails' => !empty($supervisor['email']) ? [$supervisor['email']] : [],
+                'to_name' => $supervisor ? trim($supervisor['first_name'] . ' ' . $supervisor['surname']) : 'Supervising Officer',
+                'subject' => "New Evaluation Pending Review - $staffName ($year)",
+                'body' => "<html>
+<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+    <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+        <h2 style='color: #2c7a1c;'>New Evaluation Ready for Review</h2>
+        <p>Dear Supervising Officer,</p>
+        <p>A new performance evaluation has been submitted by <strong>$staffName</strong> from the <strong>$department</strong> department and is awaiting your review.</p>
+        <p><strong>Evaluation Details:</strong></p>
+        <ul>
+            <li><strong>Staff:</strong> $staffName</li>
+            <li><strong>Department:</strong> $department</li>
+            <li><strong>Year:</strong> $year</li>
+        </ul>
+        <p>Please log in to the evaluation system to review and complete this evaluation.</p>
+        <p><a href='$baseUrl/evaluate-supervisor.php' style='background: #2c7a1c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Go to Evaluation System</a></p>
+        <p style='margin-top: 30px;'>Best regards,<br>$instName</p>
+    </div>
+</body>
+</html>"
+            ];
+
+        case 'staff_review':
+            // Supervising Officer passed to staff - notify staff
+            $soName = $supervisor ? trim($supervisor['first_name'] . ' ' . $supervisor['surname']) : 'Your Supervising Officer';
+            return [
+                'to_emails' => !empty($staffEmail) ? [$staffEmail] : [],
+                'to_name' => $staffName,
+                'subject' => "Your Evaluation is Ready for Review - $year",
+                'body' => "<html>
+<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+    <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+        <h2 style='color: #2c7a1c;'>Your Evaluation is Ready for Review</h2>
+        <p>Dear $staffName,</p>
+        <p>Your Supervising Officer ($soName) has completed your performance evaluation and it is now ready for your review.</p>
+        <p><strong>Evaluation Details:</strong></p>
+        <ul>
+            <li><strong>Year:</strong> $year</li>
+            <li><strong>Department:</strong> $department</li>
+        </ul>
+        <p>Please log in to the evaluation system to review your evaluation, see the scores and remarks, and provide your consent.</p>
+        <p><a href='$baseUrl/staff-dashboard.php' style='background: #2c7a1c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>View Your Evaluation</a></p>
+        <p style='margin-top: 30px;'>Best regards,<br>$instName</p>
+    </div>
+</body>
+</html>"
+            ];
+
+        case 'registrar':
+            // Staff consented - notify registrar
+            return [
+                'to_emails' => !empty($config['to_address']) ? [$config['to_address']] : [],
+                'to_name' => 'Registrar',
+                'subject' => "Evaluation Awaiting Final Approval - $staffName ($year)",
+                'body' => "<html>
+<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+    <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+        <h2 style='color: #2c7a1c;'>Evaluation Awaiting Final Approval</h2>
+        <p>Dear Registrar,</p>
+        <p>The performance evaluation for <strong>$staffName</strong> from the <strong>$department</strong> department has been reviewed by both the Supervising Officer and the staff member, and is now awaiting your final approval.</p>
+        <p><strong>Evaluation Details:</strong></p>
+        <ul>
+            <li><strong>Staff:</strong> $staffName</li>
+            <li><strong>Department:</strong> $department</li>
+            <li><strong>Year:</strong> $year</li>
+        </ul>
+        <p>Please log in to the evaluation system to review and approve this evaluation.</p>
+        <p><a href='$baseUrl/dashboard.php' style='background: #2c7a1c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Go to Evaluation System</a></p>
+        <p style='margin-top: 30px;'>Best regards,<br>$instName</p>
+    </div>
+</body>
+</html>"
+            ];
+
+        case 'supervising_officer_reject':
+            // Staff rejected - notify supervisor
+            return [
+                'to_emails' => !empty($supervisor['email']) ? [$supervisor['email']] : [],
+                'to_name' => $supervisor ? trim($supervisor['first_name'] . ' ' . $supervisor['surname']) : 'Supervising Officer',
+                'subject' => "Evaluation Requires Review - $staffName ($year)",
+                'body' => "<html>
+<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+    <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+        <h2 style='color: #d9534f;'>Evaluation Requires Your Review</h2>
+        <p>Dear Supervising Officer,</p>
+        <p><strong>$staffName</strong> has reviewed their performance evaluation and has raised concerns. The evaluation has been returned to you for review.</p>
+        <p><strong>Evaluation Details:</strong></p>
+        <ul>
+            <li><strong>Staff:</strong> $staffName</li>
+            <li><strong>Department:</strong> $department</li>
+            <li><strong>Year:</strong> $year</li>
+        </ul>
+        <p><strong>Staff's Concerns:</strong></p>
+        <p style='background: #f8f8f8; padding: 15px; border-left: 4px solid #d9534f;'>" . nl2br(htmlspecialchars($evaluation['staff_rejection_reason'] ?? 'No reason provided')) . "</p>
+        <p>Please log in to the evaluation system to address these concerns and re-submit the evaluation.</p>
+        <p><a href='$baseUrl/evaluate-supervisor.php' style='background: #2c7a1c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>Go to Evaluation System</a></p>
+        <p style='margin-top: 30px;'>Best regards,<br>$instName</p>
+    </div>
+</body>
+</html>"
+            ];
+
+        case 'completed':
+            // Registrar approved - notify staff
+            return [
+                'to_emails' => !empty($staffEmail) ? [$staffEmail] : [],
+                'to_name' => $staffName,
+                'subject' => "Your Evaluation has been Approved - $year",
+                'body' => "<html>
+<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+    <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+        <h2 style='color: #2c7a1c;'>Evaluation Completed</h2>
+        <p>Dear $staffName,</p>
+        <p>Your performance evaluation for <strong>$year</strong> has been fully completed and approved.</p>
+        <p><strong>Evaluation Summary:</strong></p>
+        <ul>
+            <li><strong>Score:</strong> " . ($evaluation['percentage'] ?? 'N/A') . "%</li>
+            <li><strong>Grade:</strong> " . ($evaluation['performance_grade'] ?? 'N/A') . "</li>
+            <li><strong>Status:</strong> " . ($evaluation['performance_status'] ?? 'Completed') . "</li>
+        </ul>
+        <p>You can now access and print your final evaluation report from the system.</p>
+        <p><a href='$baseUrl/staff-dashboard.php' style='background: #2c7a1c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>View Your Evaluation</a></p>
+        <p style='margin-top: 30px;'>Best regards,<br>$instName</p>
+    </div>
+</body>
+</html>"
+            ];
+
+        default:
+            return null;
+    }
+}
 
 // If this file is called directly (not included), handle the request
 if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') === basename(__FILE__)) {
