@@ -440,6 +440,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
                 $updateData['supervisor_date'] = date('Y-m-d');
                 $updateData['overall_rating'] = sanitize($_POST['overall_rating'] ?? '');
                 $updateData['recommendation'] = sanitize($_POST['recommendation'] ?? '');
+            } else {
+                // Re-evaluation after staff rejection - update supervisor details and pass back to staff review
+                $updateData['evaluation_stage'] = 'staff_review';
+                $updateData['supervisor_name'] = sanitize($_POST['supervisor_name'] ?? $adminName);
+                $updateData['supervisor_designation'] = sanitize($_POST['supervisor_designation'] ?? 'Supervising Officer');
+                $updateData['supervisor_remarks'] = sanitize($_POST['supervisor_remarks'] ?? '');
+                $updateData['supervisor_signature'] = sanitize($_POST['supervisor_signature'] ?? $adminName);
+                $updateData['supervisor_date'] = date('Y-m-d');
+            }
         } elseif ($adminRole === 'registrar') {
             // Registrar final approval - PRESERVE Supervising Officer's score (don't recalculate)
             $updateData['evaluation_stage'] = 'completed';
@@ -469,14 +478,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
                 $activeSession = $sessionStmt->fetch();
                 $academicSessionId = $activeSession['id'] ?? 1;
 
-                // Create new evaluation
+                // Create new evaluation - use stage from $updateData if set (e.g., 'staff_review' from SO evaluation)
+                // Otherwise determine based on admin role
+                $stage = $updateData['evaluation_stage'] ?? (($adminRole === 'supervisor' || $adminRole === 'supervising-officer') ? 'staff_review' :
+                                         ($adminRole === 'hod' ? 'hod' :
+                                         ($adminRole === 'dean' ? 'dean' : 'pending')));
+
                 $insertData = array_merge($updateData, [
                     'staff_id' => $staffId,
                     'academic_session_id' => $academicSessionId,
                     'evaluation_year' => date('Y'),
                     'status' => 'submitted',
-                    'evaluation_stage' => ($adminRole === 'supervisor' || $adminRole === 'hod') ? 'hod' :
-                                         ($adminRole === 'dean' ? 'dean' : 'pending'),
+                    'evaluation_stage' => $stage,
                     'created_at' => date('Y-m-d H:i:s')
                 ]);
 
@@ -559,7 +572,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
             redirect("evaluate-supervisor.php?eval_id=$evalId");
         }
 
-        }} catch (Exception $e) {
+        } catch (Exception $e) {
         $pdo->rollBack();
         showMessage('Error: ' . $e->getMessage(), 'danger');
     }
