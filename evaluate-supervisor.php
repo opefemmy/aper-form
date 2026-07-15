@@ -242,34 +242,28 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
         }
     }
 
-    // Get SO evaluation questions - show all SO questions if no specific staff selected
-    // Include legacy 'S.O' and all specific categories for backwards compatibility
+    // Get SO evaluation questions - ONLY Supervising Officer questions (not staff self-evaluation questions)
+    // Only include: S.O_junior, S.O_senior, S.O_academic, S.O (generic)
     try {
         if ($staffCategoryForQuestions) {
-            // Specific category for selected staff
-            // Include: specific category (S.O_junior, S.O_senior, S.O_academic), generic 'S.O', 'both', and legacy values
-            // NOTE: Don't use LIKE 'S.O_%' here - that would include ALL S.O categories, not just the specific one
+            // Specific category for selected staff - only show that category + generic S.O
             $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
                 WHERE is_active = 1
                 AND (
                     target_staff_category = ?
                     OR target_staff_category = 'S.O'
-                    OR target_staff_category = 'both'
-                    OR target_staff_category IS NULL
-                    OR target_staff_category = ''
                 )
                 ORDER BY COALESCE(question_order, 99999), category, id");
             $stmt->execute([$staffCategoryForQuestions]);
         } else {
-            // No staff selected - show all SO questions (includes all S.O-specific categories, generic S.O, both, and legacy)
+            // No staff selected - show all SO questions ONLY (S.O_junior, S.O_senior, S.O_academic, S.O)
             $stmt = $pdo->query("SELECT * FROM evaluation_questions
                 WHERE is_active = 1
                 AND (
-                    target_staff_category LIKE 'S.O%'
-                    OR target_staff_category = 'S.O'
-                    OR target_staff_category = 'both'
-                    OR target_staff_category IS NULL
-                    OR target_staff_category = ''
+                    target_staff_category = 'S.O'
+                    OR target_staff_category = 'S.O_junior'
+                    OR target_staff_category = 'S.O_senior'
+                    OR target_staff_category = 'S.O_academic'
                 )
                 ORDER BY COALESCE(question_order, 99999), category, id");
         }
