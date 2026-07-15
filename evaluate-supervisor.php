@@ -228,13 +228,27 @@ $community = [];
 $professional = [];
 
 if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod' || $evaluatorRole === 'dean') {
-    // Get HOD evaluation questions from database - include both 'hod' and 'both' categories
+    // Get staff category to filter SO questions appropriately
+    $staffCategoryForQuestions = 'hod_academic'; // default
+    if ($selectedStaff && isset($selectedStaff['staff_category'])) {
+        $sc = $selectedStaff['staff_category'];
+        if ($sc === 'non-teaching-junior') {
+            $staffCategoryForQuestions = 'hod_junior';
+        } elseif ($sc === 'non-teaching') {
+            $staffCategoryForQuestions = 'hod_senior';
+        } else {
+            $staffCategoryForQuestions = 'hod_academic';
+        }
+    }
+
+    // Get SO evaluation questions based on staff category being evaluated
+    // Also include 'hod' (legacy) and 'both' for backwards compatibility
     try {
         $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
             WHERE is_active = 1
-            AND (target_staff_category = 'hod' OR target_staff_category = 'both' OR target_staff_category IS NULL OR target_staff_category = '')
+            AND (target_staff_category = ? OR target_staff_category = 'hod' OR target_staff_category = 'both' OR target_staff_category IS NULL OR target_staff_category = '')
             ORDER BY category, id");
-        $stmt->execute();
+        $stmt->execute([$staffCategoryForQuestions]);
         $dbQuestions = $stmt->fetchAll();
 
         // Group questions by category

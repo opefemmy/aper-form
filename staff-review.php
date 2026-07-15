@@ -21,10 +21,18 @@ $staffStmt->execute([$staffId]);
 $staffData = $staffStmt->fetch();
 $staffCategory = $staffData['staff_category'] ?? 'academic';
 
-// Get SO evaluation questions for this staff category
+// Determine which SO question category to fetch
+$soQuestionCategory = 'hod_academic';
+if ($staffCategory === 'non-teaching-junior') {
+    $soQuestionCategory = 'hod_junior';
+} elseif ($staffCategory === 'non-teaching') {
+    $soQuestionCategory = 'hod_senior';
+}
+
+// Get SO evaluation questions for this staff category (also include legacy 'hod' for backwards compatibility)
 $soQuestions = [];
-$soQStmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND target_staff_category = 'hod' ORDER BY category, id");
-$soQStmt->execute();
+$soQStmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'hod') ORDER BY category, id");
+$soQStmt->execute([$soQuestionCategory]);
 $soQuestions = $soQStmt->fetchAll();
 
 // Get current year
