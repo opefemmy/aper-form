@@ -227,7 +227,7 @@ $adminQuestions = [];
 $community = [];
 $professional = [];
 
-if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'hod' || $evaluatorRole === 'dean') {
+if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' || $evaluatorRole === 'hod' || $evaluatorRole === 'dean' || $evaluatorRole === 'admin' || $evaluatorRole === 'super_admin') {
     // Get staff category to filter SO questions appropriately
     $staffCategoryForQuestions = 'hod_academic'; // default
     if ($selectedStaff && isset($selectedStaff['staff_category'])) {
