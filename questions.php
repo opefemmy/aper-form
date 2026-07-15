@@ -510,6 +510,16 @@ foreach ($questions as $q) {
                                                     </div>
                                                     <div class="row">
                                                         <div class="col-md-4 mb-3">
+                                                            <label class="form-label">Question Group</label>
+                                                            <input type="text" class="form-control" name="question_group" value="<?php echo htmlspecialchars($q['question_group'] ?? ''); ?>" placeholder="e.g., Publications">
+                                                            <small class="text-muted">Groups related questions together</small>
+                                                        </div>
+                                                        <div class="col-md-4 mb-3">
+                                                            <label class="form-label">Question Label</label>
+                                                            <input type="text" class="form-control" name="question_label" value="<?php echo htmlspecialchars($q['question_label'] ?? ''); ?>" placeholder="e.g., a, b, c, I, II, III">
+                                                            <small class="text-muted">Add label like (a), (b), I, II for sub-parts</small>
+                                                        </div>
+                                                        <div class="col-md-4 mb-3">
                                                             <label class="form-label">Display Order</label>
                                                             <input type="number" class="form-control" name="question_order" value="<?php echo $q['question_order'] ?? 0; ?>" min="0">
                                                             <small class="text-muted">Questions with lower numbers appear first</small>

@@ -1072,13 +1072,17 @@ $sessions = $stmt->fetchAll();
                                             <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
                                                 <i class="fas fa-check-circle me-2"></i>Final Approval
                                             </button>
-                                            <?php elseif ($adminRole === 'dean'): ?>
+                                            <?php elseif ($adminRole === 'supervising-officer' || $adminRole === 'supervisor'): ?>
                                             <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
-                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to Registrar)
+                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to <?php echo htmlspecialchars($selectedStaff['first_name'] ?? 'Staff'); ?>)
+                                            </button>
+                                            <?php elseif ($adminRole === 'registrar'): ?>
+                                            <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
+                                                <i class="fas fa-check-circle me-2"></i>Final Approval
                                             </button>
                                             <?php else: ?>
                                             <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
-                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to <?php echo APC_COMMITTEE_NAME; ?>)
+                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to Registrar)
                                             </button>
                                             <?php endif; ?>
                                             <a href="evaluate-supervisor.php" class="btn btn-secondary btn-lg">
