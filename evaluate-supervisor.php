@@ -234,59 +234,49 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
     if ($selectedStaff && isset($selectedStaff['staff_category']) && $selectedStaff['staff_category']) {
         $sc = $selectedStaff['staff_category'];
         if ($sc === 'non-teaching-junior') {
-            $staffCategoryForQuestions = 'hod_junior';
+            $staffCategoryForQuestions = 'S.O_junior';
         } elseif ($sc === 'non-teaching') {
-            $staffCategoryForQuestions = 'hod_senior';
+            $staffCategoryForQuestions = 'S.O_senior';
         } else {
-            $staffCategoryForQuestions = 'hod_academic';
+            $staffCategoryForQuestions = 'S.O_academic';
         }
     }
 
     // Get SO evaluation questions - show all SO questions if no specific staff selected
-    // Include legacy 'hod' and all specific categories for backwards compatibility
+    // Include legacy 'S.O' and all specific categories for backwards compatibility
     try {
         if ($staffCategoryForQuestions) {
             // Specific category for selected staff
+            // Include: specific category (S.O_junior, S.O_senior, S.O_academic), generic 'S.O', 'both', and legacy values
+            // NOTE: Don't use LIKE 'S.O_%' here - that would include ALL S.O categories, not just the specific one
             $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
                 WHERE is_active = 1
                 AND (
                     target_staff_category = ?
-                    OR target_staff_category = 'hod'
+                    OR target_staff_category = 'S.O'
                     OR target_staff_category = 'both'
                     OR target_staff_category IS NULL
                     OR target_staff_category = ''
                 )
-                ORDER BY category, id");
+                ORDER BY COALESCE(question_order, 99999), category, id");
             $stmt->execute([$staffCategoryForQuestions]);
         } else {
-            // No staff selected - show all SO questions
+            // No staff selected - show all SO questions (includes all S.O-specific categories, generic S.O, both, and legacy)
             $stmt = $pdo->query("SELECT * FROM evaluation_questions
                 WHERE is_active = 1
                 AND (
-                    target_staff_category LIKE 'hod%'
-                    OR target_staff_category = 'hod'
+                    target_staff_category LIKE 'S.O%'
+                    OR target_staff_category = 'S.O'
                     OR target_staff_category = 'both'
                     OR target_staff_category IS NULL
                     OR target_staff_category = ''
                 )
-                ORDER BY category, id");
+                ORDER BY COALESCE(question_order, 99999), category, id");
         }
-        $dbQuestions = $stmt->fetchAll();
-        $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
-            WHERE is_active = 1
-            AND (
-                target_staff_category = ?
-                OR target_staff_category = 'hod'
-                OR target_staff_category = 'both'
-                OR target_staff_category IS NULL
-                OR target_staff_category = ''
-            )
-            ORDER BY category, id");
-        $stmt->execute([$staffCategoryForQuestions]);
         $dbQuestions = $stmt->fetchAll();
 
         // Debug: log what category is being used
-        error_log("SO Questions - Staff category: $staffCategoryForQuestions, Questions found: " . count($dbQuestions));
+        error_log("SO Questions - Staff category: " . ($staffCategoryForQuestions ?? 'none') . ", Questions found: " . count($dbQuestions));
 
         // Group questions by category
         foreach ($dbQuestions as $q) {

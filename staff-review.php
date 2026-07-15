@@ -22,16 +22,23 @@ $staffData = $staffStmt->fetch();
 $staffCategory = $staffData['staff_category'] ?? 'academic';
 
 // Determine which SO question category to fetch
-$soQuestionCategory = 'hod_academic';
+$soQuestionCategory = 'S.O_academic';
 if ($staffCategory === 'non-teaching-junior') {
-    $soQuestionCategory = 'hod_junior';
+    $soQuestionCategory = 'S.O_junior';
 } elseif ($staffCategory === 'non-teaching') {
-    $soQuestionCategory = 'hod_senior';
+    $soQuestionCategory = 'S.O_senior';
 }
 
-// Get SO evaluation questions for this staff category (also include legacy 'hod' for backwards compatibility)
+// Get SO evaluation questions for this staff category
+// Include: specific category (S.O_junior, S.O_senior, S.O_academic), generic 'S.O', 'both', and legacy values for backwards compatibility
 $soQuestions = [];
-$soQStmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'hod') ORDER BY category, id");
+$soQStmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (
+    target_staff_category = ?
+    OR target_staff_category = 'S.O'
+    OR target_staff_category = 'both'
+    OR target_staff_category IS NULL
+    OR target_staff_category = ''
+) ORDER BY COALESCE(question_order, 99999), category, id");
 $soQStmt->execute([$soQuestionCategory]);
 $soQuestions = $soQStmt->fetchAll();
 

@@ -21,7 +21,7 @@ try {
         question_type ENUM('rating', 'single_choice', 'multiple_choice', 'true_false', 'short_answer', 'long_answer', 'yes_no', 'scale') DEFAULT 'rating',
         options TEXT,
         is_active TINYINT(1) DEFAULT 1,
-        target_staff_category ENUM('academic', 'non-teaching', 'non-teaching-junior', 'hod', 'both') DEFAULT 'both',
+        target_staff_category ENUM('academic', 'non-teaching', 'non-teaching-junior', 'S.O', 'S.O_junior', 'S.O_senior', 'S.O_academic', 'both') DEFAULT 'both',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
 
