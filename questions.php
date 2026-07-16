@@ -541,8 +541,14 @@ foreach ($questions as $q) {
                                     <td>
                                         <span class="badge bg-<?php
                                             $target = $q['target_staff_category'] ?? 'both';
-                                            if (strpos($target, 'S.O') === 0 || $target === 'S.O') {
-                                                echo 'danger'; // Red for SO questions
+                                            if ($target === 'S.O_academic') {
+                                                echo 'purple'; // Purple for SO Academic
+                                            } elseif ($target === 'S.O_senior') {
+                                                echo 'orange'; // Orange for SO Senior
+                                            } elseif ($target === 'S.O_junior') {
+                                                echo 'teal'; // Teal for SO Junior
+                                            } elseif (strpos($target, 'S.O') === 0 || $target === 'S.O') {
+                                                echo 'danger'; // Red for generic SO
                                             } elseif ($target === 'both') {
                                                 echo 'primary'; // Blue for all staff
                                             } elseif ($target === 'academic') {
@@ -555,8 +561,14 @@ foreach ($questions as $q) {
                                         ?>">
                                             <?php
                                                 $target = $q['target_staff_category'] ?? 'both';
-                                                if (strpos($target, 'S.O') === 0 || $target === 'S.O') {
-                                                    echo 'Supervising Officer';
+                                                if ($target === 'S.O_academic') {
+                                                    echo 'SO: Academic';
+                                                } elseif ($target === 'S.O_senior') {
+                                                    echo 'SO: Senior';
+                                                } elseif ($target === 'S.O_junior') {
+                                                    echo 'SO: Junior';
+                                                } elseif (strpos($target, 'S.O') === 0 || $target === 'S.O') {
+                                                    echo 'SO: All';
                                                 } else {
                                                     echo $target == 'both' ? 'All Staff' : ($target == 'academic' ? 'Academic' : ($target == 'non-teaching-junior' ? 'Junior Staff (L5)' : ($target == 'non-teaching' ? 'Non-Teaching Senior (L6+)' : 'Non-Teaching')));
                                                 }
@@ -1004,8 +1016,14 @@ foreach ($questions as $q) {
                                                 <td>
                                                     <span class="badge bg-<?php
                                                         $target = $aq['target_staff_category'] ?? '';
-                                                        if (strpos($target, 'S.O') === 0 || $target === 'S.O') {
-                                                            echo 'danger'; // Red for SO questions
+                                                        if ($target === 'S.O_academic') {
+                                                            echo 'purple';
+                                                        } elseif ($target === 'S.O_senior') {
+                                                            echo 'orange';
+                                                        } elseif ($target === 'S.O_junior') {
+                                                            echo 'teal';
+                                                        } elseif (strpos($target, 'S.O') === 0 || $target === 'S.O') {
+                                                            echo 'danger';
                                                         } elseif ($target === 'both') {
                                                             echo 'primary';
                                                         } elseif ($target === 'academic') {
