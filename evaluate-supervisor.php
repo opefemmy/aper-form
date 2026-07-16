@@ -55,11 +55,16 @@ $evalId = $_GET['eval_id'] ?? null;
 $staffId = $_GET['staff_id'] ?? null;
 
 // Determine what stage of evaluation we're handling
-$currentStage = $_GET['stage'] ?? 'supervising-officer';
-if ($adminRole === 'supervising-officer') {
+// Check URL param first (can be 'supervising_officer_reject' for rejected evaluations)
+$currentStage = $_GET['stage'] ?? '';
+
+// Override based on admin role, but allow URL param to take precedence for rejected evaluations
+if ($adminRole === 'supervising-officer' && empty($_GET['stage'])) {
     $currentStage = 'supervising-officer';
 } elseif ($adminRole === 'registrar') {
     $currentStage = 'registrar';
+} elseif (empty($currentStage)) {
+    $currentStage = 'pending';
 }
 
 // Get staff evaluator profile if exists (for staff who are also Supervising Officer/Registrar)
@@ -641,6 +646,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
     }
 }
 
+// Handle SO Push to Registrar (when staff rejects and SO decides not to re-evaluate)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['push_to_registrar'])) {
+    $evalId = intval($_POST['eval_id'] ?? 0);
+    $pushReason = sanitize($_POST['so_push_reason'] ?? '');
+
+    if (empty($evalId)) {
+        showMessage('Invalid evaluation ID', 'danger');
+    } elseif (empty($pushReason)) {
+        showMessage('Please provide a reason for pushing to Registrar', 'warning');
+    } else {
+        try {
+            $pdo->beginTransaction();
+
+            // Update evaluation: push to registrar with reason
+            $stmt = $pdo->prepare("UPDATE evaluations SET
+                evaluation_stage = 'registrar',
+                so_push_to_registrar = 1,
+                so_push_reason = ?,
+                supervising_officer_final_comments = ?
+                WHERE id = ?");
+            $stmt->execute([$pushReason, "Pushed to Registrar: " . $pushReason, $evalId]);
+
+            $pdo->commit();
+            showMessage('Evaluation pushed to Registrar successfully!', 'success');
+
+            // Redirect to pending list
+            redirect('evaluate-supervisor.php?stage=registrar');
+
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            showMessage('Error: ' . $e->getMessage(), 'danger');
+        }
+    }
+}
+
 // Get academic sessions
 $stmt = $pdo->query("SELECT * FROM academic_sessions ORDER BY year DESC, semester");
 $sessions = $stmt->fetchAll();
@@ -816,6 +856,30 @@ $sessions = $stmt->fetchAll();
                             </div>
                         </div>
 
+                        <!-- Rejected by Staff - Needs SO Decision -->
+                        <?php if (!empty($rejectedByStaff) && ($adminRole === 'supervisor' || $adminRole === 'supervising-officer')): ?>
+                        <div class="card mt-3">
+                            <div class="card-header bg-danger text-white">
+                                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Staff Rejections</h5>
+                            </div>
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                <?php foreach ($rejectedByStaff as $eval): ?>
+                                    <div class="card staff-card mb-2 p-2 <?php echo ($evalId == $eval['id']) ? 'active' : ''; ?>"
+                                         onclick="window.location.href='evaluate-supervisor.php?eval_id=<?php echo $eval['id']; ?>&stage=supervising_officer_reject'">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <strong><?php echo htmlspecialchars($eval['first_name'] . ' ' . $eval['surname']); ?></strong>
+                                                <br><small class="text-muted"><?php echo htmlspecialchars($eval['department']); ?></small>
+                                                <br><small class="text-danger"><i class="fas fa-times-circle"></i> Rejected</small>
+                                            </div>
+                                            <span class="badge bg-danger">REJECTED</span>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                         <!-- Processed Evaluations -->
                         <?php if (!empty($processedEvals)): ?>
                         <div class="card mt-3">
@@ -857,6 +921,62 @@ $sessions = $stmt->fetchAll();
                         <?php if ($selectedEval && is_array($selectedEval)): ?>
                             <form method="POST" id="evalForm">
                                 <input type="hidden" name="eval_id" value="<?php echo $evalId; ?>">
+
+                                <!-- Show Staff Rejection Reason if in supervising_officer_reject stage -->
+                                <?php if ($currentStage === 'supervising_officer_reject' && !empty($selectedEval['staff_rejection_reason'])): ?>
+                                <div class="card mb-4 border-danger">
+                                    <div class="card-header bg-danger text-white">
+                                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Staff Rejection Reason</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="mb-0"><?php echo nl2br(htmlspecialchars($selectedEval['staff_rejection_reason'])); ?></p>
+                                    </div>
+                                </div>
+
+                                <!-- SO Decision Options -->
+                                <div class="card mb-4 border-warning">
+                                    <div class="card-header bg-warning text-dark">
+                                        <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Your Decision</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <p>The staff has rejected the evaluation. Please choose an option:</p>
+
+                                        <!-- Option 1: Re-evaluate -->
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="radio" name="so_decision" id="reevaluate" value="reevaluate" checked onchange="togglePushOption()">
+                                            <label class="form-check-label" for="reevaluate">
+                                                <strong>Re-evaluate</strong> - Complete a new evaluation for this staff
+                                            </label>
+                                        </div>
+
+                                        <!-- Option 2: Push to Registrar -->
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="radio" name="so_decision" id="pushToRegistrar" value="push" onchange="togglePushOption()">
+                                            <label class="form-check-label" for="pushToRegistrar">
+                                                <strong>Push to Registrar</strong> - Skip re-evaluation and send directly to Registrar with reason
+                                            </label>
+                                        </div>
+
+                                        <!-- Push Reason (shown when push to registrar is selected) -->
+                                        <div id="pushReasonDiv" style="display:none;">
+                                            <label class="form-label">Reason for pushing to Registrar:</label>
+                                            <textarea class="form-control" name="so_push_reason" rows="3" placeholder="Explain why you are not re-evaluating and are pushing to Registrar..."></textarea>
+                                            <small class="text-muted">This reason will be visible to the Registrar.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <script>
+                                function togglePushOption() {
+                                    var pushRadio = document.getElementById('pushToRegistrar');
+                                    var reasonDiv = document.getElementById('pushReasonDiv');
+                                    if (pushRadio.checked) {
+                                        reasonDiv.style.display = 'block';
+                                    } else {
+                                        reasonDiv.style.display = 'none';
+                                    }
+                                }
+                                </script>
+                                <?php endif; ?>
 
                                 <!-- Staff Info -->
                                 <?php if ($selectedStaff && is_array($selectedStaff)): ?>
@@ -1243,30 +1363,65 @@ $sessions = $stmt->fetchAll();
                                 <!-- Submit Buttons -->
                                 <div class="card mb-4">
                                     <div class="card-body">
-                                        <div class="d-flex gap-2 flex-wrap">
-                                            <?php if ($adminRole === 'registrar'): ?>
-                                            <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
-                                                <i class="fas fa-check-circle me-2"></i>Final Approval
-                                            </button>
-                                            <?php elseif ($adminRole === 'supervising-officer' || $adminRole === 'supervisor'): ?>
-                                            <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
-                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to <?php echo htmlspecialchars($selectedStaff['first_name'] ?? 'Staff'); ?>)
-                                            </button>
-                                            <?php elseif ($adminRole === 'registrar'): ?>
-                                            <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
-                                                <i class="fas fa-check-circle me-2"></i>Final Approval
-                                            </button>
-                                            <?php else: ?>
-                                            <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
-                                                <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to Registrar)
-                                            </button>
-                                            <?php endif; ?>
-                                            <a href="evaluate-supervisor.php" class="btn btn-secondary btn-lg">
-                                                <i class="fas fa-times me-2"></i>Cancel
-                                            </a>
-                                        </div>
+                                        <?php if ($currentStage === 'supervising_officer_reject'): ?>
+                                            <!-- When staff has rejected - show decision buttons -->
+                                            <div class="d-flex gap-2 flex-wrap">
+                                                <button type="button" class="btn btn-success btn-lg" onclick="handleSODecision()">
+                                                    <i class="fas fa-check me-2"></i>Submit Decision
+                                                </button>
+                                                <a href="evaluate-supervisor.php" class="btn btn-secondary btn-lg">
+                                                    <i class="fas fa-times me-2"></i>Cancel
+                                                </a>
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">Select your decision above (Re-evaluate or Push to Registrar) before submitting.</small>
+                                        <?php else: ?>
+                                            <div class="d-flex gap-2 flex-wrap">
+                                                <?php if ($adminRole === 'registrar'): ?>
+                                                <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
+                                                    <i class="fas fa-check-circle me-2"></i>Final Approval
+                                                </button>
+                                                <?php elseif ($adminRole === 'supervising-officer' || $adminRole === 'supervisor'): ?>
+                                                <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
+                                                    <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to <?php echo htmlspecialchars($selectedStaff['first_name'] ?? 'Staff'); ?>)
+                                                </button>
+                                                <?php elseif ($adminRole === 'registrar'): ?>
+                                                <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
+                                                    <i class="fas fa-check-circle me-2"></i>Final Approval
+                                                </button>
+                                                <?php else: ?>
+                                                <button type="submit" name="save_and_next" class="btn btn-success btn-lg">
+                                                    <i class="fas fa-arrow-right me-2"></i>Save & Next (Pass to Registrar)
+                                                </button>
+                                                <?php endif; ?>
+                                                <a href="evaluate-supervisor.php" class="btn btn-secondary btn-lg">
+                                                    <i class="fas fa-times me-2"></i>Cancel
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
+
+                                <script>
+                                function handleSODecision() {
+                                    var pushRadio = document.getElementById('pushToRegistrar');
+                                    var reasonField = document.querySelector('textarea[name="so_push_reason"]');
+
+                                    if (pushRadio && pushRadio.checked) {
+                                        // Check if reason is provided
+                                        if (!reasonField.value.trim()) {
+                                            alert('Please provide a reason for pushing to Registrar');
+                                            reasonField.focus();
+                                            return;
+                                        }
+                                        // Submit as push to registrar
+                                        document.getElementById('evalForm').innerHTML += '<input type="hidden" name="push_to_registrar" value="1">';
+                                        document.getElementById('evalForm').submit();
+                                    } else {
+                                        // Normal re-evaluate - submit normally
+                                        document.getElementById('evalForm').submit();
+                                    }
+                                }
+                                </script>
                             </form>
                         <?php else: ?>
                             <div class="card mb-4">
