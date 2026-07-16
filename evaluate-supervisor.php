@@ -253,6 +253,7 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
     try {
         if ($showQuestions && $staffCategoryForQuestions) {
             // Specific category for selected staff - only show that category + generic S.O
+            // Use IN clause like questions.php does
             $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
                 WHERE is_active = 1
                 AND (
@@ -268,7 +269,7 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
         } else {
             // No staff selected - don't show any questions
             $dbQuestions = [];
-            error_log("SO Questions - No staff selected, no questions loaded");
+            error_log("SO Questions - No staff selected or showQuestions=false, no questions loaded. selectedStaff: " . ($selectedStaff ? 'yes' : 'no') . ", staff_category: " . ($selectedStaff['staff_category'] ?? 'none'));
         }
 
         // Debug: log what category is being used
@@ -715,6 +716,23 @@ $sessions = $stmt->fetchAll();
 
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 main-content p-4">
+                <!-- DEBUG: Show debug info -->
+                <?php if (isset($_GET['debug'])): ?>
+                <div class="alert alert-warning">
+                    <h5>Debug Info:</h5>
+                    <p><strong>evalId:</strong> <?php echo $evalId; ?></p>
+                    <p><strong>staffId:</strong> <?php echo $staffId; ?></p>
+                    <p><strong>selectedEval:</strong> <?php echo $selectedEval ? 'found' : 'not found'; ?></p>
+                    <p><strong>selectedStaff:</strong> <?php echo $selectedStaff ? 'found' : 'not found'; ?></p>
+                    <?php if ($selectedStaff): ?>
+                    <p><strong>staff_category:</strong> <?php echo $selectedStaff['staff_category'] ?? 'not set'; ?></p>
+                    <?php endif; ?>
+                    <p><strong>showQuestions:</strong> <?php echo $showQuestions ? 'true' : 'false'; ?></p>
+                    <p><strong>staffCategoryForQuestions:</strong> <?php echo $staffCategoryForQuestions ?? 'null'; ?></p>
+                    <p><strong>Questions loaded:</strong> teaching: <?php echo count($teaching); ?>, research: <?php echo count($research); ?>, admin: <?php echo count($adminQuestions); ?></p>
+                </div>
+                <?php endif; ?>
+
                 <!-- Mobile Menu Button -->
                 <button class="hamburger position-fixed" style="top: 10px; left: 10px;" onclick="toggleSidebar()">
                     <span></span>
