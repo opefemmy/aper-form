@@ -69,7 +69,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Staff consents - move to Registrar
                 $stmt = $pdo->prepare("UPDATE evaluations SET evaluation_stage = 'registrar', staff_consent = 'consented' WHERE id = ?");
                 $stmt->execute([$evalId]);
-                $message = '<div class="alert alert-success">You have consented to the evaluation. It has been sent to the Registrar for final approval.</div>';
+                $message = '<div class="alert alert-success">
+                    <h5><i class="fas fa-check-circle me-2"></i>You have consented to the evaluation!</h5>
+                    <p>Your evaluation has been sent to the Registrar for final approval.</p>
+                    <a href="print-summary.php?id=' . $evalId . '" class="btn btn-primary" target="_blank">
+                        <i class="fas fa-print me-2"></i>Print Summary
+                    </a>
+                </div>';
 
                 // Send email notification to registrar
                 try {
