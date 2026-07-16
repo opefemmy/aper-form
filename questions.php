@@ -461,7 +461,7 @@ foreach ($questions as $q) {
                 </div>
 
                 <!-- Current Category Info -->
-                <div class="alert alert-<?php echo in_array($filterCategory, ['academic', 'non-teaching', 'non-teaching-junior']) ? 'info' : 'warning'; ?> mb-4">
+                <div class="alert alert-<?php echo in_array($filterCategory, ['academic', 'non-teaching', 'non-teaching-junior', 'supervising-officer', 'S.O', 'S.O_academic', 'S.O_senior', 'S.O_junior']) ? 'info' : 'warning'; ?> mb-4">
                     <i class="fas fa-info-circle me-2"></i>
                     <strong>Viewing:
                     <?php if ($filterCategory === 'academic'): ?>
@@ -470,6 +470,8 @@ foreach ($questions as $q) {
                         Non-Teaching Senior Questions - Questions for Level 6+ non-teaching staff
                     <?php elseif ($filterCategory === 'non-teaching-junior'): ?>
                         Junior Staff Questions - Questions for Level 5 and below staff
+                    <?php elseif ($filterCategory === 'supervising-officer'): ?>
+                        All Supervising Officer Questions - Questions SO uses to evaluate all staff categories
                     <?php elseif ($filterCategory === 'S.O_academic'): ?>
                         Supervising Officer Questions (Academic) - Questions SO uses to evaluate academic staff
                     <?php elseif ($filterCategory === 'S.O_senior'): ?>
@@ -689,6 +691,7 @@ foreach ($questions as $q) {
                                                                     <option value="S.O_senior" <?php echo ($q['target_staff_category'] ?? '') == 'S.O_senior' ? 'selected' : ''; ?>>SO: For Non-Teaching Senior</option>
                                                                     <option value="S.O_junior" <?php echo ($q['target_staff_category'] ?? '') == 'S.O_junior' ? 'selected' : ''; ?>>SO: For Junior Staff</option>
                                                                     <option value="S.O" <?php echo ($q['target_staff_category'] ?? '') == 'S.O' ? 'selected' : ''; ?>>SO: All Categories</option>
+                                                                    <option value="supervising-officer" <?php echo ($q['target_staff_category'] ?? '') == 'supervising-officer' ? 'selected' : ''; ?>>SO: All SO Questions</option>
                                                                 </optgroup>
                                                             </select>
                                                         </div>
@@ -844,6 +847,7 @@ foreach ($questions as $q) {
                                         <option value="S.O_senior" <?php echo $filterCategory === 'S.O_senior' ? 'selected' : ''; ?>>SO: For Non-Teaching Senior</option>
                                         <option value="S.O_junior" <?php echo $filterCategory === 'S.O_junior' ? 'selected' : ''; ?>>SO: For Junior Staff</option>
                                         <option value="S.O" <?php echo $filterCategory === 'S.O' ? 'selected' : ''; ?>>SO: All Categories</option>
+                                        <option value="supervising-officer" <?php echo $filterCategory === 'supervising-officer' ? 'selected' : ''; ?>>SO: All SO Questions</option>
                                     </optgroup>
                                 </select>
                                 <small class="text-muted">Which staff type sees this question. Junior Staff = Level 5 and below non-teaching staff.</small>
