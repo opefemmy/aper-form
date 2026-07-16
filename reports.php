@@ -250,6 +250,14 @@ if (isset($_GET['single_pdf']) && $_GET['single_pdf'] && hasPermission('reports_
     $stmt->execute([$evalId]);
     $eval = $stmt->fetch();
 
+    // Get supervising officer details
+    $supervisorDetails = null;
+    if (!empty($eval['evaluated_by'])) {
+        $supervisorStmt = $pdo->prepare("SELECT * FROM staff WHERE id = ?");
+        $supervisorStmt->execute([$eval['evaluated_by']]);
+        $supervisorDetails = $supervisorStmt->fetch();
+    }
+
     if (!$eval) {
         die("Evaluation not found");
     }
@@ -402,13 +410,21 @@ if (isset($_GET['single_pdf']) && $_GET['single_pdf'] && hasPermission('reports_
         <span class="grade-box grade-<?php echo strtok($eval['performance_grade'], ' '); ?>">GRADE: <?php echo $eval['performance_grade']; ?></span>
     </div>
 
-    <?php if ($eval['supervisor_name']): ?>
+    <?php if ($eval['supervisor_name'] || $eval['overall_rating'] || $eval['recommendation']): ?>
     <div class="staff-info">
         <h4 style="color: <?php echo $primaryColor; ?>;">Supervisor Assessment</h4>
-        <p><strong>Supervisor:</strong> <?php echo htmlspecialchars($eval['supervisor_name']); ?> (<?php echo htmlspecialchars($eval['supervisor_designation'] ?? ''); ?>)</p>
+        <p>
+            <strong>Supervisor:</strong> <?php echo htmlspecialchars($eval['supervisor_name']); ?>
+            (<?php echo htmlspecialchars($eval['supervisor_designation'] ?? 'Supervising Officer'); ?>)
+            <?php if ($supervisorDetails && !empty($supervisorDetails['department'])): ?>
+             - <?php echo htmlspecialchars($supervisorDetails['department']); ?>
+            <?php endif; ?>
+        </p>
         <p><strong>Rating:</strong> <?php echo htmlspecialchars($eval['overall_rating'] ?? 'N/A'); ?></p>
         <p><strong>Recommendation:</strong> <?php echo htmlspecialchars($eval['recommendation'] ?? 'N/A'); ?></p>
-        <p><strong>Remarks:</strong> <?php echo htmlspecialchars($eval['supervisor_remarks'] ?? ''); ?></p>
+        <?php if (!empty($eval['supervisor_remarks'])): ?>
+        <p><strong>Remarks:</strong> <?php echo htmlspecialchars($eval['supervisor_remarks']); ?></p>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 
@@ -815,12 +831,18 @@ if (isset($_GET['individual_pdf']) && $_GET['individual_pdf'] && hasPermission('
         </div>
 
         <!-- Supervisor Assessment -->
-        <?php if ($eval['supervisor_name']): ?>
+        <?php if ($eval['supervisor_name'] || $eval['overall_rating'] || $eval['recommendation']): ?>
         <div class="supervisor-section">
             <h4><i class="fas fa-user-check"></i> Supervisor Assessment</h4>
             <div class="info-grid">
-                <div class="info-item"><span class="label">Supervisor:</span> <?php echo htmlspecialchars($eval['supervisor_name']); ?></div>
-                <div class="info-item"><span class="label">Designation:</span> <?php echo htmlspecialchars($eval['supervisor_designation'] ?? 'N/A'); ?></div>
+                <div class="info-item">
+                    <span class="label">Supervisor:</span>
+                    <?php echo htmlspecialchars($eval['supervisor_name']); ?>
+                    (<?php echo htmlspecialchars($eval['supervisor_designation'] ?? 'Supervising Officer'); ?>)
+                    <?php if ($supervisorDetails && !empty($supervisorDetails['department'])): ?>
+                     - <?php echo htmlspecialchars($supervisorDetails['department']); ?>
+                    <?php endif; ?>
+                </div>
                 <div class="info-item"><span class="label">Rating:</span> <?php echo htmlspecialchars($eval['overall_rating'] ?? 'N/A'); ?></div>
                 <div class="info-item"><span class="label">Recommendation:</span> <?php echo htmlspecialchars($eval['recommendation'] ?? 'N/A'); ?></div>
             </div>
@@ -1139,16 +1161,18 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
             </table>
 
             <!-- Supervisor Assessment -->
-            <?php if ($eval['supervisor_name'] || $eval['recommendation']): ?>
+            <?php if ($eval['supervisor_name'] || $eval['overall_rating'] || $eval['recommendation']): ?>
             <div class="supervisor-section">
                 <div class="supervisor-title"><i class="fas fa-user-tie"></i> Supervisor Assessment</div>
                 <div class="detail-row">
                     <span class="detail-label">Supervisor:</span>
-                    <span class="detail-value"><?php echo htmlspecialchars($eval['supervisor_name'] ?? 'N/A'); ?></span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Designation:</span>
-                    <span class="detail-value"><?php echo htmlspecialchars($eval['supervisor_designation'] ?? ''); ?></span>
+                    <span class="detail-value">
+                        <?php echo htmlspecialchars($eval['supervisor_name'] ?? 'N/A'); ?>
+                        (<?php echo htmlspecialchars($eval['supervisor_designation'] ?? 'Supervising Officer'); ?>)
+                        <?php if ($supervisorDetails && !empty($supervisorDetails['department'])): ?>
+                         - <?php echo htmlspecialchars($supervisorDetails['department']); ?>
+                        <?php endif; ?>
+                    </span>
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Overall Rating:</span>
@@ -1158,10 +1182,12 @@ if (isset($_GET['pdf']) && $_GET['pdf'] && hasPermission('reports_pdf')) {
                     <span class="detail-label">Recommendation:</span>
                     <span class="detail-value"><?php echo htmlspecialchars($eval['recommendation'] ?? 'N/A'); ?></span>
                 </div>
+                <?php if (!empty($eval['supervisor_remarks'])): ?>
                 <div class="detail-row">
                     <span class="detail-label">Remarks:</span>
-                    <span class="detail-value"><?php echo htmlspecialchars($eval['supervisor_remarks'] ?? ''); ?></span>
+                    <span class="detail-value"><?php echo htmlspecialchars($eval['supervisor_remarks']); ?></span>
                 </div>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
 
