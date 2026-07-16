@@ -359,6 +359,11 @@ foreach ($questions as $q) {
         .modal.show { display: block !important; }
         .form-select { cursor: pointer; }
         select.form-select { cursor: pointer; -webkit-appearance: auto; -moz-appearance: auto; appearance: auto; }
+        /* SO Badge Colors */
+        .badge.bg-purple { background-color: #6f42c1 !important; color: white !important; }
+        .badge.bg-orange { background-color: #fd7e14 !important; color: white !important; }
+        .badge.bg-teal { background-color: #20c997 !important; color: white !important; }
+        .badge.bg-so { background-color: #dc3545 !important; color: white !important; }
     </style>
 </head>
 <body>
