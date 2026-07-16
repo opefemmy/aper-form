@@ -233,15 +233,18 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
     $showQuestions = false;
 
     // Only load questions when a staff member is selected
-    if ($selectedStaff && isset($selectedStaff['staff_category']) && $selectedStaff['staff_category']) {
-        $showQuestions = true;
-        $sc = $selectedStaff['staff_category'];
-        if ($sc === 'non-teaching-junior') {
-            $staffCategoryForQuestions = 'S.O_junior';
-        } elseif ($sc === 'non-teaching') {
-            $staffCategoryForQuestions = 'S.O_senior';
-        } else {
-            $staffCategoryForQuestions = 'S.O_academic';
+    // Use 'academic' as default if staff_category is empty
+    if ($selectedStaff && isset($selectedStaff['staff_category'])) {
+        $sc = $selectedStaff['staff_category'] ?: 'academic';
+        if ($sc && $sc !== '') {
+            $showQuestions = true;
+            if ($sc === 'non-teaching-junior') {
+                $staffCategoryForQuestions = 'S.O_junior';
+            } elseif ($sc === 'non-teaching') {
+                $staffCategoryForQuestions = 'S.O_senior';
+            } else {
+                $staffCategoryForQuestions = 'S.O_academic';
+            }
         }
     }
 
