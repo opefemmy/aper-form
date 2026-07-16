@@ -1034,7 +1034,7 @@ $sessions = $stmt->fetchAll();
                                         <h5 class="mb-0"><i class="fas fa-star me-2"></i>Performance Ratings</h5>
                                     </div>
                                     <div class="card-body">
-                                        <?php if ($adminRole === 'supervisor' || $adminRole === 'hod'): ?>
+                                        <?php if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer' || $adminRole === 'hod'): ?>
                                         <p class="text-muted">Rate the staff member on each criterion (1-5)</p>
 
                                         <!-- Teaching -->
