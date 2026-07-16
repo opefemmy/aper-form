@@ -1,14 +1,16 @@
 <?php
 /**
- * Add sample Supervising Officer questions for each category
+ * Force add Supervising Officer questions - ignores existing checks
  */
 require_once 'config.php';
 
 $pdo = getDBConnection();
 
-echo "Adding sample Supervising Officer questions...\n";
+echo "<h2>Adding SO Questions...</h2>";
 
-// Sample questions for Academic Staff (S.O_academic)
+$added = 0;
+
+// Academic Staff questions (S.O_academic)
 $academicQuestions = [
     ['Teaching', 'How would you rate the staff\'s teaching quality and effectiveness?', 1],
     ['Teaching', 'Does the staff maintain good class management and student engagement?', 2],
@@ -17,7 +19,7 @@ $academicQuestions = [
     ['Professional', 'How would you rate the staff\'s professional development and skills?', 5],
 ];
 
-// Sample questions for Non-Teaching Senior (S.O_senior)
+// Non-Teaching Senior questions (S.O_senior)
 $seniorQuestions = [
     ['Job Performance', 'How would you rate the staff\'s overall job performance?', 1],
     ['Job Performance', 'Does the staff demonstrate efficiency in completing tasks?', 2],
@@ -26,7 +28,7 @@ $seniorQuestions = [
     ['Professional', 'Does the staff demonstrate good teamwork and collaboration?', 5],
 ];
 
-// Sample questions for Junior Staff (S.O_junior)
+// Junior Staff questions (S.O_junior)
 $juniorQuestions = [
     ['Job Performance', 'How would you rate the staff\'s performance in their assigned duties?', 1],
     ['Job Performance', 'Does the staff complete tasks timely and efficiently?', 2],
@@ -35,46 +37,48 @@ $juniorQuestions = [
     ['Professional', 'Does the staff demonstrate good attitude and teamwork?', 5],
 ];
 
-$added = 0;
-
 // Add Academic Staff questions
 foreach ($academicQuestions as $q) {
-    $stmt = $pdo->prepare("INSERT IGNORE INTO evaluation_questions (category, question_text, question_order, question_type, target_staff_category, is_active) VALUES (?, ?, ?, 'rating', 'S.O_academic', 1)");
+    $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_order, question_type, target_staff_category, is_active) VALUES (?, ?, ?, 'rating', 'S.O_academic', 1)");
     $stmt->execute([$q[0], $q[1], $q[2]]);
-    if ($stmt->rowCount() > 0) {
-        $added++;
-        echo "Added (Academic): {$q[1]}\n";
-    }
+    $added++;
+    echo "Added: {$q[1]} (S.O_academic)<br>";
 }
 
 // Add Senior Staff questions
 foreach ($seniorQuestions as $q) {
-    $stmt = $pdo->prepare("INSERT IGNORE INTO evaluation_questions (category, question_text, question_order, question_type, target_staff_category, is_active) VALUES (?, ?, ?, 'rating', 'S.O_senior', 1)");
+    $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_order, question_type, target_staff_category, is_active) VALUES (?, ?, ?, 'rating', 'S.O_senior', 1)");
     $stmt->execute([$q[0], $q[1], $q[2]]);
-    if ($stmt->rowCount() > 0) {
-        $added++;
-        echo "Added (Senior): {$q[1]}\n";
-    }
+    $added++;
+    echo "Added: {$q[1]} (S.O_senior)<br>";
 }
 
 // Add Junior Staff questions
 foreach ($juniorQuestions as $q) {
-    $stmt = $pdo->prepare("INSERT IGNORE INTO evaluation_questions (category, question_text, question_order, question_type, target_staff_category, is_active) VALUES (?, ?, ?, 'rating', 'S.O_junior', 1)");
+    $stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_order, question_type, target_staff_category, is_active) VALUES (?, ?, ?, 'rating', 'S.O_junior', 1)");
     $stmt->execute([$q[0], $q[1], $q[2]]);
-    if ($stmt->rowCount() > 0) {
-        $added++;
-        echo "Added (Junior): {$q[1]}\n";
-    }
-}
-
-echo "\nTotal questions added: $added\n";
-
-// Also add a generic S.O question for "all categories"
-$stmt = $pdo->prepare("INSERT IGNORE INTO evaluation_questions (category, question_text, question_order, question_type, target_staff_category, is_active) VALUES (?, ?, ?, 'rating', 'S.O', 1)");
-$stmt->execute(['General', 'How would you rate the staff\'s overall contribution to the department?', 1]);
-if ($stmt->rowCount() > 0) {
     $added++;
-    echo "Added (S.O All): How would you rate the staff's overall contribution to the department?\n";
+    echo "Added: {$q[1]} (S.O_junior)<br>";
 }
 
-echo "\nDone! Total added: $added\n";
+// Add generic S.O question
+$stmt = $pdo->prepare("INSERT INTO evaluation_questions (category, question_text, question_order, question_type, target_staff_category, is_active) VALUES (?, ?, ?, 'rating', 'S.O', 1)");
+$stmt->execute(['General', 'How would you rate the staff\'s overall contribution to the department?', 1]);
+$added++;
+echo "Added: How would you rate the staff's overall contribution to the department? (S.O)<br>";
+
+echo "<h3>Total questions added: $added</h3>";
+
+// Now show what's in the database
+echo "<h3>Current SO questions in database:</h3>";
+$stmt = $pdo->query("SELECT id, question_text, target_staff_category FROM evaluation_questions WHERE target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O'");
+while ($row = $stmt->fetch()) {
+    echo "ID: {$row['id']}, Target: {$row['target_staff_category']}, Text: {$row['question_text']}<br>";
+}
+
+echo "<h3>All questions by category:</h3>";
+$stmt = $pdo->query("SELECT target_staff_category, COUNT(*) as cnt FROM evaluation_questions GROUP BY target_staff_category");
+while ($row = $stmt->fetch()) {
+    echo "{$row['target_staff_category']}: {$row['cnt']}<br>";
+}
+?>
