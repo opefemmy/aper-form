@@ -282,9 +282,9 @@ try {
 
 // Build query based on filter - Each category shows its specific questions + "both" (all staff) questions
 if ($filterCategory === 'supervising-officer') {
-    // Supervising Officer - all SO categories
+    // Supervising Officer - all SO categories (including S.O_academic, S.O_senior, S.O_junior, S.O)
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
-        WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O')
+        WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category LIKE 'S.O\\_%' ESCAPE '\\' OR target_staff_category = 'S.O')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'S.O_junior') {
     // SO: Junior Staff questions + generic S.O questions
@@ -302,9 +302,9 @@ if ($filterCategory === 'supervising-officer') {
         WHERE is_active = 1 AND target_staff_category IN ('S.O_academic', 'S.O')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'S.O') {
-    // All SO questions
+    // All SO questions (including S.O_academic, S.O_senior, S.O_junior, S.O)
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
-        WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O')
+        WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category LIKE 'S.O\\_%' ESCAPE '\\' OR target_staff_category = 'S.O')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'academic') {
     // Academic: specific academic questions + "both" (all staff) questions
@@ -1003,9 +1003,9 @@ foreach ($questions as $q) {
                                         $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions WHERE is_active = 1 ORDER BY COALESCE(category_order, 99999), category");
                                         $countStmt = $pdo->query("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 GROUP BY category");
                                     } elseif ($reorderFilter === 'supervising-officer') {
-                                        // Supervising Officer - all SO categories
-                                        $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O') ORDER BY COALESCE(category_order, 99999), category");
-                                        $countStmt = $pdo->query("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O') GROUP BY category");
+                                        // Supervising Officer - all SO categories (including S.O_academic, S.O_senior, S.O_junior, S.O)
+                                        $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category LIKE 'S.O\\_%' ESCAPE '\\' OR target_staff_category = 'S.O') ORDER BY COALESCE(category_order, 99999), category");
+                                        $countStmt = $pdo->query("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category LIKE 'S.O\\_%' ESCAPE '\\' OR target_staff_category = 'S.O') GROUP BY category");
                                     } else {
                                         $categoriesStmt = $pdo->prepare("SELECT DISTINCT category, category_order FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') ORDER BY COALESCE(category_order, 99999), category");
                                         $categoriesStmt->execute([$reorderFilter]);
@@ -1043,8 +1043,8 @@ foreach ($questions as $q) {
                                     if ($reorderFilter === 'all') {
                                         $qStmt = $pdo->query("SELECT id, question_text, category, question_order FROM evaluation_questions WHERE is_active = 1 ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
                                     } elseif ($reorderFilter === 'supervising-officer') {
-                                        // Supervising Officer - all SO categories
-                                        $qStmt = $pdo->query("SELECT id, question_text, category, question_order FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O') ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
+                                        // Supervising Officer - all SO categories (including S.O_academic, S.O_senior, S.O_junior, S.O)
+                                        $qStmt = $pdo->query("SELECT id, question_text, category, question_order FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category LIKE 'S.O\\_%' ESCAPE '\\' OR target_staff_category = 'S.O') ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
                                     } else {
                                         $qStmt = $pdo->prepare("SELECT id, question_text, category, question_order FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
                                         $qStmt->execute([$reorderFilter]);
