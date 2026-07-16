@@ -7,6 +7,11 @@ $pdo = getDBConnection();
 $staffId = $_SESSION['staff_id'];
 $staffName = $_SESSION['staff_name'];
 
+// Get full staff details
+$staffStmt = $pdo->prepare("SELECT * FROM staff WHERE id = ?");
+$staffStmt->execute([$staffId]);
+$staff = $staffStmt->fetch();
+
 // Get settings
 $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings");
 $settings = [];
@@ -15,11 +20,8 @@ while ($row = $stmt->fetch()) {
 }
 $instName = $settings['institution_name'] ?? 'Institution';
 
-// Get staff category for this staff
-$staffStmt = $pdo->prepare("SELECT staff_category FROM staff WHERE id = ?");
-$staffStmt->execute([$staffId]);
-$staffData = $staffStmt->fetch();
-$staffCategory = $staffData['staff_category'] ?? 'academic';
+// Get staff category
+$staffCategory = $staff['staff_category'] ?? 'academic';
 
 // Determine which SO question category to fetch
 $soQuestionCategory = 'S.O_academic';
