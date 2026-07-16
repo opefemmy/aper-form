@@ -991,58 +991,36 @@ foreach ($questions as $q) {
 
                             <!-- Question Reordering -->
                             <div class="tab-pane fade" id="reorder-questions">
-                                <p class="text-muted">Enter the display order number for each question. Questions with lower numbers appear first within their section.</p>
-                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                                    <table class="table table-bordered table-sm">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th style="width: 100px;">Question Order</th>
-                                                <th>Question</th>
-                                                <th>Section</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php
-                                            // Get all questions for reordering
-                                            $allQuestionsStmt = $pdo->query("SELECT id, question_text, category, question_order, target_staff_category FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
-                                            $allQuestions = $allQuestionsStmt->fetchAll();
-                                            foreach ($allQuestions as $aq):
-                                            ?>
-                                            <tr>
-                                                <td>
-                                                    <input type="number" class="form-control form-control-sm" name="question_orders[<?php echo $aq['id']; ?>]" value="<?php echo $aq['question_order'] ?? 0; ?>" min="0" style="width: 80px;">
-                                                </td>
-                                                <td><?php echo htmlspecialchars(substr($aq['question_text'], 0, 60)) . (strlen($aq['question_text']) > 60 ? '...' : ''); ?></td>
-                                                <td>
-                                                    <span class="badge bg-<?php
-                                                        $target = $aq['target_staff_category'] ?? '';
-                                                        if ($target === 'S.O_academic') {
-                                                            echo 'purple';
-                                                        } elseif ($target === 'S.O_senior') {
-                                                            echo 'orange';
-                                                        } elseif ($target === 'S.O_junior') {
-                                                            echo 'teal';
-                                                        } elseif (strpos($target, 'S.O') === 0 || $target === 'S.O') {
-                                                            echo 'danger';
-                                                        } elseif ($target === 'both') {
-                                                            echo 'primary';
-                                                        } elseif ($target === 'academic') {
-                                                            echo 'success';
-                                                        } elseif ($target === 'non-teaching') {
-                                                            echo 'warning';
-                                                        } else {
-                                                            echo 'info';
-                                                        }
-                                                    ?>">
-                                                        <?php echo htmlspecialchars($aq['category']); ?>
-                                                    </span>
-                                        </td>
-                                    </tr>
+                                <p class="text-muted mb-3"><i class="fas fa-arrows-alt-v me-2"></i><strong>Drag and drop</strong> questions to reorder. Questions grouped by section.</p>
+                                <div id="questions-container" style="max-height: 450px; overflow-y: auto;">
+                                    <!-- Questions Drag Drop -->
+                                    <!-- REPLACE_MARKER -->
+                                    <?php
+                                    $grouped = [];
+                                    $qStmt = $pdo->query("SELECT id, question_text, category, question_order FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
+                                    while ($r = $qStmt->fetch()) { $grouped[$r['category']][] = $r; }
+                                    foreach ($grouped as $cat => $qs):
+                                    ?>
+                                    <div class="category-group mb-3">
+                                        <div class="card bg-light">
+                                            <div class="card-body py-2"><strong><i class="fas fa-folder me-2"></i><?php echo htmlspecialchars($cat); ?></strong></div>
+                                        </div>
+                                        <div class="questions-list" data-category="<?php echo htmlspecialchars($cat); ?>" style="min-height:30px;">
+                                            <?php foreach ($qs as $q): ?>
+                                            <div class="card mb-2 sortable-question" data-id="<?php echo $q['id']; ?>" style="cursor:move;">
+                                                <div class="card-body py-2">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-grip-lines me-3 text-muted"></i>
+                                                        <small class="flex-grow-1"><?php echo htmlspecialchars(substr($q['question_text'],0,50)); ?>...</small>
+                                                        <input type="hidden" name="question_orders[<?php echo $q['id']; ?>]" class="q-order" value="<?php echo $q['question_order']??0; ?>">
+                                                        <input type="hidden" name="question_categories[<?php echo $q['id']; ?>]" class="q-cat" value="<?php echo htmlspecialchars($cat); ?>">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
                                     <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                        </div> <!-- End tab-pane -->
                         </div> <!-- End tab-content -->
                     </div>
                     <div class="modal-footer">
