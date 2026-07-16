@@ -30,14 +30,12 @@ if ($staffCategory === 'non-teaching-junior') {
 }
 
 // Get SO evaluation questions for this staff category
-// Include: specific category (S.O_junior, S.O_senior, S.O_academic), generic 'S.O', 'both', and legacy values for backwards compatibility
+// Only show: specific category (S.O_junior, S.O_senior, S.O_academic) and generic 'S.O'
+// DO NOT include 'both' - those are staff self-evaluation questions, not SO evaluation questions
 $soQuestions = [];
 $soQStmt = $pdo->prepare("SELECT * FROM evaluation_questions WHERE is_active = 1 AND (
     target_staff_category = ?
     OR target_staff_category = 'S.O'
-    OR target_staff_category = 'both'
-    OR target_staff_category IS NULL
-    OR target_staff_category = ''
 ) ORDER BY COALESCE(question_order, 99999), category, id");
 $soQStmt->execute([$soQuestionCategory]);
 $soQuestions = $soQStmt->fetchAll();
