@@ -281,45 +281,50 @@ try {
 }
 
 // Build query based on filter - Each category shows its specific questions + "both" (all staff) questions
-if ($filterCategory === 'S.O' || $filterCategory === 'supervising-officer') {
+if ($filterCategory === 'supervising-officer') {
     // Supervising Officer - all SO categories
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
-        WHERE (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O')
+        WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'S.O_junior') {
     // SO: Junior Staff questions + generic S.O questions
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
-        WHERE target_staff_category IN ('S.O_junior', 'S.O')
+        WHERE is_active = 1 AND target_staff_category IN ('S.O_junior', 'S.O')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'S.O_senior') {
     // SO: Non-Teaching Senior questions + generic S.O questions
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
-        WHERE target_staff_category IN ('S.O_senior', 'S.O')
+        WHERE is_active = 1 AND target_staff_category IN ('S.O_senior', 'S.O')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'S.O_academic') {
     // SO: Academic Staff questions + generic S.O questions
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
-        WHERE target_staff_category IN ('S.O_academic', 'S.O')
+        WHERE is_active = 1 AND target_staff_category IN ('S.O_academic', 'S.O')
+        ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
+} elseif ($filterCategory === 'S.O') {
+    // All SO questions
+    $stmt = $pdo->query("SELECT * FROM evaluation_questions
+        WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'academic') {
     // Academic: specific academic questions + "both" (all staff) questions
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
-        WHERE target_staff_category IN ('academic', 'both')
+        WHERE is_active = 1 AND target_staff_category IN ('academic', 'both')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'non-teaching') {
     // Non-Teaching Senior: specific non-teaching + "both" questions
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
-        WHERE target_staff_category IN ('non-teaching', 'both')
+        WHERE is_active = 1 AND target_staff_category IN ('non-teaching', 'both')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } elseif ($filterCategory === 'non-teaching-junior') {
     // Junior Staff: specific junior + "both" questions
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
-        WHERE target_staff_category IN ('non-teaching-junior', 'both')
+        WHERE is_active = 1 AND target_staff_category IN ('non-teaching-junior', 'both')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 } else {
     // All questions EXCEPT Supervising Officer - for general staff questions
     $stmt = $pdo->query("SELECT * FROM evaluation_questions
-        WHERE target_staff_category NOT IN ('S.O', 'S.O_junior', 'S.O_senior', 'S.O_academic')
+        WHERE is_active = 1 AND target_staff_category NOT IN ('S.O', 'S.O_junior', 'S.O_senior', 'S.O_academic')
         ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
 }
 $questions = $stmt->fetchAll();
