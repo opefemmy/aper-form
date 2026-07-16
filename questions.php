@@ -329,6 +329,9 @@ if ($filterCategory === 'supervising-officer') {
 }
 $questions = $stmt->fetchAll();
 
+// DEBUG: Show filter info
+error_log("Filter: $filterCategory, Questions found: " . count($questions));
+
 $questionsByCategory = [];
 foreach ($questions as $q) {
     $questionsByCategory[$q['category']][] = $q;
