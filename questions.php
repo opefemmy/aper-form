@@ -539,10 +539,27 @@ foreach ($questions as $q) {
                                     <td><?php echo !empty($q['sub_category']) ? '<span class="badge bg-secondary">' . htmlspecialchars($q['sub_category']) . '</span>' : '<span class="text-muted">-</span>'; ?></td>
                                     <td><?php echo htmlspecialchars($q['question_text']); ?></td>
                                     <td>
-                                        <span class="badge bg-<?php echo ($q['target_staff_category'] ?? 'both') == 'both' ? 'primary' : (($q['target_staff_category'] ?? '') == 'academic' ? 'success' : (($q['target_staff_category'] ?? '') == 'non-teaching-junior' ? 'info' : 'warning')); ?>">
+                                        <span class="badge bg-<?php
+                                            $target = $q['target_staff_category'] ?? 'both';
+                                            if (strpos($target, 'S.O') === 0 || $target === 'S.O') {
+                                                echo 'danger'; // Red for SO questions
+                                            } elseif ($target === 'both') {
+                                                echo 'primary'; // Blue for all staff
+                                            } elseif ($target === 'academic') {
+                                                echo 'success'; // Green for academic
+                                            } elseif ($target === 'non-teaching') {
+                                                echo 'warning'; // Yellow for non-teaching senior
+                                            } else {
+                                                echo 'info'; // Light blue for junior
+                                            }
+                                        ?>">
                                             <?php
                                                 $target = $q['target_staff_category'] ?? 'both';
-                                                echo $target == 'both' ? 'All Staff' : ($target == 'academic' ? 'Academic' : ($target == 'non-teaching-junior' ? 'Junior Staff (L5)' : ($target == 'non-teaching' ? 'Non-Teaching Senior (L6+)' : 'Non-Teaching')));
+                                                if (strpos($target, 'S.O') === 0 || $target === 'S.O') {
+                                                    echo 'Supervising Officer';
+                                                } else {
+                                                    echo $target == 'both' ? 'All Staff' : ($target == 'academic' ? 'Academic' : ($target == 'non-teaching-junior' ? 'Junior Staff (L5)' : ($target == 'non-teaching' ? 'Non-Teaching Senior (L6+)' : 'Non-Teaching')));
+                                                }
                                             ?>
                                         </span>
                                     </td>
@@ -986,10 +1003,18 @@ foreach ($questions as $q) {
                                                 <td><?php echo htmlspecialchars(substr($aq['question_text'], 0, 60)) . (strlen($aq['question_text']) > 60 ? '...' : ''); ?></td>
                                                 <td>
                                                     <span class="badge bg-<?php
-                                                        echo $aq['target_staff_category'] === 'academic' ? 'success' :
-                                                            ($aq['target_staff_category'] === 'non-teaching' ? 'warning' :
-                                                            ($aq['target_staff_category'] === 'non-teaching-junior' ? 'info' :
-                                                            ($aq['target_staff_category'] === 'S.O' ? 'primary' : 'secondary')));
+                                                        $target = $aq['target_staff_category'] ?? '';
+                                                        if (strpos($target, 'S.O') === 0 || $target === 'S.O') {
+                                                            echo 'danger'; // Red for SO questions
+                                                        } elseif ($target === 'both') {
+                                                            echo 'primary';
+                                                        } elseif ($target === 'academic') {
+                                                            echo 'success';
+                                                        } elseif ($target === 'non-teaching') {
+                                                            echo 'warning';
+                                                        } else {
+                                                            echo 'info';
+                                                        }
                                                     ?>">
                                                         <?php echo htmlspecialchars($aq['category']); ?>
                                                     </span>
