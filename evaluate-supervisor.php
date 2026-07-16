@@ -177,7 +177,8 @@ $selectedStaff = null;
 
 // First priority: get by eval_id
 if ($evalId) {
-    $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
+    // Use e.staff_id (numeric ID from evaluations table) with alias to avoid collision with s.staff_id (string)
+    $stmt = $pdo->prepare("SELECT e.*, s.staff_id as staff_id_string, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
         WHERE e.id = ?");
@@ -185,7 +186,8 @@ if ($evalId) {
     $selectedEval = $stmt->fetch();
 
     if ($selectedEval) {
-        $staffId = $selectedEval['staff_id'];
+        // Use e.staff_id (the numeric ID from evaluations table) - this is what we need
+        $staffId = $selectedEval['staff_id']; // This is e.staff_id from the query above
         $stmt = $pdo->prepare("SELECT * FROM staff WHERE id = ?");
         $stmt->execute([$staffId]);
         $selectedStaff = $stmt->fetch();
