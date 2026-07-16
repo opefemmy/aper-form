@@ -243,6 +243,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get filter category
 $filterCategory = $_GET['filter'] ?? 'all';
 
+// Get reorder filter category
+$reorderFilter = $_GET['reorder_filter'] ?? 'all';
+
 // Get all existing categories from database for dropdown
 $allCategories = [];
 try {
@@ -947,6 +950,19 @@ foreach ($questions as $q) {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
+                        <!-- Filter Buttons -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><i class="fas fa-filter me-2"></i>Filter by Category:</label>
+                            <div class="btn-group flex-wrap" role="group">
+                                <a href="?reorder_filter=all" class="btn btn-sm btn-outline-primary <?php echo $reorderFilter === 'all' ? 'active' : ''; ?>">All</a>
+                                <a href="?reorder_filter=academic" class="btn btn-sm btn-outline-success <?php echo $reorderFilter === 'academic' ? 'active' : ''; ?>">Academic</a>
+                                <a href="?reorder_filter=non-teaching" class="btn btn-sm btn-outline-warning <?php echo $reorderFilter === 'non-teaching' ? 'active' : ''; ?>">Non-Teaching Senior (L6+)</a>
+                                <a href="?reorder_filter=non-teaching-junior" class="btn btn-sm btn-outline-info <?php echo $reorderFilter === 'non-teaching-junior' ? 'active' : ''; ?>">Junior Staff (L5)</a>
+                                <a href="?reorder_filter=S.O_academic" class="btn btn-sm btn-outline-purple <?php echo $reorderFilter === 'S.O_academic' ? 'active' : ''; ?>" style="border-color:#6f42c1;color:#6f42c1;">SO: Academic</a>
+                                <a href="?reorder_filter=S.O_senior" class="btn btn-sm btn-outline-orange <?php echo $reorderFilter === 'S.O_senior' ? 'active' : ''; ?>" style="border-color:orange;color:orange;">SO: Senior</a>
+                                <a href="?reorder_filter=S.O_junior" class="btn btn-sm btn-outline-teal <?php echo $reorderFilter === 'S.O_junior' ? 'active' : ''; ?>" style="border-color:#20c997;color:#20c997;">SO: Junior</a>
+                            </div>
+                        </div>
                         <ul class="nav nav-tabs mb-3" role="tablist">
                             <li class="nav-item">
                                 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#reorder-sections" type="button">
@@ -966,10 +982,18 @@ foreach ($questions as $q) {
                                 <p class="text-muted mb-3"><i class="fas fa-arrows-alt-v me-2"></i><strong>Drag and drop</strong> sections to reorder. Top section appears first.</p>
                                 <div id="sections-container" style="max-height: 450px; overflow-y: auto;">
                                     <?php
-                                    $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category");
+                                    // Filter sections based on reorderFilter
+                                    if ($reorderFilter === 'all') {
+                                        $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category");
+                                        $countStmt = $pdo->query("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 GROUP BY category");
+                                    } else {
+                                        $categoriesStmt = $pdo->prepare("SELECT DISTINCT category, category_order FROM evaluation_questions WHERE target_staff_category = ? OR target_staff_category = 'both' ORDER BY COALESCE(category_order, 99999), category");
+                                        $categoriesStmt->execute([$reorderFilter]);
+                                        $countStmt = $pdo->prepare("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') GROUP BY category");
+                                        $countStmt->execute([$reorderFilter]);
+                                    }
                                     $categories = $categoriesStmt->fetchAll();
                                     $catCounts = [];
-                                    $countStmt = $pdo->query("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 GROUP BY category");
                                     while ($row = $countStmt->fetch()) { $catCounts[$row['category']] = $row['cnt']; }
                                     $secIdx = 0;
                                     foreach ($categories as $cat):
@@ -993,11 +1017,15 @@ foreach ($questions as $q) {
                             <div class="tab-pane fade" id="reorder-questions">
                                 <p class="text-muted mb-3"><i class="fas fa-arrows-alt-v me-2"></i><strong>Drag and drop</strong> questions to reorder. Questions grouped by section.</p>
                                 <div id="questions-container" style="max-height: 450px; overflow-y: auto;">
-                                    <!-- Questions Drag Drop -->
-                                    <!-- REPLACE_MARKER -->
                                     <?php
+                                    // Build filter query based on reorderFilter
                                     $grouped = [];
-                                    $qStmt = $pdo->query("SELECT id, question_text, category, question_order FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
+                                    if ($reorderFilter === 'all') {
+                                        $qStmt = $pdo->query("SELECT id, question_text, category, question_order FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
+                                    } else {
+                                        $qStmt = $pdo->prepare("SELECT id, question_text, category, question_order FROM evaluation_questions WHERE target_staff_category = ? OR target_staff_category = 'both' ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
+                                        $qStmt->execute([$reorderFilter]);
+                                    }
                                     while ($r = $qStmt->fetch()) { $grouped[$r['category']][] = $r; }
                                     foreach ($grouped as $cat => $qs):
                                     ?>
