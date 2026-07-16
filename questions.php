@@ -119,12 +119,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Handle question and category reordering
     if (isset($_POST['reorder_questions'])) {
-        // Save question orders
+        // Save question orders and move questions between categories
         if (isset($_POST['question_orders'])) {
             $orders = $_POST['question_orders'];
+            $categories = $_POST['question_categories'] ?? [];
             foreach ($orders as $questionId => $order) {
-                $stmt = $pdo->prepare("UPDATE evaluation_questions SET question_order = ? WHERE id = ?");
-                $stmt->execute([intval($order), intval($questionId)]);
+                $newCategory = $categories[$questionId] ?? null;
+                if ($newCategory) {
+                    // Update both order and category (for drag between sections)
+                    $stmt = $pdo->prepare("UPDATE evaluation_questions SET question_order = ?, category = ? WHERE id = ?");
+                    $stmt->execute([intval($order), sanitize($newCategory), intval($questionId)]);
+                } else {
+                    // Just update order
+                    $stmt = $pdo->prepare("UPDATE evaluation_questions SET question_order = ? WHERE id = ?");
+                    $stmt->execute([intval($order), intval($questionId)]);
+                }
             }
         }
 
@@ -901,11 +910,11 @@ foreach ($questions as $q) {
 
     <!-- Reorder Questions Modal -->
     <div class="modal fade" id="reorderQuestionsModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-                <form method="POST" action="questions.php">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-sort-numeric-up me-2"></i>Reorder Sections & Questions</h5>
+                <form method="POST" action="questions.php" id="reorderForm">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title"><i class="fas fa-sort-numeric-up me-2"></i>Reorder - Drag & Drop</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -923,43 +932,31 @@ foreach ($questions as $q) {
                         </ul>
 
                         <div class="tab-content">
-                            <!-- Section/Category Reordering -->
+                            <!-- Section/Category Drag & Drop -->
                             <div class="tab-pane fade show active" id="reorder-sections">
-                                <p class="text-muted">Enter the display order number for each section/category. Sections with lower numbers appear first.</p>
-                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                                    <table class="table table-bordered table-sm">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th style="width: 100px;">Section Order</th>
-                                                <th>Section/Category Name</th>
-                                                <th>Questions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php
-                                            // Get all categories with their order
-                                            $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category");
-                                            $categories = $categoriesStmt->fetchAll();
-
-                                            // Get question counts per category
-                                            $catCounts = [];
-                                            $countStmt = $pdo->query("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 GROUP BY category");
-                                            while ($row = $countStmt->fetch()) {
-                                                $catCounts[$row['category']] = $row['cnt'];
-                                            }
-
-                                            foreach ($categories as $cat):
-                                            ?>
-                                            <tr>
-                                                <td>
-                                                    <input type="number" class="form-control form-control-sm" name="category_orders[<?php echo htmlspecialchars($cat['category']); ?>]" value="<?php echo $cat['category_order'] ?? 0; ?>" min="0" style="width: 80px;">
-                                                </td>
-                                                <td><strong><?php echo htmlspecialchars($cat['category']); ?></strong></td>
-                                                <td><span class="badge bg-secondary"><?php echo $catCounts[$cat['category']] ?? 0; ?> questions</span></td>
-                                            </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
+                                <p class="text-muted mb-3"><i class="fas fa-arrows-alt-v me-2"></i><strong>Drag and drop</strong> sections to reorder. Top section appears first.</p>
+                                <div id="sections-container" style="max-height: 450px; overflow-y: auto;">
+                                    <?php
+                                    $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category");
+                                    $categories = $categoriesStmt->fetchAll();
+                                    $catCounts = [];
+                                    $countStmt = $pdo->query("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 GROUP BY category");
+                                    while ($row = $countStmt->fetch()) { $catCounts[$row['category']] = $row['cnt']; }
+                                    $secIdx = 0;
+                                    foreach ($categories as $cat):
+                                        $secIdx++;
+                                    ?>
+                                    <div class="card mb-2 sortable-section" data-category="<?php echo htmlspecialchars($cat['category']); ?>" style="cursor: move;">
+                                        <div class="card-body py-2">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-grip-vertical me-3 text-muted"></i>
+                                                <strong><?php echo htmlspecialchars($cat['category']); ?></strong>
+                                                <span class="badge bg-secondary ms-2"><?php echo $catCounts[$cat['category']] ?? 0; ?></span>
+                                                <input type="hidden" name="category_orders[<?php echo htmlspecialchars($cat['category']); ?>]" class="sec-order" value="<?php echo $secIdx; ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
                                 </div>
                             </div>
 
@@ -1015,6 +1012,48 @@ foreach ($questions as $q) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <style>
+    .sortable-section, .sortable-question { transition: transform 0.2s; }
+    .sortable-section.dragging, .sortable-question.dragging { opacity: 0.5; }
+    </style>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sections drag & drop
+        var sectionsContainer = document.getElementById('sections-container');
+        if (sectionsContainer) {
+            new Sortable(sectionsContainer, {
+                animation: 150,
+                ghostClass: 'dragging',
+                onEnd: function(evt) {
+                    var items = sectionsContainer.querySelectorAll('.sortable-section');
+                    items.forEach(function(item, index) {
+                        var input = item.querySelector('.sec-order');
+                        if (input) input.value = index + 1;
+                    });
+                }
+            });
+        }
+
+        // Questions drag & drop per category
+        document.querySelectorAll('.questions-list').forEach(function(list) {
+            new Sortable(list, {
+                group: 'questions',
+                animation: 150,
+                ghostClass: 'dragging',
+                onEnd: function(evt) {
+                    var items = list.querySelectorAll('.sortable-question');
+                    items.forEach(function(item, index) {
+                        item.querySelector('.q-order').value = index + 1;
+                        item.querySelector('.q-cat').value = list.dataset.category;
+                    });
+                }
+            });
+        });
+    });
+    </script>
 
     <!-- Footer -->
     <footer class="mt-4 py-3" style="background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#247d57'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#1a5238'; ?> 100%); color: white; border-radius: 8px;">
