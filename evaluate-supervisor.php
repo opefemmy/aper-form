@@ -106,7 +106,7 @@ if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
     // OR staff who have reviewed and need Supervising Officer to address their concerns (evaluation_stage = 'supervising_officer_reject')
     if (!empty($evalDept)) {
         // Pending: staff submitted but Supervising Officer hasn't evaluated yet
-        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
             FROM evaluations e
             JOIN staff s ON e.staff_id = s.id
             WHERE s.department = ? AND e.evaluation_stage = 'pending' AND e.status = 'submitted'
@@ -115,7 +115,7 @@ if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
         $pendingEvals = $stmt->fetchAll();
 
         // Rejected by staff - needs Supervising Officer review
-        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
             FROM evaluations e
             JOIN staff s ON e.staff_id = s.id
             WHERE s.department = ? AND e.evaluation_stage = 'supervising_officer_reject' AND e.status = 'submitted'
@@ -124,7 +124,7 @@ if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
         $rejectedByStaff = $stmt->fetchAll();
 
         // Processed: evaluations that have passed Supervising Officer stage (including staff_review)
-        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+        $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
             FROM evaluations e
             JOIN staff s ON e.staff_id = s.id
             WHERE s.department = ? AND e.evaluation_stage IN ('staff_review', 'supervising_officer_reject', 'registrar', 'completed')
@@ -138,7 +138,7 @@ if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
     }
 } elseif ($adminRole === 'registrar') {
     // Registrar sees all evaluations waiting for final approval AND rejected ones that have been reviewed
-    $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+    $stmt = $pdo->prepare("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
         WHERE e.evaluation_stage IN ('registrar', 'supervising_officer_reject')
@@ -147,7 +147,7 @@ if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
     $pendingEvals = $stmt->fetchAll();
 
     // Get already completed evaluations
-    $stmt = $pdo->query("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+    $stmt = $pdo->query("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
         WHERE e.evaluation_stage = 'completed'
@@ -155,7 +155,7 @@ if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
     $processedEvals = $stmt->fetchAll();
 } else {
     // Admin/Super admin sees all non-completed
-    $stmt = $pdo->query("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+    $stmt = $pdo->query("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
         WHERE e.evaluation_stage != 'completed'
@@ -163,7 +163,7 @@ if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer') {
     $pendingEvals = $stmt->fetchAll();
 
     // Get completed evaluations
-    $stmt = $pdo->query("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level
+    $stmt = $pdo->query("SELECT e.*, s.staff_id, s.surname, s.first_name, s.department, s.faculty, s.designation, s.grade_level, s.staff_category
         FROM evaluations e
         JOIN staff s ON e.staff_id = s.id
         WHERE e.evaluation_stage = 'completed'
@@ -229,9 +229,12 @@ $professional = [];
 
 if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' || $evaluatorRole === 'hod' || $evaluatorRole === 'dean' || $evaluatorRole === 'admin' || $evaluatorRole === 'super_admin') {
     // Get staff category to filter SO questions appropriately
-    $staffCategoryForQuestions = null; // Will show all SO questions if no staff selected
+    $staffCategoryForQuestions = null;
+    $showQuestions = false;
 
+    // Only load questions when a staff member is selected
     if ($selectedStaff && isset($selectedStaff['staff_category']) && $selectedStaff['staff_category']) {
+        $showQuestions = true;
         $sc = $selectedStaff['staff_category'];
         if ($sc === 'non-teaching-junior') {
             $staffCategoryForQuestions = 'S.O_junior';
@@ -242,10 +245,10 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
         }
     }
 
-    // Get SO evaluation questions - ONLY Supervising Officer questions (not staff self-evaluation questions)
+    // Get SO evaluation questions - ONLY when a staff member is selected
     // Only include: S.O_junior, S.O_senior, S.O_academic, S.O (generic)
     try {
-        if ($staffCategoryForQuestions) {
+        if ($showQuestions && $staffCategoryForQuestions) {
             // Specific category for selected staff - only show that category + generic S.O
             $stmt = $pdo->prepare("SELECT * FROM evaluation_questions
                 WHERE is_active = 1
@@ -255,19 +258,15 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
                 )
                 ORDER BY COALESCE(question_order, 99999), category, id");
             $stmt->execute([$staffCategoryForQuestions]);
+            $dbQuestions = $stmt->fetchAll();
+
+            // Debug: log what category is being used
+            error_log("SO Questions - Staff category: " . $staffCategoryForQuestions . ", Questions found: " . count($dbQuestions));
         } else {
-            // No staff selected - show all SO questions ONLY (S.O_junior, S.O_senior, S.O_academic, S.O)
-            $stmt = $pdo->query("SELECT * FROM evaluation_questions
-                WHERE is_active = 1
-                AND (
-                    target_staff_category = 'S.O'
-                    OR target_staff_category = 'S.O_junior'
-                    OR target_staff_category = 'S.O_senior'
-                    OR target_staff_category = 'S.O_academic'
-                )
-                ORDER BY COALESCE(question_order, 99999), category, id");
+            // No staff selected - don't show any questions
+            $dbQuestions = [];
+            error_log("SO Questions - No staff selected, no questions loaded");
         }
-        $dbQuestions = $stmt->fetchAll();
 
         // Debug: log what category is being used
         error_log("SO Questions - Staff category: " . ($staffCategoryForQuestions ?? 'none') . ", Questions found: " . count($dbQuestions));
@@ -298,8 +297,9 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
     }
 }
 
-// If still no questions, use a minimal set
-if (empty($teaching) && empty($research) && empty($adminQuestions)) {
+// If still no questions AND a staff member is selected, use a minimal set as fallback
+// This ensures NO questions show when no staff is selected
+if ($showQuestions && empty($teaching) && empty($research) && empty($adminQuestions)) {
     $teaching = [
         ['name' => 'q_teach1', 'label' => 'Teaching Performance'],
         ['name' => 'q_teach2', 'label' => 'Class Management'],
@@ -778,6 +778,17 @@ $sessions = $stmt->fetchAll();
                                                 <div>
                                                     <strong><?php echo htmlspecialchars($eval['first_name'] . ' ' . $eval['surname']); ?></strong>
                                                     <br><small class="text-muted"><?php echo htmlspecialchars($eval['department']); ?></small>
+                                                    <br><small><span class="badge bg-<?php
+                                                        $cat = $eval['staff_category'] ?? 'academic';
+                                                        if ($cat === 'non-teaching-junior') echo 'info';
+                                                        elseif ($cat === 'non-teaching') echo 'warning';
+                                                        else echo 'success';
+                                                    ?>"><?php
+                                                        $cat = $eval['staff_category'] ?? 'academic';
+                                                        if ($cat === 'non-teaching-junior') echo 'Junior';
+                                                        elseif ($cat === 'non-teaching') echo 'Non-Teach';
+                                                        else echo 'Academic';
+                                                    ?></span></small>
                                                 </div>
                                                 <span class="badge bg-<?php echo $eval['evaluation_stage'] === 'pending' ? 'secondary' : ($eval['evaluation_stage'] === 'hod' ? 'warning' : 'info'); ?> stage-badge">
                                                     <?php echo strtoupper($eval['evaluation_stage']); ?>
@@ -846,6 +857,24 @@ $sessions = $stmt->fetchAll();
                                             <div class="col-md-3"><strong>Department:</strong> <?php echo htmlspecialchars($selectedStaff['department'] ?? 'N/A'); ?></div>
                                             <div class="col-md-3"><strong>Faculty:</strong> <?php echo htmlspecialchars($selectedStaff['faculty'] ?? 'N/A'); ?></div>
                                             <div class="col-md-3"><strong>Grade Level:</strong> <?php echo htmlspecialchars($selectedStaff['grade_level'] ?? 'N/A'); ?></div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-md-3">
+                                                <strong>Category:</strong>
+                                                <span class="badge bg-<?php
+                                                    $cat = $selectedStaff['staff_category'] ?? 'academic';
+                                                    if ($cat === 'non-teaching-junior') echo 'info';
+                                                    elseif ($cat === 'non-teaching') echo 'warning';
+                                                    else echo 'success';
+                                                ?>">
+                                                    <?php
+                                                        $cat = $selectedStaff['staff_category'] ?? 'academic';
+                                                        if ($cat === 'non-teaching-junior') echo 'Junior Staff (Level 5 & below)';
+                                                        elseif ($cat === 'non-teaching') echo 'Non-Teaching Senior (Level 6+)';
+                                                        else echo 'Academic Staff';
+                                                    ?>
+                                                </span>
+                                            </div>
                                         </div>
                                         <div class="row mt-2">
                                             <div class="col-md-3"><strong>Your Rating:</strong> <span id="percentScore">0</span>%</div>
@@ -1093,6 +1122,16 @@ $sessions = $stmt->fetchAll();
                                         </div>
                                         <?php endif; // End show questions only for HOD ?>
 
+                                        <!-- Show message if no questions found for selected staff category -->
+                                        <?php if (empty($teaching) && empty($research) && empty($adminQuestions) && empty($community) && empty($professional) && ($adminRole === 'supervisor' || $adminRole === 'supervising-officer' || $adminRole === 'hod')): ?>
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            No evaluation questions found for this staff category.
+                                            Please contact the administrator to add questions for
+                                            <strong><?php echo htmlspecialchars($selectedStaff['staff_category'] ?? 'this category'); ?></strong>.
+                                        </div>
+                                        <?php endif; ?>
+
                                         <!-- Show message if no questions (Dean/Registrar) -->
                                         <?php if ($adminRole !== 'supervisor' && $adminRole !== 'hod'): ?>
                                         <div class="alert alert-info">
@@ -1219,107 +1258,17 @@ $sessions = $stmt->fetchAll();
                         <?php else: ?>
                             <div class="card mb-4">
                                 <div class="card-header bg-info text-white">
-                                    <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Evaluation Questions Preview</h5>
+                                    <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i>Select Staff to Evaluate</h5>
                                 </div>
-                                <div class="card-body">
-                                    <div class="alert alert-info mb-3">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        <strong>Preview Mode:</strong> These are the questions you will use to evaluate staff.
-                                        Select a staff member from the list to start evaluating.
-                                    </div>
-
-                                    <!-- Show Questions in Preview Mode -->
-                                    <?php if (!empty($teaching) || !empty($research) || !empty($adminQuestions) || !empty($community) || !empty($professional)): ?>
-
-                                    <!-- Teaching/Job Performance -->
-                                    <?php if (!empty($teaching)): ?>
-                                    <div class="mb-4">
-                                        <h6 class="text-primary border-bottom pb-2">Teaching/Job Performance</h6>
-                                        <?php foreach ($teaching as $q): ?>
-                                        <div class="question-item bg-light">
-                                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
-                                            <div class="text-muted small">
-                                                <i class="fas fa-circle-notch fa-spin"></i> Rating options will appear when evaluating
-                                            </div>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <?php endif; ?>
-
-                                    <!-- Research -->
-                                    <?php if (!empty($research)): ?>
-                                    <div class="mb-4">
-                                        <h6 class="text-primary border-bottom pb-2">Research/Development</h6>
-                                        <?php foreach ($research as $q): ?>
-                                        <div class="question-item bg-light">
-                                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
-                                            <div class="text-muted small">
-                                                <i class="fas fa-circle-notch fa-spin"></i> Rating options will appear when evaluating
-                                            </div>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <?php endif; ?>
-
-                                    <!-- Administrative -->
-                                    <?php if (!empty($adminQuestions)): ?>
-                                    <div class="mb-4">
-                                        <h6 class="text-primary border-bottom pb-2">Administrative Duties</h6>
-                                        <?php foreach ($adminQuestions as $q): ?>
-                                        <div class="question-item bg-light">
-                                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
-                                            <div class="text-muted small">
-                                                <i class="fas fa-circle-notch fa-spin"></i> Rating options will appear when evaluating
-                                            </div>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <?php endif; ?>
-
-                                    <!-- Community -->
-                                    <?php if (!empty($community)): ?>
-                                    <div class="mb-4">
-                                        <h6 class="text-primary border-bottom pb-2">Community Service</h6>
-                                        <?php foreach ($community as $q): ?>
-                                        <div class="question-item bg-light">
-                                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
-                                            <div class="text-muted small">
-                                                <i class="fas fa-circle-notch fa-spin"></i> Rating options will appear when evaluating
-                                            </div>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <?php endif; ?>
-
-                                    <!-- Professional -->
-                                    <?php if (!empty($professional)): ?>
-                                    <div class="mb-4">
-                                        <h6 class="text-primary border-bottom pb-2">Professional Development</h6>
-                                        <?php foreach ($professional as $q): ?>
-                                        <div class="question-item bg-light">
-                                            <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
-                                            <div class="text-muted small">
-                                                <i class="fas fa-circle-notch fa-spin"></i> Rating options will appear when evaluating
-                                            </div>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <?php endif; ?>
-
-                                    <?php else: ?>
-                                    <div class="alert alert-warning">
-                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                        No evaluation questions found. Please contact the administrator to add questions.
-                                    </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-
-                            <div class="card">
                                 <div class="card-body text-center py-5">
-                                    <i class="fas fa-clipboard-check fa-4x text-muted mb-3"></i>
+                                    <i class="fas fa-hand-pointer fa-4x text-muted mb-3"></i>
                                     <h4>Select a staff member to evaluate</h4>
-                                    <p class="text-muted">Click on a staff member from the list to begin evaluation</p>
+                                    <p class="text-muted">Click on a staff member from the list on the left to begin evaluation</p>
+                                    <div class="alert alert-info mt-3">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Evaluation questions will appear here</strong> once you select a staff member.
+                                        The questions will be filtered based on the staff member's category (Academic, Non-Teaching Senior, or Junior Staff).
+                                    </div>
                                 </div>
                             </div>
                         <?php endif; ?>
