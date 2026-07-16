@@ -229,10 +229,12 @@ $adminQuestions = [];
 $community = [];
 $professional = [];
 
+// Initialize showQuestions to false by default
+$showQuestions = false;
+
 if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' || $evaluatorRole === 'hod' || $evaluatorRole === 'dean' || $evaluatorRole === 'admin' || $evaluatorRole === 'super_admin') {
     // Get staff category to filter SO questions appropriately
     $staffCategoryForQuestions = null;
-    $showQuestions = false;
 
     // Only load questions when a staff member is selected
     // Use 'academic' as default if staff_category is empty or not set
