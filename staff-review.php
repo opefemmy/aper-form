@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             if ($consent === 'consent') {
                 // Staff consents - move to Registrar
-                $stmt = $pdo->prepare("UPDATE evaluations SET evaluation_stage = 'registrar', staff_consent = 'consented', staff_consent_date = NOW() WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE evaluations SET evaluation_stage = 'registrar', staff_consent = 'consented' WHERE id = ?");
                 $stmt->execute([$evalId]);
                 $message = '<div class="alert alert-success">You have consented to the evaluation. It has been sent to the Registrar for final approval.</div>';
 
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } else {
                 // Staff rejects - goes back to Supervising Officer for review
-                $stmt = $pdo->prepare("UPDATE evaluations SET evaluation_stage = 'supervising_officer_reject', staff_consent = 'rejected', staff_rejection_reason = ?, staff_consent_date = NOW() WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE evaluations SET evaluation_stage = 'supervising_officer_reject', staff_consent = 'rejected', staff_rejection_reason = ? WHERE id = ?");
                 $stmt->execute([$comments, $evalId]);
                 $message = '<div class="alert alert-warning">You have rejected the evaluation. Your concerns have been sent to the Supervising Officer for review.</div>';
 
