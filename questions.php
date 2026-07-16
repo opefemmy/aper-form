@@ -972,6 +972,7 @@ foreach ($questions as $q) {
                                 <a href="?reorder_filter=S.O_academic" class="btn btn-sm btn-outline-purple <?php echo $reorderFilter === 'S.O_academic' ? 'active' : ''; ?>" style="border-color:#6f42c1;color:#6f42c1;">SO: Academic</a>
                                 <a href="?reorder_filter=S.O_senior" class="btn btn-sm btn-outline-orange <?php echo $reorderFilter === 'S.O_senior' ? 'active' : ''; ?>" style="border-color:orange;color:orange;">SO: Senior</a>
                                 <a href="?reorder_filter=S.O_junior" class="btn btn-sm btn-outline-teal <?php echo $reorderFilter === 'S.O_junior' ? 'active' : ''; ?>" style="border-color:#20c997;color:#20c997;">SO: Junior</a>
+                                <a href="?reorder_filter=supervising-officer" class="btn btn-sm btn-outline-danger <?php echo $reorderFilter === 'supervising-officer' ? 'active' : ''; ?>" style="border-color:#dc3545;color:#dc3545;">All SO Questions</a>
                             </div>
                         </div>
                         <ul class="nav nav-tabs mb-3" role="tablist">
@@ -995,10 +996,14 @@ foreach ($questions as $q) {
                                     <?php
                                     // Filter sections based on reorderFilter
                                     if ($reorderFilter === 'all') {
-                                        $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category");
+                                        $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions WHERE is_active = 1 ORDER BY COALESCE(category_order, 99999), category");
                                         $countStmt = $pdo->query("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 GROUP BY category");
+                                    } elseif ($reorderFilter === 'supervising-officer') {
+                                        // Supervising Officer - all SO categories
+                                        $categoriesStmt = $pdo->query("SELECT DISTINCT category, category_order FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O') ORDER BY COALESCE(category_order, 99999), category");
+                                        $countStmt = $pdo->query("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O') GROUP BY category");
                                     } else {
-                                        $categoriesStmt = $pdo->prepare("SELECT DISTINCT category, category_order FROM evaluation_questions WHERE target_staff_category = ? OR target_staff_category = 'both' ORDER BY COALESCE(category_order, 99999), category");
+                                        $categoriesStmt = $pdo->prepare("SELECT DISTINCT category, category_order FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') ORDER BY COALESCE(category_order, 99999), category");
                                         $categoriesStmt->execute([$reorderFilter]);
                                         $countStmt = $pdo->prepare("SELECT category, COUNT(*) as cnt FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') GROUP BY category");
                                         $countStmt->execute([$reorderFilter]);
@@ -1032,9 +1037,12 @@ foreach ($questions as $q) {
                                     // Build filter query based on reorderFilter
                                     $grouped = [];
                                     if ($reorderFilter === 'all') {
-                                        $qStmt = $pdo->query("SELECT id, question_text, category, question_order FROM evaluation_questions ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
+                                        $qStmt = $pdo->query("SELECT id, question_text, category, question_order FROM evaluation_questions WHERE is_active = 1 ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
+                                    } elseif ($reorderFilter === 'supervising-officer') {
+                                        // Supervising Officer - all SO categories
+                                        $qStmt = $pdo->query("SELECT id, question_text, category, question_order FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category LIKE 'S.O%' OR target_staff_category = 'S.O') ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
                                     } else {
-                                        $qStmt = $pdo->prepare("SELECT id, question_text, category, question_order FROM evaluation_questions WHERE target_staff_category = ? OR target_staff_category = 'both' ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
+                                        $qStmt = $pdo->prepare("SELECT id, question_text, category, question_order FROM evaluation_questions WHERE is_active = 1 AND (target_staff_category = ? OR target_staff_category = 'both') ORDER BY COALESCE(category_order, 99999), category, COALESCE(question_order, 99999), id");
                                         $qStmt->execute([$reorderFilter]);
                                     }
                                     while ($r = $qStmt->fetch()) { $grouped[$r['category']][] = $r; }
