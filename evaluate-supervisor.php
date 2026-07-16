@@ -723,29 +723,6 @@ $sessions = $stmt->fetchAll();
 
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 main-content p-4">
-                <!-- DEBUG: Show debug info -->
-                <?php if (isset($_GET['debug'])): ?>
-                <div class="alert alert-warning">
-                    <h5>Debug Info:</h5>
-                    <p><strong>evalId:</strong> <?php echo $evalId; ?></p>
-                    <p><strong>staffId:</strong> <?php echo $staffId; ?></p>
-                    <p><strong>selectedEval:</strong> <?php echo $selectedEval ? 'found' : 'not found'; ?></p>
-                    <?php if ($selectedEval): ?>
-                    <p><strong>evaluation_stage:</strong> <?php echo $selectedEval['evaluation_stage']; ?></p>
-                    <p><strong>status:</strong> <?php echo $selectedEval['status']; ?></p>
-                    <?php endif; ?>
-                    <p><strong>selectedStaff:</strong> <?php echo $selectedStaff ? 'found' : 'not found'; ?></p>
-                    <?php if ($selectedStaff): ?>
-                    <p><strong>staff_category:</strong> <?php echo $selectedStaff['staff_category'] ?? 'not set'; ?></p>
-                    <?php endif; ?>
-                    <p><strong>showQuestions:</strong> <?php echo $showQuestions ? 'true' : 'false'; ?></p>
-                    <p><strong>staffCategoryForQuestions:</strong> <?php echo $staffCategoryForQuestions ?? 'null'; ?></p>
-                    <p><strong>Questions loaded:</strong> teaching: <?php echo count($teaching); ?>, research: <?php echo count($research); ?>, admin: <?php echo count($adminQuestions); ?></p>
-                    <p><strong>evalDept (SO department):</strong> <?php echo $evalDept ?: 'not set'; ?></p>
-                    <p><strong>pendingEvals count:</strong> <?php echo count($pendingEvals); ?></p>
-                </div>
-                <?php endif; ?>
-
                 <!-- Mobile Menu Button -->
                 <button class="hamburger position-fixed" style="top: 10px; left: 10px;" onclick="toggleSidebar()">
                     <span></span>
