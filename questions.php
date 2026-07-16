@@ -429,6 +429,9 @@ foreach ($questions as $q) {
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><h6 class="dropdown-header"><i class="fas fa-user-tie me-2"></i>Supervising Officer Evaluation</h6></li>
+                                <li><a class="dropdown-item <?php echo $filterCategory === 'supervising-officer' ? 'active' : ''; ?>" href="questions.php?filter=supervising-officer">
+                                    <i class="fas fa-users me-2"></i>All SO Questions
+                                </a></li>
                                 <li><a class="dropdown-item <?php echo $filterCategory === 'S.O_academic' ? 'active' : ''; ?>" href="questions.php?filter=S.O_academic">
                                     <i class="fas fa-user-graduate me-2"></i>For Academic Staff
                                 </a></li>
