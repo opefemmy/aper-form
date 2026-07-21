@@ -115,6 +115,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
         }
         showMessage('Question added successfully!', 'success');
+
+        // Keep modal open and pre-fill form for adding more questions in same category
+        // Store values in session to re-populate form
+        $_SESSION['last_question_category'] = $_POST['category'] ?? '';
+        $_SESSION['last_question_sub_category'] = $_POST['sub_category'] ?? '';
+        $_SESSION['last_question_type'] = $_POST['question_type'] ?? 'rating';
+        $_SESSION['last_question_group'] = $_POST['question_group'] ?? '';
+        $_SESSION['last_question_label'] = $_POST['question_label'] ?? '';
+        $_SESSION['last_target_staff_category'] = $_POST['target_staff_category'] ?? 'both';
+        $_SESSION['keep_modal_open'] = true;
+
+        // Redirect back to same page with filter to keep modal open
+        $redirectFilter = $_GET['filter'] ?? 'all';
+        redirect('questions.php' . ($redirectFilter !== 'all' ? '?filter=' . $redirectFilter : ''));
     }
 
     // Handle question and category reordering
@@ -301,6 +315,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get filter category
 $filterCategory = $_GET['filter'] ?? 'all';
+
+// Check if we should keep modal open after adding question
+$keepModalOpen = isset($_SESSION['keep_modal_open']) && $_SESSION['keep_modal_open'];
+$lastCategory = $_SESSION['last_question_category'] ?? '';
+$lastSubCategory = $_SESSION['last_question_sub_category'] ?? '';
+$lastQuestionType = $_SESSION['last_question_type'] ?? 'rating';
+$lastQuestionGroup = $_SESSION['last_question_group'] ?? '';
+$lastQuestionLabel = $_SESSION['last_question_label'] ?? '';
+$lastTargetStaff = $_SESSION['last_target_staff_category'] ?? 'both';
+
+// Clear the flag after reading
+unset($_SESSION['keep_modal_open']);
 
 // Get reorder filter category
 $reorderFilter = $_GET['reorder_filter'] ?? 'all';
@@ -1331,6 +1357,83 @@ foreach ($questions as $q) {
         });
     });
     </script>
+
+    <?php if ($keepModalOpen): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-open the Add Question modal
+        var addModal = new bootstrap.Modal(document.getElementById('addQuestionModal'));
+        addModal.show();
+
+        // Pre-fill form with last used values
+        <?php if (!empty($lastCategory)): ?>
+        var categorySelect = document.getElementById('add_category');
+        if (categorySelect) {
+            // Check if category exists in options
+            var hasOption = Array.from(categorySelect.options).some(opt => opt.value === '<?php echo addslashes($lastCategory); ?>');
+            if (hasOption) {
+                categorySelect.value = '<?php echo addslashes($lastCategory); ?>';
+            }
+        }
+        <?php endif; ?>
+
+        <?php if (!empty($lastSubCategory)): ?>
+        var subCatSelect = document.getElementById('add_sub_category');
+        if (subCatSelect) {
+            subCatSelect.value = '<?php echo addslashes($lastSubCategory); ?>';
+        }
+        <?php endif; ?>
+
+        <?php if (!empty($lastQuestionType)): ?>
+        var typeSelect = document.getElementById('add_question_type');
+        if (typeSelect) {
+            typeSelect.value = '<?php echo addslashes($lastQuestionType); ?>';
+            // Trigger toggle for options field
+            toggleOptionsField(typeSelect, 'add');
+        }
+        <?php endif; ?>
+
+        <?php if (!empty($lastQuestionGroup)): ?>
+        var groupInput = document.querySelector('input[name="question_group"]');
+        if (groupInput) {
+            groupInput.value = '<?php echo addslashes($lastQuestionGroup); ?>';
+        }
+        <?php endif; ?>
+
+        <?php if (!empty($lastQuestionLabel)): ?>
+        var labelInput = document.querySelector('input[name="question_label"]');
+        if (labelInput) {
+            labelInput.value = '<?php echo addslashes($lastQuestionLabel); ?>';
+        }
+        <?php endif; ?>
+
+        <?php if (!empty($lastTargetStaff)): ?>
+        var staffSelect = document.querySelector('select[name="target_staff_category"]');
+        if (staffSelect) {
+            staffSelect.value = '<?php echo addslashes($lastTargetStaff); ?>';
+        }
+        <?php endif; ?>
+
+        // Clear question text for new entry
+        var questionTextInput = document.querySelector('input[name="question_text"]');
+        if (questionTextInput) {
+            questionTextInput.value = '';
+        }
+
+        // Clear order field
+        var orderInput = document.querySelector('input[name="question_order"]');
+        if (orderInput) {
+            orderInput.value = '0';
+        }
+
+        // Clear options textarea
+        var optionsTextarea = document.querySelector('textarea[name="options"]');
+        if (optionsTextarea) {
+            optionsTextarea.value = '';
+        }
+    });
+    </script>
+    <?php endif; ?>
 
     <!-- Footer -->
     <footer class="mt-4 py-3" style="background: linear-gradient(180deg, <?php echo $settings['primary_color'] ?? '#247d57'; ?> 0%, <?php echo $settings['secondary_color'] ?? '#1a5238'; ?> 100%); color: white; border-radius: 8px;">
