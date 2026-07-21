@@ -228,11 +228,7 @@ $evaluatorRole = $adminRole;
 
 // Load HOD-specific questions from database
 // Try to get questions from evaluation_questions table filtered by evaluator_category
-$teaching = [];
-$research = [];
-$adminQuestions = [];
-$community = [];
-$professional = [];
+$questionsByCategory = [];
 
 // Initialize showQuestions to false by default
 $showQuestions = false;
@@ -289,44 +285,25 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
         // Debug: log what category is being used
         error_log("SO Questions - Staff category: " . ($staffCategoryForQuestions ?? 'none') . ", Questions found: " . count($dbQuestions));
 
-        // Group questions by category
+        // Group questions by ACTUAL category from database (dynamic - uses user's custom categories)
+        $questionsByCategory = [];
         foreach ($dbQuestions as $q) {
             $qName = 'q_' . $q['id'];
             $qLabel = $q['question_text'];
-            $qCat = strtolower($q['category'] ?? 'teaching');
+            $qCat = $q['category'] ?? 'General';
 
-            if (strpos($qCat, 'teaching') !== false || strpos($qCat, 'job') !== false || strpos($qCat, 'punctuality') !== false) {
-                $teaching[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-            } elseif (strpos($qCat, 'research') !== false) {
-                $research[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-            } elseif (strpos($qCat, 'admin') !== false) {
-                $adminQuestions[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-            } elseif (strpos($qCat, 'community') !== false) {
-                $community[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-            } elseif (strpos($qCat, 'professional') !== false) {
-                $professional[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
-            } else {
-                $teaching[] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+            if (!isset($questionsByCategory[$qCat])) {
+                $questionsByCategory[$qCat] = [];
             }
+            $questionsByCategory[$qCat][] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
         }
+
+        // Sort categories by order if available
+        ksort($questionsByCategory);
     } catch (Exception $e) {
         // Log error but continue with empty arrays
         error_log("Error loading HOD questions: " . $e->getMessage());
     }
-}
-
-// If still no questions AND a staff member is selected, use a minimal set as fallback
-// This ensures NO questions show when no staff is selected
-if ($showQuestions && empty($teaching) && empty($research) && empty($adminQuestions)) {
-    $teaching = [
-        ['name' => 'q_teach1', 'label' => 'Teaching Performance'],
-        ['name' => 'q_teach2', 'label' => 'Class Management'],
-        ['name' => 'q_teach3', 'label' => 'Course Delivery'],
-    ];
-    $adminQuestions = [
-        ['name' => 'q_admin1', 'label' => 'Punctuality'],
-        ['name' => 'q_admin2', 'label' => 'Attendance'],
-    ];
 }
 
 // Calculate scores and grade
@@ -406,16 +383,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
             $nextStage = 'completed'; // Registrar is final approval
         }
 
-        // Collect scores from form (HOD evaluation)
+        // Collect scores from form (HOD evaluation) - Use dynamic categories
         $scores = [];
-        // Ensure all arrays are arrays
-        $teachingArr = is_array($teaching) ? $teaching : [];
-        $researchArr = is_array($research) ? $research : [];
-        $adminArr = is_array($adminQuestions) ? $adminQuestions : [];
-        $communityArr = is_array($community) ? $community : [];
-        $professionalArr = is_array($professional) ? $professional : [];
+        $allQuestions = [];
 
-        $allQuestions = array_merge($teachingArr, $researchArr, $adminArr, $communityArr, $professionalArr);
+        if (!empty($questionsByCategory)) {
+            foreach ($questionsByCategory as $categoryQuestions) {
+                $allQuestions = array_merge($allQuestions, $categoryQuestions);
+            }
+        }
+
         foreach ($allQuestions as $q) {
             $scores[$q['name']] = intval($_POST[$q['name']] ?? 0);
         }
@@ -1159,104 +1136,32 @@ $sessions = $stmt->fetchAll();
                                         <?php if ($adminRole === 'supervisor' || $adminRole === 'supervising-officer' || $adminRole === 'hod'): ?>
                                         <p class="text-muted">Rate the staff member on each criterion (1-5)</p>
 
-                                        <!-- Teaching -->
-                                        <div class="mb-4">
-                                            <h6 class="text-primary border-bottom pb-2"><?php echo $staffCategory === 'non-teaching' ? 'Job Performance' : 'Teaching Performance'; ?></h6>
-                                            <?php foreach ($teaching as $q): ?>
-                                            <div class="question-item">
-                                                <label class="form-label fw-bold"><?php echo $q['label']; ?></label>
-                                                <div>
-                                                    <?php for ($i = 5; $i >= 1; $i--): ?>
-                                                    <label class="rating-label">
-                                                        <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
-                                                               onchange="calculateScores()" <?php echo ($selectedEval[$q['name']] ?? '') == $i ? 'checked' : ''; ?>>
-                                                        <span><?php echo $i; ?></span>
-                                                    </label>
-                                                    <?php endfor; ?>
+                                        <!-- Dynamic Categories - Uses user's custom categories from database -->
+                                        <?php if (!empty($questionsByCategory)): ?>
+                                            <?php foreach ($questionsByCategory as $categoryName => $categoryQuestions): ?>
+                                            <div class="mb-4">
+                                                <h6 class="text-primary border-bottom pb-2"><?php echo htmlspecialchars($categoryName); ?></h6>
+                                                <?php foreach ($categoryQuestions as $q): ?>
+                                                <div class="question-item">
+                                                    <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
+                                                    <div>
+                                                        <?php for ($i = 5; $i >= 1; $i--): ?>
+                                                        <label class="rating-label">
+                                                            <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
+                                                                   onchange="calculateScores()" <?php echo ($selectedEval[$q['name']] ?? '') == $i ? 'checked' : ''; ?>>
+                                                            <span><?php echo $i; ?></span>
+                                                        </label>
+                                                        <?php endfor; ?>
+                                                    </div>
                                                 </div>
+                                                <?php endforeach; ?>
                                             </div>
                                             <?php endforeach; ?>
-                                        </div>
-
-                                        <!-- Research -->
-                                        <div class="mb-4">
-                                            <h6 class="text-primary border-bottom pb-2"><?php echo $staffCategory === 'non-teaching' ? 'Development & Improvement' : 'Research Performance'; ?></h6>
-                                            <?php foreach ($research as $q): ?>
-                                            <div class="question-item">
-                                                <label class="form-label fw-bold"><?php echo $q['label']; ?></label>
-                                                <div>
-                                                    <?php for ($i = 5; $i >= 1; $i--): ?>
-                                                    <label class="rating-label">
-                                                        <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
-                                                               onchange="calculateScores()" <?php echo ($selectedEval[$q['name']] ?? '') == $i ? 'checked' : ''; ?>>
-                                                        <span><?php echo $i; ?></span>
-                                                    </label>
-                                                    <?php endfor; ?>
-                                                </div>
-                                            </div>
-                                            <?php endforeach; ?>
-                                        </div>
-
-                                        <!-- Admin -->
-                                        <div class="mb-4">
-                                            <h6 class="text-primary border-bottom pb-2">Administrative Duties</h6>
-                                            <?php foreach ($adminQuestions as $q): ?>
-                                            <div class="question-item">
-                                                <label class="form-label fw-bold"><?php echo $q['label']; ?></label>
-                                                <div>
-                                                    <?php for ($i = 5; $i >= 1; $i--): ?>
-                                                    <label class="rating-label">
-                                                        <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
-                                                               onchange="calculateScores()" <?php echo ($selectedEval[$q['name']] ?? '') == $i ? 'checked' : ''; ?>>
-                                                        <span><?php echo $i; ?></span>
-                                                    </label>
-                                                    <?php endfor; ?>
-                                                </div>
-                                            </div>
-                                            <?php endforeach; ?>
-                                        </div>
-
-                                        <!-- Community -->
-                                        <div class="mb-4">
-                                            <h6 class="text-primary border-bottom pb-2">Community Service</h6>
-                                            <?php foreach ($community as $q): ?>
-                                            <div class="question-item">
-                                                <label class="form-label fw-bold"><?php echo $q['label']; ?></label>
-                                                <div>
-                                                    <?php for ($i = 5; $i >= 1; $i--): ?>
-                                                    <label class="rating-label">
-                                                        <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
-                                                               onchange="calculateScores()" <?php echo ($selectedEval[$q['name']] ?? '') == $i ? 'checked' : ''; ?>>
-                                                        <span><?php echo $i; ?></span>
-                                                    </label>
-                                                    <?php endfor; ?>
-                                                </div>
-                                            </div>
-                                            <?php endforeach; ?>
-                                        </div>
-
-                                        <!-- Professional -->
-                                        <div class="mb-4">
-                                            <h6 class="text-primary border-bottom pb-2">Professional Development</h6>
-                                            <?php foreach ($professional as $q): ?>
-                                            <div class="question-item">
-                                                <label class="form-label fw-bold"><?php echo $q['label']; ?></label>
-                                                <div>
-                                                    <?php for ($i = 5; $i >= 1; $i--): ?>
-                                                    <label class="rating-label">
-                                                        <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
-                                                               onchange="calculateScores()" <?php echo ($selectedEval[$q['name']] ?? '') == $i ? 'checked' : ''; ?>>
-                                                        <span><?php echo $i; ?></span>
-                                                    </label>
-                                                    <?php endfor; ?>
-                                                </div>
-                                            </div>
-                                            <?php endforeach; ?>
-                                        </div>
+                                        <?php endif; // End dynamic categories ?>
                                         <?php endif; // End show questions only for HOD ?>
 
                                         <!-- Show message if no questions found for selected staff category -->
-                                        <?php if (empty($teaching) && empty($research) && empty($adminQuestions) && empty($community) && empty($professional) && ($adminRole === 'supervisor' || $adminRole === 'supervising-officer' || $adminRole === 'hod')): ?>
+                                        <?php if (empty($questionsByCategory) && ($adminRole === 'supervisor' || $adminRole === 'supervising-officer' || $adminRole === 'hod')): ?>
                                         <div class="alert alert-warning">
                                             <i class="fas fa-exclamation-triangle me-2"></i>
                                             No evaluation questions found for this staff category.
