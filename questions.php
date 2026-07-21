@@ -237,6 +237,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         showMessage('Question deleted successfully!', 'success');
     }
 
+    // Handle bulk delete by selected question IDs
+    if (isset($_POST['bulk_delete_selected'])) {
+        $selectedInput = $_POST['selected_questions'] ?? '';
+
+        // Handle both array and comma-separated string
+        if (is_array($selectedInput)) {
+            $selectedIds = $selectedInput;
+        } else {
+            $selectedIds = array_filter(array_map('trim', explode(',', $selectedInput)));
+        }
+
+        if (!empty($selectedIds)) {
+            $placeholders = implode(',', array_fill(0, count($selectedIds), '?'));
+            $stmt = $pdo->prepare("DELETE FROM evaluation_questions WHERE id IN ($placeholders)");
+            $stmt->execute(array_map('intval', $selectedIds));
+            showMessage(count($selectedIds) . ' question(s) deleted successfully!', 'success');
+        } else {
+            showMessage('No questions selected for deletion.', 'warning');
+        }
+        redirect('questions.php' . ($filterCategory !== 'all' ? '?filter=' . $filterCategory : ''));
+    }
+
+    // Handle bulk delete by category
+    if (isset($_POST['bulk_delete_category'])) {
+        $deleteCategory = $_POST['delete_category'] ?? '';
+        $deleteStaffCategory = $_POST['delete_staff_category'] ?? 'all';
+
+        if (empty($deleteCategory) && $deleteCategory !== 'all') {
+            showMessage('Please select a category to delete.', 'warning');
+            redirect('questions.php');
+        }
+
+        // Build the WHERE clause based on filters
+        $params = [];
+        $whereClause = "1=1";
+
+        if ($deleteCategory !== 'all' && !empty($deleteCategory)) {
+            $whereClause .= " AND category = ?";
+            $params[] = $deleteCategory;
+        }
+
+        if ($deleteStaffCategory !== 'all') {
+            $whereClause .= " AND target_staff_category = ?";
+            $params[] = $deleteStaffCategory;
+        }
+
+        // Get count before deletion
+        $countStmt = $pdo->prepare("SELECT COUNT(*) as cnt FROM evaluation_questions WHERE $whereClause");
+        $countStmt->execute($params);
+        $count = $countStmt->fetch()['cnt'];
+
+        // Delete the questions
+        $deleteStmt = $pdo->prepare("DELETE FROM evaluation_questions WHERE $whereClause");
+        $deleteStmt->execute($params);
+
+        showMessage($count . ' question(s) deleted from category "' . htmlspecialchars($deleteCategory) . '"!', 'success');
+        redirect('questions.php' . ($filterCategory !== 'all' ? '?filter=' . $filterCategory : ''));
+    }
+
     redirect('questions.php');
 }
 
@@ -462,6 +521,9 @@ foreach ($questions as $q) {
                         <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#reorderQuestionsModal">
                             <i class="fas fa-sort-numeric-up me-2"></i>Reorder
                         </button>
+                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
+                            <i class="fas fa-trash-alt me-2"></i>Bulk Delete
+                        </button>
                     </div>
                 </div>
 
@@ -520,6 +582,7 @@ foreach ($questions as $q) {
                         <table class="table table-hover">
                             <thead>
                                 <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th>
                                     <th>Question Type</th>
                                     <th>Group/Label</th>
                                     <th>Sub-Category</th>
@@ -544,6 +607,7 @@ foreach ($questions as $q) {
                                     ];
                                 ?>
                                 <tr>
+                                    <td><input type="checkbox" name="selected_questions[]" value="<?php echo $q['id']; ?>" class="question-checkbox"></td>
                                     <td><span class="badge bg-info"><?php echo $typeLabels[$q['question_type']] ?? $q['question_type']; ?></span></td>
                                     <td>
                                         <?php if (!empty($q['question_group']) || !empty($q['question_label'])): ?>
@@ -905,6 +969,106 @@ foreach ($questions as $q) {
         </div>
     </div>
 
+    <!-- Bulk Delete Modal -->
+    <div class="modal fade" id="bulkDeleteModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-trash-alt me-2"></i>Bulk Delete Questions</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#delete-selected-tab" type="button">
+                                <i class="fas fa-check-square me-1"></i> Delete Selected
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#delete-by-category-tab" type="button">
+                                <i class="fas fa-folder me-1"></i> Delete by Category
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- Delete Selected Questions Tab -->
+                        <div class="tab-pane fade show active" id="delete-selected-tab">
+                            <p class="text-muted mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Select questions by checking the boxes in the table above, then click "Delete Selected" below.
+                            </p>
+                            <div class="alert alert-info">
+                                <strong>Selected:</strong> <span id="selectedCount">0</span> question(s)
+                            </div>
+                            <form method="POST" id="bulkDeleteSelectedForm">
+                                <input type="hidden" name="selected_questions" id="selectedQuestionsInput" value="">
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" name="bulk_delete_selected" id="bulkDeleteSelectedBtn" class="btn btn-danger" disabled onclick="prepareSelectedQuestions()">
+                                        <i class="fas fa-trash me-2"></i>Delete Selected
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Delete by Category Tab -->
+                        <div class="tab-pane fade" id="delete-by-category-tab">
+                            <p class="text-muted mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Delete all questions from a specific category. Use the filters to target specific staff categories.
+                            </p>
+                            <form method="POST" id="bulkDeleteCategoryForm">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Category to Delete</label>
+                                        <select class="form-select" name="delete_category" required>
+                                            <option value="">Select Category</option>
+                                            <option value="all">All Categories</option>
+                                            <?php foreach ($categoryOptions as $cat): ?>
+                                            <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Target Staff Category (Optional)</label>
+                                        <select class="form-select" name="delete_staff_category">
+                                            <option value="all">All Staff Categories</option>
+                                            <optgroup label="Staff Self-Evaluation">
+                                                <option value="both">All Staff (Both)</option>
+                                                <option value="academic">Academic Staff Only</option>
+                                                <option value="non-teaching">Non-Teaching Senior</option>
+                                                <option value="non-teaching-junior">Junior Staff</option>
+                                            </optgroup>
+                                            <optgroup label="Supervising Officer">
+                                                <option value="S.O_academic">SO: Academic Staff</option>
+                                                <option value="S.O_senior">SO: Non-Teaching Senior</option>
+                                                <option value="S.O_junior">SO: Junior Staff</option>
+                                                <option value="S.O">SO: All Categories</option>
+                                            </optgroup>
+                                        </select>
+                                        <small class="text-muted">Leave as "All" to delete regardless of staff type</small>
+                                    </div>
+                                </div>
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Warning:</strong> This action cannot be undone! All matching questions will be permanently deleted.
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" name="bulk_delete_category" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete all questions in the selected category? This cannot be undone!');">
+                                        <i class="fas fa-trash me-2"></i>Delete by Category
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
     function toggleOptionsField(selectElem, prefix) {
         var questionType = selectElem.value;
@@ -958,6 +1122,42 @@ foreach ($questions as $q) {
     document.getElementById('add_sub_category')?.addEventListener('change', function() {
         toggleCustomSubCategory(this);
     });
+
+    // Bulk selection functions
+    function toggleSelectAll(source) {
+        var checkboxes = document.querySelectorAll('.question-checkbox');
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = source.checked;
+        });
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        var checked = document.querySelectorAll('.question-checkbox:checked');
+        var countSpan = document.getElementById('selectedCount');
+        var deleteBtn = document.getElementById('bulkDeleteSelectedBtn');
+        if (countSpan) countSpan.textContent = checked.length;
+        if (deleteBtn) deleteBtn.disabled = checked.length === 0;
+    }
+
+    // Add event listeners to checkboxes
+    document.addEventListener('DOMContentLoaded', function() {
+        var checkboxes = document.querySelectorAll('.question-checkbox');
+        checkboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+    });
+
+    // Prepare selected questions for bulk delete
+    function prepareSelectedQuestions() {
+        var checked = document.querySelectorAll('.question-checkbox:checked');
+        var ids = [];
+        checked.forEach(function(checkbox) {
+            ids.push(checkbox.value);
+        });
+        document.getElementById('selectedQuestionsInput').value = ids.join(',');
+        return ids.length > 0;
+    }
     </script>
 
     <!-- Reorder Questions Modal -->
