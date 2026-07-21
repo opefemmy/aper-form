@@ -442,6 +442,7 @@ foreach ($questions as $q) {
         .modal { z-index: 9999 !important; }
         .modal-backdrop { z-index: 9998 !important; }
         .modal.show { display: block !important; }
+        .dropdown-menu { z-index: 10000 !important; }
         .form-select { cursor: pointer; }
         select.form-select { cursor: pointer; -webkit-appearance: auto; -moz-appearance: auto; appearance: auto; }
         /* SO Badge Colors */
