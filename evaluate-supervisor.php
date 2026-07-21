@@ -291,11 +291,21 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
             $qName = 'q_' . $q['id'];
             $qLabel = $q['question_text'];
             $qCat = $q['category'] ?? 'General';
+            $qGroup = $q['question_group'] ?? '';
+            $qSubCat = $q['sub_category'] ?? '';
+            $qLabelShort = $q['question_label'] ?? '';
 
             if (!isset($questionsByCategory[$qCat])) {
                 $questionsByCategory[$qCat] = [];
             }
-            $questionsByCategory[$qCat][] = ['name' => $qName, 'label' => $qLabel, 'id' => $q['id']];
+            $questionsByCategory[$qCat][] = [
+                'name' => $qName,
+                'label' => $qLabel,
+                'id' => $q['id'],
+                'group' => $qGroup,
+                'sub_category' => $qSubCat,
+                'label_short' => $qLabelShort
+            ];
         }
 
         // Sort categories by order if available
@@ -1142,7 +1152,22 @@ $sessions = $stmt->fetchAll();
                                             <div class="mb-4">
                                                 <h6 class="text-primary border-bottom pb-2"><?php echo htmlspecialchars($categoryName); ?></h6>
                                                 <?php foreach ($categoryQuestions as $q): ?>
-                                                <div class="question-item">
+                                                <div class="question-item mb-3">
+                                                    <!-- Question Group & Sub-category badges -->
+                                                    <?php if (!empty($q['group']) || !empty($q['sub_category']) || !empty($q['label_short'])): ?>
+                                                    <div class="mb-2">
+                                                        <?php if (!empty($q['group'])): ?>
+                                                        <span class="badge bg-info me-1"><?php echo htmlspecialchars($q['group']); ?></span>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($q['sub_category'])): ?>
+                                                        <span class="badge bg-secondary me-1"><?php echo htmlspecialchars($q['sub_category']); ?></span>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($q['label_short'])): ?>
+                                                        <span class="badge bg-warning text-dark">(<?php echo htmlspecialchars($q['label_short']); ?>)</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <?php endif; ?>
+
                                                     <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
                                                     <div>
                                                         <?php for ($i = 5; $i >= 1; $i--): ?>
