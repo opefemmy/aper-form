@@ -294,6 +294,8 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
             $qGroup = $q['question_group'] ?? '';
             $qSubCat = $q['sub_category'] ?? '';
             $qLabelShort = $q['question_label'] ?? '';
+            $qType = $q['question_type'] ?? 'rating';
+            $qOptions = $q['options'] ?? '';
 
             if (!isset($questionsByCategory[$qCat])) {
                 $questionsByCategory[$qCat] = [];
@@ -304,7 +306,9 @@ if ($evaluatorRole === 'supervisor' || $evaluatorRole === 'supervising-officer' 
                 'id' => $q['id'],
                 'group' => $qGroup,
                 'sub_category' => $qSubCat,
-                'label_short' => $qLabelShort
+                'label_short' => $qLabelShort,
+                'type' => $qType,
+                'options' => $qOptions
             ];
         }
 
@@ -404,7 +408,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_evaluation']) |
         }
 
         foreach ($allQuestions as $q) {
-            $scores[$q['name']] = intval($_POST[$q['name']] ?? 0);
+            $qType = $q['type'] ?? 'rating';
+            $postValue = $_POST[$q['name']] ?? null;
+
+            // Handle different question types
+            if ($qType === 'multiple_choice') {
+                // Multiple choice - store as JSON array
+                $scores[$q['name']] = is_array($postValue) ? json_encode($postValue) : ($postValue ?? '');
+            } elseif ($qType === 'short_answer' || $qType === 'long_answer') {
+                // Text answers - store as string
+                $scores[$q['name']] = sanitize($postValue ?? '');
+            } elseif ($qType === 'file_upload') {
+                // File uploads - no score to collect
+                $scores[$q['name']] = '';
+            } else {
+                // Rating, scale, yes_no, true_false, single_choice - store as value
+                $scores[$q['name']] = $postValue ?? '';
+            }
         }
 
         // Get existing staff self-evaluation scores from the evaluation
@@ -1170,13 +1190,112 @@ $sessions = $stmt->fetchAll();
 
                                                     <label class="form-label fw-bold"><?php echo htmlspecialchars($q['label']); ?></label>
                                                     <div>
-                                                        <?php for ($i = 5; $i >= 1; $i--): ?>
-                                                        <label class="rating-label">
-                                                            <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
-                                                                   onchange="calculateScores()" <?php echo ($selectedEval[$q['name']] ?? '') == $i ? 'checked' : ''; ?>>
-                                                            <span><?php echo $i; ?></span>
-                                                        </label>
-                                                        <?php endfor; ?>
+                                                        <?php
+                                                        $qType = $q['type'] ?? 'rating';
+                                                        $qOptions = $q['options'] ?? '';
+                                                        $savedValue = $selectedEval[$q['name']] ?? '';
+
+                                                        // Render based on question type
+                                                        if ($qType === 'rating'): ?>
+                                                            <!-- Rating 1-5 stars -->
+                                                            <?php for ($i = 5; $i >= 1; $i--): ?>
+                                                            <label class="rating-label">
+                                                                <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
+                                                                       onchange="calculateScores()" <?php echo $savedValue == $i ? 'checked' : ''; ?>>
+                                                                <span><?php echo $i; ?></span>
+                                                            </label>
+                                                            <?php endfor; ?>
+
+                                                        <?php elseif ($qType === 'scale'): ?>
+                                                            <!-- Scale 1-10 -->
+                                                            <div class="d-flex flex-wrap gap-1">
+                                                                <?php for ($i = 1; $i <= 10; $i++): ?>
+                                                                <label class="rating-label" style="min-width: 40px; text-align: center;">
+                                                                    <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
+                                                                           onchange="calculateScores()" <?php echo $savedValue == $i ? 'checked' : ''; ?>>
+                                                                    <span><?php echo $i; ?></span>
+                                                                </label>
+                                                                <?php endfor; ?>
+                                                            </div>
+
+                                                        <?php elseif ($qType === 'yes_no' || $qType === 'true_false'): ?>
+                                                            <!-- Yes/No or True/False -->
+                                                            <div class="d-flex gap-3">
+                                                                <?php
+                                                                $yesLabel = ($qType === 'yes_no') ? 'Yes' : 'True';
+                                                                $noLabel = ($qType === 'yes_no') ? 'No' : 'False';
+                                                                ?>
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input" type="radio" name="<?php echo $q['name']; ?>" value="1"
+                                                                           onchange="calculateScores()" <?php echo $savedValue == '1' || $savedValue == 1 ? 'checked' : ''; ?>>
+                                                                    <label class="form-check-label"><?php echo $yesLabel; ?></label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input" type="radio" name="<?php echo $q['name']; ?>" value="0"
+                                                                           onchange="calculateScores()" <?php echo $savedValue == '0' || $savedValue == 0 ? 'checked' : ''; ?>>
+                                                                    <label class="form-check-label"><?php echo $noLabel; ?></label>
+                                                                </div>
+                                                            </div>
+
+                                                        <?php elseif ($qType === 'single_choice'): ?>
+                                                            <!-- Single Choice -->
+                                                            <select class="form-select" name="<?php echo $q['name']; ?>" onchange="calculateScores()">
+                                                                <option value="">Select an option</option>
+                                                                <?php
+                                                                $options = array_filter(array_map('trim', explode("\n", $qOptions)));
+                                                                foreach ($options as $opt): ?>
+                                                                <option value="<?php echo htmlspecialchars($opt); ?>" <?php echo $savedValue == $opt ? 'selected' : ''; ?>><?php echo htmlspecialchars($opt); ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+
+                                                        <?php elseif ($qType === 'multiple_choice'): ?>
+                                                            <!-- Multiple Choice (checkboxes) -->
+                                                            <?php
+                                                            $options = array_filter(array_map('trim', explode("\n", $qOptions)));
+                                                            $savedValues = is_array($savedValue) ? $savedValue : (is_string($savedValue) && !empty($savedValue) ? json_decode($savedValue, true) : []);
+                                                            foreach ($options as $opt): ?>
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="checkbox" name="<?php echo $q['name']; ?>[]" value="<?php echo htmlspecialchars($opt); ?>"
+                                                                       <?php echo in_array($opt, $savedValues ?? []) ? 'checked' : ''; ?>>
+                                                                <label class="form-check-label"><?php echo htmlspecialchars($opt); ?></label>
+                                                            </div>
+                                                            <?php endforeach; ?>
+
+                                                        <?php elseif ($qType === 'short_answer'): ?>
+                                                            <!-- Short Answer -->
+                                                            <input type="text" class="form-control" name="<?php echo $q['name']; ?>" value="<?php echo htmlspecialchars($savedValue ?? ''); ?>" placeholder="Enter your answer">
+
+                                                        <?php elseif ($qType === 'long_answer'): ?>
+                                                            <!-- Long Answer / Essay -->
+                                                            <textarea class="form-control" name="<?php echo $q['name']; ?>" rows="4" placeholder="Enter your detailed response"><?php echo htmlspecialchars($savedValue ?? ''); ?></textarea>
+
+                                                        <?php elseif ($qType === 'file_upload'): ?>
+                                                            <!-- File Upload - show info for SO evaluation -->
+                                                            <div class="alert alert-info">
+                                                                <i class="fas fa-info-circle me-2"></i>
+                                                                <strong>File Upload:</strong> Staff member uploaded files in their self-evaluation. View in the staff responses below.
+                                                            </div>
+                                                            <?php
+                                                            // Check if staff uploaded files
+                                                            $fileField = $q['name'] . '_file';
+                                                            if (!empty($selectedEval[$fileField])): ?>
+                                                            <div class="mt-2">
+                                                                <a href="<?php echo htmlspecialchars($selectedEval[$fileField]); ?>" class="btn btn-sm btn-primary" target="_blank">
+                                                                    <i class="fas fa-download me-1"></i> View Uploaded File
+                                                                </a>
+                                                            </div>
+                                                            <?php endif; ?>
+
+                                                        <?php else: ?>
+                                                            <!-- Default to rating -->
+                                                            <?php for ($i = 5; $i >= 1; $i--): ?>
+                                                            <label class="rating-label">
+                                                                <input type="radio" name="<?php echo $q['name']; ?>" value="<?php echo $i; ?>"
+                                                                       onchange="calculateScores()" <?php echo $savedValue == $i ? 'checked' : ''; ?>>
+                                                                <span><?php echo $i; ?></span>
+                                                            </label>
+                                                            <?php endfor; ?>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </div>
                                                 <?php endforeach; ?>
