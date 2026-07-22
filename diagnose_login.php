@@ -44,9 +44,9 @@ echo "<div class='box'>";
 echo "<h2>2. Database Connection Test</h2>";
 
 $db_host = 'localhost';
-$db_name = 'escohsti_aperform_db';
-$db_user = 'root';
-$db_pass = '';
+$db_name = 'persatka_aperform';
+$db_user = 'persatka_opefemmy';
+$db_pass = 'Programmer@123$';
 
 try {
     // Try different PDO options
