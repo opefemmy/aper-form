@@ -4,18 +4,13 @@
  * Annual Performance Evaluation System
  */
 
-// Start output buffering to prevent header issues
-ob_start();
-
-// Database credentials - UPDATE THESE FOR YOUR SERVER
-
 // Database credentials - UPDATE THESE FOR YOUR SERVER
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'persatka_aperform');
 define('DB_USER', 'persatka_opefemmy');
 define('DB_PASS', 'Programmer@123$');
 
-// Site URL - Auto-detect based on current host
+// Site URL
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8088';
 define('SITE_URL', $protocol . '://' . $host);
@@ -30,10 +25,13 @@ define('EMAIL_FROM', 'admin@ekscotech.edu.ng');
 define('EMAIL_TO', 'registrar@ekscotech.edu.ng');
 define('ENABLE_EMAIL_NOTIFICATIONS', true);
 
+// Session name
+define('SESSION_NAME', 'APER_ADMIN_SESSION');
+
 // Timezone
 date_default_timezone_set('Africa/Lagos');
 
-// Error reporting (disable in production)
+// Error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -68,19 +66,8 @@ function getDBConnection() {
  */
 function startSession() {
     if (session_status() === PHP_SESSION_NONE) {
-        // Configure session path if tmp directory exists
-        $sessionPath = '/home/persatka/tmp';
-        if (is_dir($sessionPath) && is_writable($sessionPath)) {
-            session_save_path($sessionPath);
-        }
-
-        // Set session name
-        if (!defined('SESSION_NAME')) {
-            define('SESSION_NAME', 'APER_ADMIN_SESSION');
-        }
         session_name(SESSION_NAME);
-
-        @session_start();
+        session_start();
     }
 }
 
@@ -101,7 +88,7 @@ function isStaffLoggedIn() {
 }
 
 /**
- * Check if evaluator (Supervising Officer/Registrar) is logged in
+ * Check if evaluator is logged in
  */
 function isEvaluatorLoggedIn() {
     startSession();
@@ -117,7 +104,7 @@ function getEvaluatorType() {
 }
 
 /**
- * Require evaluator login - redirects to login if not logged in
+ * Require evaluator login
  */
 function requireEvaluatorLogin() {
     if (!isEvaluatorLoggedIn()) {
@@ -139,12 +126,10 @@ function getAdminRole() {
 function hasPermission($permission) {
     $role = getAdminRole();
 
-    // Super admin has all permissions
     if ($role === 'super_admin') {
         return true;
     }
 
-    // Role-based permissions
     $permissions = [
         'super_admin' => ['settings', 'staff_add', 'staff_edit', 'staff_delete', 'evaluate', 'reports_view', 'reports_export', 'reports_pdf', 'sessions', 'users_manage', 'delete_evaluation', 'staff_upload', 'supervisor_assess', 'registrar_approve', 'download_all_data'],
         'admin' => ['settings', 'staff_add', 'staff_edit', 'staff_delete', 'evaluate', 'reports_view', 'reports_export', 'reports_pdf', 'sessions', 'delete_evaluation', 'staff_upload', 'supervisor_assess', 'registrar_approve', 'download_all_data'],
@@ -201,12 +186,11 @@ function getCurrentAdmin() {
 }
 
 /**
- * Get current staff info (with department and grade level)
+ * Get current staff info
  */
 function getCurrentStaff() {
     startSession();
     if (isStaffLoggedIn()) {
-        // Try to get full details from session or database
         if (isset($_SESSION['staff_department']) && isset($_SESSION['staff_grade_level'])) {
             return [
                 'id' => $_SESSION['staff_id'],
@@ -216,7 +200,6 @@ function getCurrentStaff() {
                 'grade_level' => $_SESSION['staff_grade_level']
             ];
         }
-        // Fallback: fetch from database
         $pdo = getDBConnection();
         $stmt = $pdo->prepare("SELECT id, staff_id, surname, first_name, department, grade_level FROM staff WHERE id = ?");
         $stmt->execute([$_SESSION['staff_id']]);
@@ -265,10 +248,6 @@ function sanitize($input) {
  * Redirect
  */
 function redirect($url) {
-    // Clear any existing output to allow header to work
-    if (ob_get_level()) {
-        ob_end_clean();
-    }
     header('Location: ' . $url);
     exit;
 }
@@ -378,7 +357,7 @@ function getCopyrightText() {
 }
 
 /**
- * Get all settings as an array
+ * Get all settings
  */
 function getAllSettings() {
     $pdo = getDBConnection();
@@ -391,16 +370,13 @@ function getAllSettings() {
 }
 
 /**
- * Get current dark mode state from session
+ * Dark mode
  */
 function isDarkMode() {
     startSession();
     return isset($_SESSION['dark_mode']) && $_SESSION['dark_mode'] === true;
 }
 
-/**
- * Toggle dark mode
- */
 function toggleDarkMode($enabled) {
     startSession();
     $_SESSION['dark_mode'] = $enabled;
