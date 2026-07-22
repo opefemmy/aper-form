@@ -48,11 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $options = sanitize($_POST['options']);
         }
 
-        // Handle custom category
-        $category = $_POST['category'];
-        if ($category === 'custom' && !empty($_POST['custom_category'])) {
-            $category = sanitize($_POST['custom_category']);
-        }
+        // Handle category - text input now accepts any value directly
+        $category = sanitize($_POST['category'] ?? '');
 
         // Handle sub-category (custom sub-category)
         $subCategory = null;
@@ -171,11 +168,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $options = sanitize($_POST['options']);
         }
 
-        // Handle custom category
-        $category = $_POST['category'];
-        if ($category === 'custom' && !empty($_POST['custom_category'])) {
-            $category = sanitize($_POST['custom_category']);
-        }
+        // Handle category - text input now accepts any value directly
+        $category = sanitize($_POST['category'] ?? '');
 
         // Handle sub-category (custom sub-category)
         $subCategory = null;
@@ -717,24 +711,24 @@ foreach ($questions as $q) {
                                                 <div class="modal-body">
                                                     <input type="hidden" name="question_id" value="<?php echo $q['id']; ?>">
                                                     <div class="row">
-                                                        <div class="col-md-4 mb-3">
+                                                        <div class="col-md-6 mb-3">
                                                             <label class="form-label">Category</label>
-                                                            <select class="form-select" name="category" id="edit_category_<?php echo $q['id']; ?>" onchange="toggleCustomCategory(this, 'edit_<?php echo $q['id']; ?>')">
+                                                            <input type="text" class="form-control" name="category" id="edit_category_<?php echo $q['id']; ?>" list="categoryListEdit<?php echo $q['id']; ?>" value="<?php echo htmlspecialchars($q['category'] ?? ''); ?>" required>
+                                                            <datalist id="categoryListEdit<?php echo $q['id']; ?>">
                                                                 <?php
                                                                 // Get all unique categories from database
-                                                                $allCategories = ['Teaching', 'Research', 'Administrative', 'Community', 'Professional'];
+                                                                $allCategoriesEdit = ['Teaching', 'Research', 'Administrative', 'Community', 'Professional'];
                                                                 $stmt = $pdo->query("SELECT DISTINCT category FROM evaluation_questions WHERE category IS NOT NULL AND category != '' ORDER BY category");
                                                                 while ($row = $stmt->fetch()) {
-                                                                    if (!in_array($row['category'], $allCategories)) {
-                                                                        $allCategories[] = $row['category'];
+                                                                    if (!in_array($row['category'], $allCategoriesEdit)) {
+                                                                        $allCategoriesEdit[] = $row['category'];
                                                                     }
                                                                 }
-                                                                foreach ($allCategories as $cat): ?>
-                                                                <option value="<?php echo htmlspecialchars($cat); ?>" <?php echo $q['category'] == $cat ? 'selected' : ''; ?>><?php echo htmlspecialchars($cat); ?></option>
+                                                                foreach ($allCategoriesEdit as $cat): ?>
+                                                                <option value="<?php echo htmlspecialchars($cat); ?>">
                                                                 <?php endforeach; ?>
-                                                                <option value="custom" <?php echo !in_array($q['category'], $allCategories) ? 'selected' : ''; ?>>+ Add Custom Category</option>
-                                                            </select>
-                                                            <input type="text" class="form-control mt-2" name="custom_category" id="edit_<?php echo $q['id']; ?>_custom_category" placeholder="Enter custom category name" style="display:none;" value="<?php echo !in_array($q['category'], $allCategories) ? htmlspecialchars($q['category']) : ''; ?>">
+                                                            </datalist>
+                                                            <small class="text-muted">Type a new category or select from existing</small>
                                                         </div>
                                                         <div class="col-md-4 mb-3">
                                                             <label class="form-label">Sub-Category</label>
@@ -879,16 +873,15 @@ foreach ($questions as $q) {
                     </div>
                     <div class="modal-body">
                         <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Category/Section</label>
-                                <select class="form-select" name="category" id="add_category" required onchange="toggleCustomCategory(this, 'add'); updateSubCategories(this.value);">
-                                    <option value="">Select Category</option>
+                                <input type="text" class="form-control" name="category" id="add_category" list="categoryList" placeholder="Type or select category" required>
+                                <datalist id="categoryList">
                                     <?php foreach ($categoryOptions as $cat): ?>
-                                    <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                    <option value="<?php echo htmlspecialchars($cat); ?>">
                                     <?php endforeach; ?>
-                                    <option value="custom">+ Add New Category</option>
-                                </select>
-                                <input type="text" class="form-control mt-2" name="custom_category" id="add_custom_category" placeholder="Enter new category name" style="display:none;">
+                                </datalist>
+                                <small class="text-muted">Type a new category or select from existing</small>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Sub-Category</label>
@@ -1368,13 +1361,9 @@ foreach ($questions as $q) {
 
         // Pre-fill form with last used values
         <?php if (!empty($lastCategory)): ?>
-        var categorySelect = document.getElementById('add_category');
-        if (categorySelect) {
-            // Check if category exists in options
-            var hasOption = Array.from(categorySelect.options).some(opt => opt.value === '<?php echo addslashes($lastCategory); ?>');
-            if (hasOption) {
-                categorySelect.value = '<?php echo addslashes($lastCategory); ?>';
-            }
+        var categoryInput = document.getElementById('add_category');
+        if (categoryInput) {
+            categoryInput.value = '<?php echo addslashes($lastCategory); ?>';
         }
         <?php endif; ?>
 
