@@ -4,6 +4,9 @@
  * Annual Performance Evaluation System
  */
 
+// Start output buffering to prevent header issues
+ob_start();
+
 // Database credentials - UPDATE THESE FOR YOUR SERVER
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'persatka_aperform');
@@ -158,8 +161,7 @@ function requirePermission($permission) {
  */
 function requireAdminLogin() {
     if (!isAdminLoggedIn()) {
-        header('Location: ' . ADMIN_URL . '/login.php');
-        exit;
+        redirect(ADMIN_URL . '/login.php');
     }
 }
 
@@ -168,8 +170,7 @@ function requireAdminLogin() {
  */
 function requireStaffLogin() {
     if (!isStaffLoggedIn()) {
-        header('Location: ' . SITE_URL . '/staff-login.php');
-        exit;
+        redirect(SITE_URL . '/staff-login.php');
     }
 }
 
@@ -254,6 +255,10 @@ function sanitize($input) {
  * Redirect
  */
 function redirect($url) {
+    // Clear any existing output to allow header to work
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
     header('Location: ' . $url);
     exit;
 }
