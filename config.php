@@ -4,6 +4,15 @@
  * Annual Performance Evaluation System
  */
 
+// Configure session path BEFORE any output - must be first!
+$sessionPath = '/home/persatka/tmp';
+if (!is_dir($sessionPath)) {
+    @mkdir($sessionPath, 0755, true);
+}
+if (is_dir($sessionPath) && is_writable($sessionPath)) {
+    session_save_path($sessionPath);
+}
+
 // Start output buffering to prevent header issues
 ob_start();
 
