@@ -4,22 +4,6 @@
  * Annual Performance Evaluation System
  */
 
-// Session must be configured BEFORE any output
-$sessionPath = '/home/persatka/tmp';
-if (!is_dir($sessionPath)) {
-    @mkdir($sessionPath, 0777, true);
-}
-session_save_path($sessionPath);
-ini_set('session.cookie_httponly', 1);
-
-// Start output buffering to prevent header issues
-ob_start();
-
-// Prevent caching
-header('Cache-Control: no-cache, no-store, must-revalidate');
-header('Pragma: no-cache');
-header('Expires: 0');
-
 // Database credentials - UPDATE THESE FOR YOUR SERVER
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'persatka_aperform');
@@ -39,7 +23,7 @@ define('SMTP_USERNAME', 'admin@ekscotech.edu.ng');
 define('SMTP_PASSWORD', 'Directorate@123$');
 define('EMAIL_FROM', 'admin@ekscotech.edu.ng');
 define('EMAIL_TO', 'registrar@ekscotech.edu.ng');
-define('ENABLE_EMAIL_NOTIFICATIONS', true); // Set to false to disable email notifications
+define('ENABLE_EMAIL_NOTIFICATIONS', true);
 
 // Session name
 define('SESSION_NAME', 'APER_ADMIN_SESSION');
@@ -83,7 +67,7 @@ function getDBConnection() {
 function startSession() {
     if (session_status() === PHP_SESSION_NONE) {
         session_name(SESSION_NAME);
-        @session_start();
+        session_start();
     }
 }
 
