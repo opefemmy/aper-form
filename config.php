@@ -4,21 +4,6 @@
  * Annual Performance Evaluation System
  */
 
-// Configure session path BEFORE any output - must be first!
-$sessionPath = '/home/persatka/tmp';
-if (!is_dir($sessionPath)) {
-    @mkdir($sessionPath, 0755, true);
-}
-if (is_dir($sessionPath) && is_writable($sessionPath)) {
-    session_save_path($sessionPath);
-}
-
-// Set session name BEFORE starting session
-if (!defined('SESSION_NAME')) {
-    define('SESSION_NAME', 'APER_ADMIN_SESSION');
-}
-session_name(SESSION_NAME);
-
 // Start output buffering to prevent header issues
 ob_start();
 
@@ -83,7 +68,18 @@ function getDBConnection() {
  */
 function startSession() {
     if (session_status() === PHP_SESSION_NONE) {
-        // Session name already set at top of config.php
+        // Configure session path if tmp directory exists
+        $sessionPath = '/home/persatka/tmp';
+        if (is_dir($sessionPath) && is_writable($sessionPath)) {
+            session_save_path($sessionPath);
+        }
+
+        // Set session name
+        if (!defined('SESSION_NAME')) {
+            define('SESSION_NAME', 'APER_ADMIN_SESSION');
+        }
+        session_name(SESSION_NAME);
+
         @session_start();
     }
 }
