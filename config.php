@@ -4,6 +4,16 @@
  * Annual Performance Evaluation System
  */
 
+// Configure session BEFORE anything else
+$sessionPath = '/home/persatka/tmp';
+if (!is_dir($sessionPath)) {
+    @mkdir($sessionPath, 0755, true);
+}
+if (is_dir($sessionPath) && is_writable($sessionPath)) {
+    session_save_path($sessionPath);
+}
+ini_set('upload_tmp_dir', $sessionPath);
+
 // Start output buffering to prevent header issues
 ob_start();
 
@@ -69,8 +79,11 @@ function getDBConnection() {
  */
 function startSession() {
     if (session_status() === PHP_SESSION_NONE) {
-        session_name(SESSION_NAME);
-        session_start();
+        // Suppress warnings - they'll show as errors on some servers
+        @session_name(SESSION_NAME);
+        @session_start();
+    } elseif (session_status() === PHP_SESSION_DISABLED) {
+        // Session disabled - this is rare but handle it
     }
 }
 
