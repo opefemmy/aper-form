@@ -4,10 +4,6 @@
  * Annual Performance Evaluation System
  */
 
-// Configure PHP settings before anything else
-ini_set('session.save_path', '/home/persatka/tmp');
-ini_set('upload_tmp_dir', '/home/persatka/tmp');
-
 // Database credentials - UPDATE THESE FOR YOUR SERVER
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'persatka_aperform');

@@ -1,0 +1,8 @@
+# PHP Configuration
+php_value upload_tmp_dir /home/persatka/tmp
+php_value session.save_path /home/persatka/tmp
+php_value sys_temp_dir /home/persatka/tmp
+
+# Upload settings
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
