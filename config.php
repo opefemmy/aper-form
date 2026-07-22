@@ -45,9 +45,6 @@ define('EMAIL_FROM', 'admin@ekscotech.edu.ng');
 define('EMAIL_TO', 'registrar@ekscotech.edu.ng');
 define('ENABLE_EMAIL_NOTIFICATIONS', true);
 
-// Session name
-define('SESSION_NAME', 'APER_ADMIN_SESSION');
-
 // Timezone
 date_default_timezone_set('Africa/Lagos');
 
