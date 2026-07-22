@@ -1,78 +1,67 @@
 <?php
 /**
- * Create/Reset Super Admin Account
- * Run this script to create or reset the super admin account
+ * Create/Reset All Admin Accounts
+ * Run this script to create or reset ALL default admin accounts
+ * All accounts will use password: Aper@2026
  */
 
 require_once 'config.php';
 
 $pdo = getDBConnection();
 
-// Super admin credentials - CHANGE THESE AS NEEDED
-$name = 'Super Administrator';
-$email = 'super@admin.com';
-$password = 'Aper@2026';  // Default password - CHANGE THIS!
-$role = 'super_admin';
-$status = 'active';
-
+$password = 'Aper@2026';
 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
 echo "==========================================\n";
-echo "  Super Admin Account Setup\n";
+echo "  Admin Accounts Setup\n";
 echo "==========================================\n\n";
 
+// All default admin accounts to create
+$adminAccounts = [
+    ['Super Administrator', 'super@admin.com', 'super_admin'],
+    ['Admin User', 'admin@aper.com', 'admin'],
+    ['Evaluator Staff', 'evaluator@aper.com', 'evaluator'],
+    ['Report Viewer', 'viewer@aper.com', 'viewer'],
+    ['Registrar', 'registrar@aper.com', 'registrar'],
+];
+
+$created = 0;
+$updated = 0;
+
 try {
-    // Check if super_admin already exists
-    $stmt = $pdo->prepare("SELECT id, email FROM admins WHERE role = 'super_admin' LIMIT 1");
-    $stmt->execute();
-    $existing = $stmt->fetch();
+    foreach ($adminAccounts as $account) {
+        list($name, $email, $role) = $account;
 
-    if ($existing) {
-        // Update existing super_admin
-        $stmt = $pdo->prepare("UPDATE admins SET name = ?, email = ?, password = ?, status = ? WHERE role = 'super_admin'");
-        $stmt->execute([$name, $email, $hashedPassword, $status]);
-        echo "✅ Super Admin account UPDATED successfully!\n";
-        echo "   Old email: " . $existing['email'] . "\n";
-    } else {
-        // Insert new super_admin
-        $stmt = $pdo->prepare("INSERT INTO admins (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$name, $email, $hashedPassword, $role, $status]);
-        echo "✅ Super Admin account CREATED successfully!\n";
-    }
+        // Check if this email already exists
+        $stmt = $pdo->prepare("SELECT id FROM admins WHERE email = ? LIMIT 1");
+        $stmt->execute([$email]);
+        $existing = $stmt->fetch();
 
-    echo "\n--- Login Credentials ---\n";
-    echo "Email:    $email\n";
-    echo "Password: $password\n";
-    echo "Role:     super_admin\n";
-    echo "-------------------------\n";
-
-    // Also create admin account if not exists
-    $stmt = $pdo->prepare("SELECT id FROM admins WHERE role = 'admin' LIMIT 1");
-    $stmt->execute();
-    $adminExists = $stmt->fetch();
-
-    if (!$adminExists) {
-        $adminPassword = password_hash('Aper@2026', PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO admins (name, email, password, role, status) VALUES (?, ?, ?, 'admin', 'active')");
-        $stmt->execute(['Admin User', 'admin@aper.com', $adminPassword]);
-        echo "\n✅ Admin account also created: admin@aper.com / Aper@2026\n";
-    }
-
-    // Also create registrar account if not exists
-    $stmt = $pdo->prepare("SELECT id FROM admins WHERE role = 'registrar' LIMIT 1");
-    $stmt->execute();
-    $registrarExists = $stmt->fetch();
-
-    if (!$registrarExists) {
-        $regPassword = password_hash('Aper@2026', PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("INSERT INTO admins (name, email, password, role, status) VALUES (?, ?, ?, 'registrar', 'active')");
-        $stmt->execute(['Registrar', 'registrar@aper.com', $regPassword]);
-        echo "✅ Registrar account also created: registrar@aper.com / Aper@2026\n";
+        if ($existing) {
+            // Update existing account
+            $stmt = $pdo->prepare("UPDATE admins SET name = ?, password = ?, role = ?, status = 'active' WHERE email = ?");
+            $stmt->execute([$name, $hashedPassword, $role, $email]);
+            echo "✅ Updated: $email ($role)\n";
+            $updated++;
+        } else {
+            // Insert new account
+            $stmt = $pdo->prepare("INSERT INTO admins (name, email, password, role, status) VALUES (?, ?, ?, ?, 'active')");
+            $stmt->execute([$name, $email, $hashedPassword, $role]);
+            echo "✅ Created: $email ($role)\n";
+            $created++;
+        }
     }
 
     echo "\n==========================================\n";
-    echo "All admin accounts ready!\n";
-    echo "==========================================\n";
+    echo "  All Accounts Ready!\n";
+    echo "==========================================\n\n";
+    echo "📋 Login Credentials (Password: Aper@2026):\n\n";
+    echo "   • super@admin.com     - Super Administrator\n";
+    echo "   • admin@aper.com      - Admin User\n";
+    echo "   • evaluator@aper.com - Evaluator Staff\n";
+    echo "   • viewer@aper.com     - Report Viewer\n";
+    echo "   • registrar@aper.com  - Registrar\n";
+    echo "\n==========================================\n";
     echo "\nLogin at: " . SITE_URL . "/login.php\n";
 
 } catch (Exception $e) {
